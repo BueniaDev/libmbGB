@@ -10,9 +10,9 @@ else()
 endif()
 
 set(LIBMBGB_API_HEADERS
-	include/libmbgb/libmbgb_api.h
-	include/libmbgb/utils.h
-	include/libmbgb/mmu.h)
+	include/libmbGB/libmbgb_api.h
+	include/libmbGB/utils.h
+	include/libmbGB/mmu.h)
 
 set(LIBMBGB
 	src/core/mmu.cpp)
