@@ -4,9 +4,10 @@ matrix:
   include:
     - os: linux
       dist: trusty
-      sudo: false
+      sudo: required
     - os: osx
       osx_image: xcode10
+      sudo: required
 
 compiler:
   - gcc
