@@ -1,0 +1,26 @@
+language: cpp
+
+matrix:
+  include:
+    - os: linux
+      dist: trusty
+      sudo: false
+    - os: osx
+      osx_image: xcode10
+
+compiler:
+  - gcc
+  - clang
+
+addons:
+  apt:
+    packages:
+      - cmake
+
+before_install:
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update          ; fi
+
+script:
+  - cd libmbGB
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then ./compilemac.sh          ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./compilelinux.sh          ; fi
