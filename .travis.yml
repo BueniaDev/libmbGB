@@ -2,7 +2,6 @@ language: cpp
 
 os:
   - linux
-  - osx
 
 compiler:
   - gcc
@@ -13,9 +12,5 @@ addons:
     packages:
       - cmake
 
-before_install:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update          ; fi
-
 script:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then $TRAVIS_BUILD_DIR/travis/compilemac.sh         ; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./compilelinux.sh          ; fi
