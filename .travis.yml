@@ -17,5 +17,5 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update          ; fi
 
 script:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then ./compilemac.sh          ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sudo ./compilemac.sh          ; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./compilelinux.sh          ; fi
