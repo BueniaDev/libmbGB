@@ -34,5 +34,9 @@ namespace gb
 	    int subtract = 6;
 	    int half = 5;
     	    int carry = 4;
+
+	    int m_cycles;
+
+	    void daa();
 	};
 }
