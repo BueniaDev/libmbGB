@@ -1,3 +1,6 @@
+#ifndef GB_MMU
+#define GB_MMU
+
 #include "libmbgb_api.h"
 #include <cstdint>
 
@@ -22,3 +25,5 @@ namespace gb
             void writeWord(uint16_t address, uint16_t value);
     };
 }
+
+#endif // GB_MMU

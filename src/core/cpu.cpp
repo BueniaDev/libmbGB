@@ -1,4 +1,5 @@
 #include "../../include/libmbGB/cpu.h"
+#include "../../include/libmbGB/mmu.h"
 #include "../../include/libmbGB/utils.h"
 #include <iostream>
 using namespace std;
@@ -8,7 +9,7 @@ namespace gb
 {
 	CPU::CPU()
 	{
-	    if (biosload)
+	    if (mem->biosload)
 	    {
 		CPUResetBIOS();
 	    }
@@ -43,6 +44,20 @@ namespace gb
 	    pc = 0x0000;
 	    sp = 0x0000;
 	}
+
+	void CPU::executenextopcode()
+	{
+	    uint8_t opcode = mem->readByte(pc++);
+	    if (opcode != 0xCB)
+	    {
+		executeopcode(opcode);
+	    }
+	    else
+	    {
+		opcode = mem->readByte(pc++);		
+		executecbopcode(opcode);
+	    }
+	}
 	
 	// Stolen
 	void CPU::daa()
@@ -63,9 +78,9 @@ namespace gb
 	    }
 	    else
 	    {
-		if ((af.lo & 0x10) == 0x10 || af.hi > 0x99)
+		if (((af.lo & 0x10) == 0x10) || (af.hi > 0x99))
 		{
-		    if ((af.lo & 0x20) == 0x20 || (af.hi & 0x0F) > 0x09)
+		    if (((af.lo & 0x20) == 0x20) || (af.hi & 0x0F) > 0x09)
 		    {
 			af.hi += 0x66;
 		    }
@@ -75,7 +90,7 @@ namespace gb
 		    }
 		    tempF |= 0x10;
 		}
-		else if ((af.lo & 0x20) == 0x20) || (af.hi & 0x0F) > 0x09)
+		else if (((af.lo & 0x20) == 0x20) || (af.hi & 0x0F) > 0x09)
 		{
 		    af.hi += 0x06;
 		}
@@ -88,5 +103,11 @@ namespace gb
 	    af.lo = tempF;
 
 	    m_cycles += 4;
+	}
+
+	void CPU::load8bit(uint8_t regone, uint8_t regtwo, int cycles)
+	{
+	    regone = regtwo;
+	    m_cycles += cycles;
 	}
 }

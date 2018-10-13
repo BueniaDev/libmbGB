@@ -17,7 +17,9 @@ set(LIBMBGB_API_HEADERS
 	include/libmbGB/mmu.h)
 
 set(LIBMBGB
-	src/core/mmu.cpp)
+	src/core/mmu.cpp
+	src/core/cpu.cpp
+	src/core/ops.cpp)
 
 if (WIN32)
 	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")

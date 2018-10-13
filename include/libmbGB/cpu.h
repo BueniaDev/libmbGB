@@ -37,6 +37,13 @@ namespace gb
 
 	    int m_cycles;
 
+	    MMU *mem;
+
+	    void executenextopcode();
+	    void executeopcode(uint8_t opcode);
+	    void executecbopcode(uint8_t opcode);
+
 	    void daa();
+	    void load8bit(uint8_t regone, uint8_t regtwo, int cycles);
 	};
 }
