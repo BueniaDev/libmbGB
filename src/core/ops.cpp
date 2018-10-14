@@ -85,6 +85,44 @@ namespace gb
 		case 0xFA: load8bit(af.hi, mem->readByte(mem->readWord(pc++)), 16); break;
 		case 0x3E: load8bit(af.hi, mem->readByte(pc++), 8); break;
 
+		// LD n, A
+		case 0x47: load8bit(bc.hi, af.hi, 4); break;
+		case 0x4F: load8bit(bc.lo, af.hi, 4); break;
+		case 0x57: load8bit(de.hi, af.hi, 4); break;
+		case 0x5F: load8bit(de.lo, af.hi, 4); break;
+		case 0x67: load8bit(hl.hi, af.hi, 4); break;
+		case 0x6F: load8bit(hl.lo, af.hi, 4); break;
+		case 0x02: load8bit(mem->readByte(bc.reg), af.hi, 8); break;
+		case 0x12: load8bit(mem->readByte(de.reg), af.hi, 8); break;
+		case 0x77: load8bit(mem->readByte(hl.reg), af.hi, 8); break;
+		case 0xEA: load8bit(mem->readByte(mem->readWord(pc++)), af.hi, 16); break;
+
+		// LD A, (C)
+		case 0xF2: load8bit(af.hi, (0xFF00 + bc.lo), 8); break;
+		
+		// LD (C), A
+		case 0xE2: load8bit((0xFF00 + bc.lo), af.hi, 8); break;
+
+		// LDD A, (HL)
+		case 0x3A: load8bit(af.hi, mem->readByte(hl.reg--), 8); break;
+		
+		// LDD (HL), A
+		case 0x32: load8bit(mem->readByte(hl.reg--), af.hi, 8); break;
+
+		// LDI A, (HL)
+		case 0x2A: load8bit(af.hi, mem->readByte(hl.reg++), 8); break;
+
+		// LDI (HL), A
+		case 0x22: load8bit(mem->readByte(hl.reg++), af.hi, 8); break;
+
+		// LDH (n), A
+		case 0xE0: load8bit((0xFF00 + mem->readByte(pc++)), af.hi, 12); break;
+
+		// LDH A, (n)
+		case 0xF0: load8bit(af.hi, (0xFF00 + mem->readByte(pc++)), 12); break;	
+
+		// TODO: More opcodes
+
 		default: cout << "Unrecognized opcode at 0x" << hex << (int) opcode << endl;
 	    }
 	}
