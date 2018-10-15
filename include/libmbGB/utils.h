@@ -8,7 +8,7 @@
 
 #define TestBit(x, y) ( Test(x, Bit(y)) != 0 )
 #define BitSet(x, y) ( Set(x, Bit(y)) )
-#define BitReset(x, y) ( Reset(x, Bit(y) )
+#define BitReset(x, y) ( Reset(x, Bit(y)) )
 
 
 

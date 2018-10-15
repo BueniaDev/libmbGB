@@ -121,6 +121,66 @@ namespace gb
 		// LDH A, (n)
 		case 0xF0: load8bit(af.hi, (0xFF00 + mem->readByte(pc++)), 12); break;	
 
+		// 16-bit loads
+		
+		// LD n, nn
+		case 0x01: load16bit(bc.reg, mem->readWord(pc++), 12); break;
+		case 0x11: load16bit(de.reg, mem->readWord(pc++), 12); break;
+		case 0x21: load16bit(hl.reg, mem->readWord(pc++), 12); break;
+		case 0x31: load16bit(sp, mem->readWord(pc++), 12); break;
+
+		// LD SP, HL
+		case 0xF9: load16bit(sp, hl.reg, 8); break;
+
+		// LDHL SP, n
+		case 0xF8:
+		{
+		    int8_t n = (int8_t)mem->readByte(pc++);
+		    uint16_t value = (sp + n) & 0xFFFF;
+		    load16bit(hl.reg, value, 0);
+
+		    af.lo = 0;
+
+		    Reset(af.lo, Bit(zero));
+		    BitReset(af.lo, subtract);
+
+		    if ((sp & 0xF) + (n & 0xF) > 0xF)
+		    {
+			BitSet(af.lo, half);
+		    }
+		    else
+		    {
+			BitReset(af.lo, half);
+		    }
+
+		    if ((sp + n) > 0xFFFF)
+		    {
+			BitSet(af.lo, carry);
+		    }
+		    else
+		    {
+			BitReset(af.lo, carry);
+		    }
+
+		    m_cycles += 12;
+		}
+		break;
+
+		// LD (nn), SP
+		case 0x08: load16bit(mem->readWord(pc++), sp, 20); break;
+
+		// PUSH nn
+		case 0xF5: pushontostack(af.reg, 16); break;
+		case 0xC5: pushontostack(bc.reg, 16); break;
+		case 0xD5: pushontostack(de.reg, 16); break;
+		case 0xE5: pushontostack(hl.reg, 16); break;
+
+		// POP nn
+		case 0xF1: popontostack(af.reg, 12); break;
+		case 0xC1: popontostack(bc.reg, 12); break;
+		case 0xD1: popontostack(de.reg, 12); break;
+		case 0xE1: popontostack(hl.reg, 12); break;
+
 		// TODO: More opcodes
 
 		default: cout << "Unrecognized opcode at 0x" << hex << (int) opcode << endl;

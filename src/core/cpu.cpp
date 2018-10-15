@@ -110,4 +110,30 @@ namespace gb
 	    regone = regtwo;
 	    m_cycles += cycles;
 	}
+
+	void CPU::load16bit(uint16_t regone, uint16_t regtwo, int cycles)
+	{
+	    regone = regtwo;
+	    m_cycles += cycles;
+	}
+
+	void CPU::pushontostack(uint16_t regone, int cycles)
+	{
+	    uint8_t hi = regone >> 8;
+	    uint8_t lo = regone & 0xFF;
+	    mem->writeByte(sp--, hi);
+	    mem->writeByte(sp--, lo);
+
+	    m_cycles += cycles;
+	}
+
+	void CPU::popontostack(uint16_t regone, int cycles)
+	{
+	    uint16_t tempword = mem->readByte(sp + 1) << 8;
+	    tempword |= mem->readByte(sp);
+	    sp += 2;
+	
+	    regone = tempword;
+	    m_cycles += cycles;
+	}
 }

@@ -45,5 +45,8 @@ namespace gb
 
 	    void daa();
 	    void load8bit(uint8_t regone, uint8_t regtwo, int cycles);
+	    void load16bit(uint16_t regone, uint16_t regtwo, int cycles);
+	    void pushontostack(uint16_t regone, int cycles);
+	    void popontostack(uint16_t regone, int cycles);
 	};
 }
