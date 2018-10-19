@@ -136,4 +136,42 @@ namespace gb
 	    regone = tempword;
 	    m_cycles += cycles;
 	}
+
+	void CPU::add8bit(uint8_t regone, uint8_t regtwo, int cycles, bool carry)
+	{
+	    uint8_t adding = regtwo;
+
+	    if (carry)
+	    {
+		if (TestBit(af.lo, carry))
+		{
+		    adding++;
+		}
+	    }
+
+	    af.lo = 0;
+
+	    if ((regone + adding) == 0)
+	    {
+		BitSet(af.lo, zero);
+	    }
+
+	    BitReset(af.lo, subtract);
+
+	    uint16_t halftest = regone & 0xF;
+	    halftest += adding & 0xF;
+
+	    if ((halftest & 0x10) == 0x10)
+	    {
+		BitSet(af.lo, half);
+	    }
+
+	    if ((regone + adding) > 0xFF)
+	    {
+		BitSet(af.lo, carry);
+	    }
+
+	    regone += adding;
+	    m_cycles += cycles;
+	}
 }

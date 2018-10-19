@@ -181,6 +181,30 @@ namespace gb
 		case 0xD1: popontostack(de.reg, 12); break;
 		case 0xE1: popontostack(hl.reg, 12); break;
 
+		// 8-bit ALU
+
+		// ADD A, n
+		case 0x87: add8bit(af.lo, af.lo, 4, false); break;
+		case 0x80: add8bit(af.lo, bc.hi, 4, false); break;
+		case 0x81: add8bit(af.lo, bc.lo, 4, false); break;
+		case 0x82: add8bit(af.lo, de.hi, 4, false); break;
+		case 0x83: add8bit(af.lo, de.lo, 4, false); break;
+		case 0x84: add8bit(af.lo, hl.hi, 4, false); break;
+		case 0x85: add8bit(af.lo, hl.lo, 4, false); break;
+		case 0x86: add8bit(af.lo, mem->readByte(hl.reg), 8, false); break;
+		case 0xC6: add8bit(af.lo, mem->readByte(pc++), 8, false); break;
+
+		// ADC A, n
+		case 0x8F: add8bit(af.lo, af.lo, 4, true); break;
+		case 0x88: add8bit(af.lo, bc.hi, 4, true); break;
+		case 0x89: add8bit(af.lo, bc.lo, 4, true); break;
+		case 0x8A: add8bit(af.lo, de.hi, 4, true); break;
+		case 0x8B: add8bit(af.lo, de.lo, 4, true); break;
+		case 0x8C: add8bit(af.lo, hl.hi, 4, true); break;
+		case 0x8D: add8bit(af.lo, hl.lo, 4, true); break;
+		case 0x8E: add8bit(af.lo, mem->readByte(hl.reg), 8, true); break;
+		case 0xCE: add8bit(af.lo, mem->readByte(pc++), 8, true); break;
+
 		// TODO: More opcodes
 
 		default: cout << "Unrecognized opcode at 0x" << hex << (int) opcode << endl;
