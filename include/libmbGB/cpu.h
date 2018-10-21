@@ -49,5 +49,6 @@ namespace gb
 	    void pushontostack(uint16_t regone, int cycles);
 	    void popontostack(uint16_t regone, int cycles);
 	    void add8bit(uint8_t regone, uint8_t regtwo, int cycles, bool carry);
+	    void sub8bit(uint8_t regone, uint8_t regtwo, int cycles, bool carry);
 	};
 }

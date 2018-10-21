@@ -174,4 +174,42 @@ namespace gb
 	    regone += adding;
 	    m_cycles += cycles;
 	}
+
+	void CPU::sub8bit(uint8_t regone, uint8_t regtwo, int cycles, bool carry)
+	{
+	    uint8_t sub = regtwo;
+
+	    if (carry)
+	    {
+		if (TestBit(af.lo, carry))
+		{
+		    sub++;
+		}
+	    }
+
+	    af.lo = 0;
+
+	    if (regone == 0)
+	    {
+		BitSet(af.lo, zero);
+	    }
+
+	    BitSet(af.lo, subtract);
+
+	    if (regone < sub)
+	    {
+		BitSet(af.lo, carry);
+	    }
+
+	    int16_t halftest = (regone & 0xF);
+	    halftest -= (sub & 0xF);
+	
+	    if (halftest < 0)
+	    {
+		BitSet(af.lo, half);
+	    }
+
+	    regone -= sub;
+	    m_cycles += cycles;
+	}
 }

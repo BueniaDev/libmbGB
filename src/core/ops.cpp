@@ -205,6 +205,28 @@ namespace gb
 		case 0x8E: add8bit(af.lo, mem->readByte(hl.reg), 8, true); break;
 		case 0xCE: add8bit(af.lo, mem->readByte(pc++), 8, true); break;
 
+		// SUB n
+		case 0x97: sub8bit(af.lo, af.lo, 4, false); break;
+		case 0x90: sub8bit(af.lo, bc.hi, 4, false); break;
+		case 0x91: sub8bit(af.lo, bc.lo, 4, false); break;
+		case 0x92: sub8bit(af.lo, de.hi, 4, false); break;
+		case 0x93: sub8bit(af.lo, de.lo, 4, false); break;
+		case 0x94: sub8bit(af.lo, hl.hi, 4, false); break;
+		case 0x95: sub8bit(af.lo, hl.lo, 4, false); break;
+		case 0x96: sub8bit(af.lo, mem->readByte(hl.reg), 8, false); break;
+		case 0xD6: sub8bit(af.lo, mem->readByte(pc++), 8, false); break;
+
+		// SBC A, n
+		case 0x9F: sub8bit(af.lo, af.lo, 4, true); break;
+		case 0x98: sub8bit(af.lo, bc.hi, 4, true); break;
+		case 0x99: sub8bit(af.lo, bc.lo, 4, true); break;
+		case 0x9A: sub8bit(af.lo, de.hi, 4, true); break;
+		case 0x9B: sub8bit(af.lo, de.lo, 4, true); break;
+		case 0x9C: sub8bit(af.lo, hl.hi, 4, true); break;
+		case 0x9D: sub8bit(af.lo, hl.lo, 4, true); break;
+		case 0x9E: sub8bit(af.lo, mem->readByte(hl.reg), 8, true); break;
+		case 0xDE: sub8bit(af.lo, mem->readByte(pc++), 8, true); break;		
+		
 		// TODO: More opcodes
 
 		default: cout << "Unrecognized opcode at 0x" << hex << (int) opcode << endl;
