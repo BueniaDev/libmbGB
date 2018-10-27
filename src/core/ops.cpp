@@ -227,6 +227,70 @@ namespace gb
 		case 0x9E: sub8bit(af.lo, mem->readByte(hl.reg), 8, true); break;
 		case 0xDE: sub8bit(af.lo, mem->readByte(pc++), 8, true); break;		
 		
+		// AND n
+		case 0xA7: and8bit(af.hi, af.hi, 4); break;
+		case 0xA0: and8bit(af.hi, bc.hi, 4); break;
+		case 0xA1: and8bit(af.hi, bc.lo, 4); break;
+		case 0xA2: and8bit(af.hi, de.hi, 4); break;
+		case 0xA3: and8bit(af.hi, de.lo, 4); break;
+		case 0xA4: and8bit(af.hi, hl.hi, 4); break;
+		case 0xA5: and8bit(af.hi, hl.lo, 4); break;
+		case 0xA6: and8bit(af.hi, mem->readByte(hl.reg), 8); break;
+		case 0xE6: and8bit(af.hi, mem->readByte(pc++), 8); break;
+
+		// OR n
+		case 0xB7: or8bit(af.hi, af.hi, 4); break;
+		case 0xB0: or8bit(af.hi, bc.hi, 4); break;
+		case 0xB1: or8bit(af.hi, bc.lo, 4); break;
+		case 0xB2: or8bit(af.hi, de.hi, 4); break;
+		case 0xB3: or8bit(af.hi, de.lo, 4); break;
+		case 0xB4: or8bit(af.hi, hl.hi, 4); break;
+		case 0xB5: or8bit(af.hi, hl.lo, 4); break;
+		case 0xB6: or8bit(af.hi, mem->readByte(hl.reg), 8); break;
+		case 0xF6: or8bit(af.hi, mem->readByte(pc++), 8); break;
+
+		// XOR n
+		case 0xAF: xor8bit(af.hi, af.hi, 4); break;
+		case 0xA8: xor8bit(af.hi, bc.hi, 4); break;
+		case 0xA9: xor8bit(af.hi, bc.lo, 4); break;
+		case 0xAA: xor8bit(af.hi, de.hi, 4); break;
+		case 0xAB: xor8bit(af.hi, de.lo, 4); break;
+		case 0xAC: xor8bit(af.hi, hl.hi, 4); break;
+		case 0xAD: xor8bit(af.hi, hl.lo, 4); break;
+		case 0xAE: xor8bit(af.hi, mem->readByte(hl.reg), 8); break;
+		case 0xEE: xor8bit(af.hi, mem->readByte(pc++), 8); break;
+
+		// CP n
+		case 0xBF: sub8bit(af.hi, af.hi, 4, false); break;
+		case 0xB8: sub8bit(af.hi, bc.hi, 4, false); break;
+		case 0xB9: sub8bit(af.hi, bc.lo, 4, false); break;
+		case 0xBA: sub8bit(af.hi, de.hi, 4, false); break;
+		case 0xBB: sub8bit(af.hi, de.lo, 4, false); break;
+		case 0xBC: sub8bit(af.hi, hl.hi, 4, false); break;
+		case 0xBD: sub8bit(af.hi, hl.lo, 4, false); break;
+		case 0xBE: sub8bit(af.hi, mem->readByte(hl.reg), 8, false); break;
+		case 0xFE: sub8bit(af.hi, mem->readByte(pc++), 8, false); break;
+
+		// INC n
+		case 0x3C: inc8bit(af.hi, 4); break;
+		case 0x04: inc8bit(bc.hi, 4); break;
+		case 0x0C: inc8bit(bc.lo, 4); break;
+		case 0x14: inc8bit(de.hi, 4); break;
+		case 0x1C: inc8bit(de.lo, 4); break;
+		case 0x24: inc8bit(hl.hi, 4); break;
+		case 0x2C: inc8bit(hl.lo, 4); break;
+		case 0x34: inc8bit(mem->readByte(hl.reg), 12); break;
+
+		// DEC n
+		case 0x3D: dec8bit(af.hi, 4); break;
+		case 0x05: dec8bit(bc.hi, 4); break;
+		case 0x0D: dec8bit(bc.lo, 4); break;
+		case 0x15: dec8bit(de.hi, 4); break;
+		case 0x1D: dec8bit(de.lo, 4); break;
+		case 0x25: dec8bit(hl.hi, 4); break;
+		case 0x2D: dec8bit(hl.lo, 4); break;
+		case 0x35: dec8bit(mem->readByte(hl.reg), 12); break;
+
 		// TODO: More opcodes
 
 		default: cout << "Unrecognized opcode at 0x" << hex << (int) opcode << endl;

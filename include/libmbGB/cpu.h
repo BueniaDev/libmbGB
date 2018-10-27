@@ -50,5 +50,10 @@ namespace gb
 	    void popontostack(uint16_t regone, int cycles);
 	    void add8bit(uint8_t regone, uint8_t regtwo, int cycles, bool carry);
 	    void sub8bit(uint8_t regone, uint8_t regtwo, int cycles, bool carry);
+	    void and8bit(uint8_t regone, uint8_t regtwo, int cycles);
+	    void or8bit(uint8_t regone, uint8_t regtwo, int cycles);
+	    void xor8bit(uint8_t regone, uint8_t regtwo, int cycles);
+	    void inc8bit(uint8_t regone, int cycles);
+	    void dec8bit(uint8_t regone, int cycles);
 	};
 }

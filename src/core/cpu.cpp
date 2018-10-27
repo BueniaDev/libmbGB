@@ -212,4 +212,113 @@ namespace gb
 	    regone -= sub;
 	    m_cycles += cycles;
 	}
+
+	void CPU::and8bit(uint8_t regone, uint8_t regtwo, int cycles)
+	{
+	    af.lo = 0;
+
+	    if ((regone & regtwo) == 0)
+	    {
+		BitSet(af.lo, zero);
+	    }
+
+	    BitReset(af.lo, subtract);
+	    BitSet(af.lo, half);
+	    BitReset(af.lo, carry);
+
+	    regone &= regtwo;
+	    m_cycles += cycles;
+	}
+
+	void CPU::or8bit(uint8_t regone, uint8_t regtwo, int cycles)
+	{
+	    af.lo = 0;
+
+	    if ((regone | regtwo) == 0)
+	    {
+		BitSet(af.lo, zero);
+	    }
+
+	    BitReset(af.lo, subtract);
+	    BitReset(af.lo, half);
+	    BitReset(af.lo, carry);
+
+	    regone |= regtwo;
+	    m_cycles += cycles;
+	}
+
+	void CPU::xor8bit(uint8_t regone, uint8_t regtwo, int cycles)
+	{
+	    af.lo = 0;
+
+	    if ((regone ^ regtwo) == 0)
+	    {
+		BitSet(af.lo, zero);
+	    }
+
+	    BitReset(af.lo, subtract);
+	    BitReset(af.lo, half);
+	    BitReset(af.lo, carry);
+
+	    regone ^= regtwo;
+	    m_cycles += cycles;
+	}
+
+	void CPU::inc8bit(uint8_t regone, int cycles)
+	{
+	    regone++;	
+
+	    af.lo = 0;    
+
+	    if (regone == 0)
+	    {
+		BitSet(af.lo, zero);
+	    }
+	    else
+	    {
+		BitReset(af.lo, zero);
+	    }
+
+	    BitReset(af.lo, subtract);
+
+	    if ((regone & 0xF) == 0xF)
+	    {
+		BitSet(af.lo, half);
+	    }
+	    else
+	    {
+		BitReset(af.lo, half);
+	    }
+
+	    m_cycles += cycles;
+	}
+
+	void CPU::dec8bit(uint8_t regone, int cycles)
+	{
+	    regone--;
+
+	    af.lo = 0;
+
+	    if (regone == 0)
+	    {
+		BitSet(af.lo, zero);
+	    }
+	    else
+	    {
+		BitReset(af.lo, zero);
+	    }
+
+	    BitSet(af.lo, subtract);
+
+	    if ((regone & 0xF) == 0)
+	    {
+		BitSet(af.lo, half);
+	    }
+	    else
+	    {
+		BitReset(af.lo, half);
+	    }
+
+	    m_cycles += cycles;
+	}
 }
