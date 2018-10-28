@@ -10,6 +10,9 @@ namespace gb
 	{
 	    switch (opcode)
 	    {
+		// NOP
+		case 0x00: m_cycles += 4; break;		
+
 		// 8-bit loads
 
 		// LD nn, n	
@@ -290,6 +293,32 @@ namespace gb
 		case 0x25: dec8bit(hl.hi, 4); break;
 		case 0x2D: dec8bit(hl.lo, 4); break;
 		case 0x35: dec8bit(mem->readByte(hl.reg), 12); break;
+
+		// 16-bit ALU
+
+		// ADD HL, n
+		case 0x09: add16bit(hl.reg, bc.reg, 8); break;
+		case 0x19: add16bit(hl.reg, de.reg, 8); break;
+		case 0x29: add16bit(hl.reg, hl.reg, 8); break;
+		case 0x39: add16bit(hl.reg, sp, 8); break;
+
+		// ADD SP, n
+		case 0xE8: adds16bit(sp, mem->readsByte(pc++), 16); break;
+
+		// INC nn
+		case 0x03: inc16bit(bc.reg, 8); break;
+		case 0x13: inc16bit(de.reg, 8); break;
+		case 0x23: inc16bit(hl.reg, 8); break;
+		case 0x33: inc16bit(sp, 8); break;
+
+		// DEC nn
+		case 0x0B: dec16bit(bc.reg, 8); break;
+		case 0x1B: dec16bit(de.reg, 8); break;
+		case 0x2B: dec16bit(hl.reg, 8); break;
+		case 0x3B: dec16bit(sp, 8); break;
+
+		// DAA
+		case 0x27: daa(); break;
 
 		// TODO: More opcodes
 

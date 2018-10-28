@@ -321,4 +321,76 @@ namespace gb
 
 	    m_cycles += cycles;
 	}
+
+	void CPU::add16bit(uint16_t regone, uint16_t regtwo, int cycles)
+	{
+	    af.lo = 0;
+
+	    BitReset(af.lo, subtract);
+
+	    if ((regone + regtwo) > 0xFFFF)
+	    {
+		BitSet(af.lo, carry);
+	    }
+	    else
+	    {
+		BitReset(af.lo, carry);
+	    }
+
+	    if (((regone & 0xFF00) & 0xF) + ((regtwo >> 8) & 0xF))
+	    {
+		BitSet(af.lo, half);
+	    }
+	    else
+	    {
+		BitReset(af.lo, half);
+	    }
+
+	    regone += regtwo;
+	    m_cycles += cycles;
+	}
+
+	void CPU::adds16bit(uint16_t regone, uint8_t regtwo, int cycles)
+	{
+	    int16_t regtwobsx = (int16_t)((int8_t)regtwo);
+	    uint16_t result = regone + regtwobsx;
+	
+	    af.lo = 0;
+
+	    BitReset(af.lo, zero);
+	    BitReset(af.lo, subtract);
+
+	    if (((regone & 0xFF) + regtwo) > 0xFF)
+	    {
+		BitSet(af.lo, carry);
+	    }
+	    else
+	    {
+		BitReset(af.lo, carry);
+	    }
+
+	    if (((regone & 0xF) + (regtwo & 0xF)) > 0xF)
+	    {
+		BitSet(af.lo, half);
+	    }
+	    else
+	    {
+		BitReset(af.lo, half);
+	    }
+
+	    regone = result;
+	    m_cycles += cycles;
+	}
+
+	void CPU::inc16bit(uint16_t regone, int cycles)
+	{
+	    regone++;
+	    m_cycles += cycles;
+	}
+
+	void CPU::dec16bit(uint16_t regone, int cycles)
+	{
+	    regone--;
+	    m_cycles += cycles;
+	}
 }

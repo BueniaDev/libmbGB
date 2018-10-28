@@ -58,4 +58,9 @@ namespace gb
         writeByte(address, (value & 0xFF));
         writeByte((address + 1), (value >> 8));
     }
+
+    int8_t MMU::readsByte(uint16_t address)
+    {
+	return (int8_t)readByte(address);
+    }
 }

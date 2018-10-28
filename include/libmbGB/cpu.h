@@ -55,5 +55,9 @@ namespace gb
 	    void xor8bit(uint8_t regone, uint8_t regtwo, int cycles);
 	    void inc8bit(uint8_t regone, int cycles);
 	    void dec8bit(uint8_t regone, int cycles);
+	    void add16bit(uint16_t regone, uint16_t regtwo, int cycles);
+	    void adds16bit(uint16_t regone, uint8_t regtwo, int cycles);
+	    void inc16bit(uint16_t regone, int cycles);
+	    void dec16bit(uint16_t regone, int cycles);
 	};
 }
