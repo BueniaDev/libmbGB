@@ -9,14 +9,7 @@ namespace gb
 {
 	CPU::CPU()
 	{
-	    if (mem->biosload)
-	    {
-		CPUResetBIOS();
-	    }
-	    else
-	    {
-		CPUReset();
-	    }
+	    CPUReset();
 	}
 
 	CPU::~CPU()
@@ -54,7 +47,7 @@ namespace gb
 	    }
 	    else
 	    {
-		opcode = mem->readByte(pc++);		
+		opcode = mem->readByte(pc++);	
 		executecbopcode(opcode);
 	    }
 	}
@@ -103,12 +96,6 @@ namespace gb
 	    af.lo = tempF;
 
 	    m_cycles += 4;
-	}
-
-	void CPU::load8bit(uint8_t regone, uint8_t regtwo, int cycles)
-	{
-	    regone = regtwo;
-	    m_cycles += cycles;
 	}
 
 	void CPU::load16bit(uint16_t regone, uint16_t regtwo, int cycles)

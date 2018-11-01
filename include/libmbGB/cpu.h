@@ -2,62 +2,73 @@
 #include "mmu.h"
 using namespace gb;
 
+#if defined(MSB_FIRST) || defined(__BIG_ENDIAN__) || (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+#define IS_BIG_ENDIAN
+#else
+#define IS_LITTLE_ENDIAN
+#endif
+
 namespace gb
 {
-	class LIBMBGB_API CPU
+	union Register
 	{
-	    CPU();
-	    ~CPU();
-
-	    union Register
+	    struct
 	    {
-		uint16_t reg;
-		struct
-		{
+		#ifdef IS_LITTLE_ENDIAN
+		    uint8_t lo;
+		    uint8_t hi;
+		#else
 		    uint8_t hi;
 		    uint8_t lo;
-		};
+		#endif
 	    };
+	    uint16_t reg;
+	};	
 
-	    void CPUReset();
-	    void CPUResetBIOS();
+	class LIBMBGB_API CPU
+	{
+	    public:
+		CPU();
+		~CPU();
 
-	    Register af;
-	    Register bc;
-	    Register de;
-	    Register hl;
+	        void CPUReset();
+	        void CPUResetBIOS();
 
-	    uint16_t pc;
-	    uint16_t sp;
+	        Register af;
+	        Register bc;
+	        Register de;
+	        Register hl;
 
-	    int zero = 7;
-	    int subtract = 6;
-	    int half = 5;
-    	    int carry = 4;
+	        uint16_t pc;
+	        uint16_t sp;
 
-	    int m_cycles;
+	        int zero = 7;
+	        int subtract = 6;
+	        int half = 5;
+    	        int carry = 4;
 
-	    MMU *mem;
+	        int m_cycles;
 
-	    void executenextopcode();
-	    void executeopcode(uint8_t opcode);
-	    void executecbopcode(uint8_t opcode);
+	        MMU *mem;
 
-	    void daa();
-	    void load8bit(uint8_t regone, uint8_t regtwo, int cycles);
-	    void load16bit(uint16_t regone, uint16_t regtwo, int cycles);
-	    void pushontostack(uint16_t regone, int cycles);
-	    void popontostack(uint16_t regone, int cycles);
-	    void add8bit(uint8_t regone, uint8_t regtwo, int cycles, bool carry);
-	    void sub8bit(uint8_t regone, uint8_t regtwo, int cycles, bool carry);
-	    void and8bit(uint8_t regone, uint8_t regtwo, int cycles);
-	    void or8bit(uint8_t regone, uint8_t regtwo, int cycles);
-	    void xor8bit(uint8_t regone, uint8_t regtwo, int cycles);
-	    void inc8bit(uint8_t regone, int cycles);
-	    void dec8bit(uint8_t regone, int cycles);
-	    void add16bit(uint16_t regone, uint16_t regtwo, int cycles);
-	    void adds16bit(uint16_t regone, uint8_t regtwo, int cycles);
-	    void inc16bit(uint16_t regone, int cycles);
-	    void dec16bit(uint16_t regone, int cycles);
+	        void executenextopcode();
+	        void executeopcode(uint8_t opcode);
+	        void executecbopcode(uint8_t opcode);
+
+	        void daa();
+	        void load16bit(uint16_t regone, uint16_t regtwo, int cycles);
+	        void pushontostack(uint16_t regone, int cycles);
+	        void popontostack(uint16_t regone, int cycles);
+	        void add8bit(uint8_t regone, uint8_t regtwo, int cycles, bool carry);
+	        void sub8bit(uint8_t regone, uint8_t regtwo, int cycles, bool carry);
+	        void and8bit(uint8_t regone, uint8_t regtwo, int cycles);
+	        void or8bit(uint8_t regone, uint8_t regtwo, int cycles);
+	        void xor8bit(uint8_t regone, uint8_t regtwo, int cycles);
+	        void inc8bit(uint8_t regone, int cycles);
+	        void dec8bit(uint8_t regone, int cycles);
+	        void add16bit(uint16_t regone, uint16_t regtwo, int cycles);
+	        void adds16bit(uint16_t regone, uint8_t regtwo, int cycles);
+	        void inc16bit(uint16_t regone, int cycles);
+	        void dec16bit(uint16_t regone, int cycles);
 	};
 }
