@@ -170,7 +170,7 @@ namespace gb
 		break;
 
 		// LD (nn), SP
-		case 0x08: mem->writeWord((pc + 1), sp); m_cycles += 20; break;
+		case 0x08: mem->writeWord(mem->readWord(pc), sp); pc += 2; m_cycles += 20; break;
 
 		// PUSH nn
 		case 0xF5: pushontostack(af.reg, 16); break;
