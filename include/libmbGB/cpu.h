@@ -56,16 +56,15 @@ namespace gb
 	        void executecbopcode(uint8_t opcode);
 
 	        void daa();
-	        void load16bit(uint16_t regone, uint16_t regtwo, int cycles);
 	        void pushontostack(uint16_t regone, int cycles);
 	        void popontostack(uint16_t regone, int cycles);
-	        void add8bit(uint8_t regone, uint8_t regtwo, int cycles, bool carry);
-	        void sub8bit(uint8_t regone, uint8_t regtwo, int cycles, bool carry);
-	        void and8bit(uint8_t regone, uint8_t regtwo, int cycles);
-	        void or8bit(uint8_t regone, uint8_t regtwo, int cycles);
-	        void xor8bit(uint8_t regone, uint8_t regtwo, int cycles);
-	        void inc8bit(uint8_t regone, int cycles);
-	        void dec8bit(uint8_t regone, int cycles);
+	        uint8_t add8bit(uint8_t regone, uint8_t regtwo, bool carry);
+	        uint8_t sub8bit(uint8_t regone, uint8_t regtwo, bool carry);
+	        uint8_t and8bit(uint8_t regone, uint8_t regtwo);
+	        uint8_t or8bit(uint8_t regone, uint8_t regtwo);
+	        uint8_t xor8bit(uint8_t regone, uint8_t regtwo);
+	        uint8_t inc8bit(uint8_t regone);
+	        uint8_t dec8bit(uint8_t regone);
 	        void add16bit(uint16_t regone, uint16_t regtwo, int cycles);
 	        void adds16bit(uint16_t regone, uint8_t regtwo, int cycles);
 	        void inc16bit(uint16_t regone, int cycles);

@@ -127,20 +127,20 @@ namespace gb
 		// 16-bit loads
 		
 		// LD n, nn
-		case 0x01: load16bit(bc.reg, mem->readWord(pc + 1), 12); break;
-		case 0x11: load16bit(de.reg, mem->readWord(pc + 1), 12); break;
-		case 0x21: load16bit(hl.reg, mem->readWord(pc + 1), 12); break;
-		case 0x31: load16bit(sp, mem->readWord(pc + 1), 12); break;
+		case 0x01: bc.reg = mem->readWord(pc + 1); m_cycles += 12; break;
+		case 0x11: de.reg = mem->readWord(pc + 1); m_cycles += 12; break;
+		case 0x21: hl.reg = mem->readWord(pc + 1); m_cycles += 12; break;
+		case 0x31: sp = mem->readWord(pc + 1); m_cycles += 12; break;
 
 		// LD SP, HL
-		case 0xF9: load16bit(sp, hl.reg, 8); break;
+		case 0xF9: sp = hl.reg; m_cycles += 8; break;
 
 		// LDHL SP, n
 		case 0xF8:
 		{
 		    int8_t n = (int8_t)mem->readByte(pc + 1);
 		    uint16_t value = (sp + n) & 0xFFFF;
-		    load16bit(hl.reg, value, 0);
+		    hl.reg = value;
 
 		    af.lo = 0;
 
@@ -170,7 +170,7 @@ namespace gb
 		break;
 
 		// LD (nn), SP
-		case 0x08: load16bit(mem->readWord(pc + 1), sp, 20); break;
+		case 0x08: mem->writeWord((pc + 1), sp); m_cycles += 20; break;
 
 		// PUSH nn
 		case 0xF5: pushontostack(af.reg, 16); break;
@@ -187,112 +187,112 @@ namespace gb
 		// 8-bit ALU
 
 		// ADD A, n
-		case 0x87: add8bit(af.lo, af.lo, 4, false); break;
-		case 0x80: add8bit(af.lo, bc.hi, 4, false); break;
-		case 0x81: add8bit(af.lo, bc.lo, 4, false); break;
-		case 0x82: add8bit(af.lo, de.hi, 4, false); break;
-		case 0x83: add8bit(af.lo, de.lo, 4, false); break;
-		case 0x84: add8bit(af.lo, hl.hi, 4, false); break;
-		case 0x85: add8bit(af.lo, hl.lo, 4, false); break;
-		case 0x86: add8bit(af.lo, mem->readByte(hl.reg), 8, false); break;
-		case 0xC6: add8bit(af.lo, mem->readByte(pc + 1), 8, false); break;
+		case 0x87: af.hi = add8bit(af.hi, af.hi, false); m_cycles += 4; break;
+		case 0x80: af.hi = add8bit(af.hi, bc.hi, false); m_cycles += 4; break;
+		case 0x81: af.hi = add8bit(af.hi, bc.lo, false); m_cycles += 4; break;
+		case 0x82: af.hi = add8bit(af.hi, de.hi, false); m_cycles += 4; break;
+		case 0x83: af.hi = add8bit(af.hi, de.lo, false); m_cycles += 4; break;
+		case 0x84: af.hi = add8bit(af.hi, hl.hi, false); m_cycles += 4; break;
+		case 0x85: af.hi = add8bit(af.hi, hl.lo, false); m_cycles += 4; break;
+		case 0x86: af.hi = add8bit(af.hi, mem->readByte(hl.reg), false); m_cycles += 8; break;
+		case 0xC6: af.hi = add8bit(af.hi, mem->readByte(pc + 1), false); m_cycles += 8; break;
 
 		// ADC A, n
-		case 0x8F: add8bit(af.lo, af.lo, 4, true); break;
-		case 0x88: add8bit(af.lo, bc.hi, 4, true); break;
-		case 0x89: add8bit(af.lo, bc.lo, 4, true); break;
-		case 0x8A: add8bit(af.lo, de.hi, 4, true); break;
-		case 0x8B: add8bit(af.lo, de.lo, 4, true); break;
-		case 0x8C: add8bit(af.lo, hl.hi, 4, true); break;
-		case 0x8D: add8bit(af.lo, hl.lo, 4, true); break;
-		case 0x8E: add8bit(af.lo, mem->readByte(hl.reg), 8, true); break;
-		case 0xCE: add8bit(af.lo, mem->readByte(pc + 1), 8, true); break;
+		case 0x8F: af.hi = add8bit(af.hi, af.hi, true); m_cycles += 4; break;
+		case 0x88: af.hi = add8bit(af.hi, bc.hi, true); m_cycles += 4; break;
+		case 0x89: af.hi = add8bit(af.hi, bc.lo, true); m_cycles += 4; break;
+		case 0x8A: af.hi = add8bit(af.hi, de.hi, true); m_cycles += 4; break;
+		case 0x8B: af.hi = add8bit(af.hi, de.lo, true); m_cycles += 4; break;
+		case 0x8C: af.hi = add8bit(af.hi, hl.hi, true); m_cycles += 4; break;
+		case 0x8D: af.hi = add8bit(af.hi, hl.lo, true); m_cycles += 4; break;
+		case 0x8E: af.hi = add8bit(af.hi, mem->readByte(hl.reg), true); m_cycles += 8; break;
+		case 0xCE: af.hi = add8bit(af.hi, mem->readByte(pc + 1), true); m_cycles += 8; break;
 
 		// SUB n
-		case 0x97: sub8bit(af.lo, af.lo, 4, false); break;
-		case 0x90: sub8bit(af.lo, bc.hi, 4, false); break;
-		case 0x91: sub8bit(af.lo, bc.lo, 4, false); break;
-		case 0x92: sub8bit(af.lo, de.hi, 4, false); break;
-		case 0x93: sub8bit(af.lo, de.lo, 4, false); break;
-		case 0x94: sub8bit(af.lo, hl.hi, 4, false); break;
-		case 0x95: sub8bit(af.lo, hl.lo, 4, false); break;
-		case 0x96: sub8bit(af.lo, mem->readByte(hl.reg), 8, false); break;
-		case 0xD6: sub8bit(af.lo, mem->readByte(pc + 1), 8, false); break;
+		case 0x97: af.hi = sub8bit(af.hi, af.hi, false); m_cycles += 4; break;
+		case 0x90: af.hi = sub8bit(af.hi, bc.hi, false); m_cycles += 4; break;
+		case 0x91: af.hi = sub8bit(af.hi, bc.lo, false); m_cycles += 4; break;
+		case 0x92: af.hi = sub8bit(af.hi, de.hi, false); m_cycles += 4; break;
+		case 0x93: af.hi = sub8bit(af.hi, de.lo, false); m_cycles += 4; break;
+		case 0x94: af.hi = sub8bit(af.hi, hl.hi, false); m_cycles += 4; break;
+		case 0x95: af.hi = sub8bit(af.hi, hl.lo, false); m_cycles += 4; break;
+		case 0x96: af.hi = sub8bit(af.hi, mem->readByte(hl.reg), false); m_cycles += 8; break;
+		case 0xD6: af.hi = sub8bit(af.hi, mem->readByte(pc + 1), false); m_cycles += 8; break;
 
 		// SBC A, n
-		case 0x9F: sub8bit(af.lo, af.lo, 4, true); break;
-		case 0x98: sub8bit(af.lo, bc.hi, 4, true); break;
-		case 0x99: sub8bit(af.lo, bc.lo, 4, true); break;
-		case 0x9A: sub8bit(af.lo, de.hi, 4, true); break;
-		case 0x9B: sub8bit(af.lo, de.lo, 4, true); break;
-		case 0x9C: sub8bit(af.lo, hl.hi, 4, true); break;
-		case 0x9D: sub8bit(af.lo, hl.lo, 4, true); break;
-		case 0x9E: sub8bit(af.lo, mem->readByte(hl.reg), 8, true); break;
-		case 0xDE: sub8bit(af.lo, mem->readByte(pc + 1), 8, true); break;		
+		case 0x9F: af.hi = sub8bit(af.hi, af.hi, true); m_cycles += 4; break;
+		case 0x98: af.hi = sub8bit(af.hi, bc.hi, true); m_cycles += 4; break;
+		case 0x99: af.hi = sub8bit(af.hi, bc.lo, true); m_cycles += 4; break;
+		case 0x9A: af.hi = sub8bit(af.hi, de.hi, true); m_cycles += 4; break;
+		case 0x9B: af.hi = sub8bit(af.hi, de.lo, true); m_cycles += 4; break;
+		case 0x9C: af.hi = sub8bit(af.hi, hl.hi, true); m_cycles += 4; break;
+		case 0x9D: af.hi = sub8bit(af.hi, hl.lo, true); m_cycles += 4; break;
+		case 0x9E: af.hi = sub8bit(af.hi, mem->readByte(hl.reg), true); m_cycles += 8; break;
+		case 0xDE: af.hi = sub8bit(af.hi, mem->readByte(pc + 1), true); m_cycles += 8; break;		
 		
 		// AND n
-		case 0xA7: and8bit(af.hi, af.hi, 4); break;
-		case 0xA0: and8bit(af.hi, bc.hi, 4); break;
-		case 0xA1: and8bit(af.hi, bc.lo, 4); break;
-		case 0xA2: and8bit(af.hi, de.hi, 4); break;
-		case 0xA3: and8bit(af.hi, de.lo, 4); break;
-		case 0xA4: and8bit(af.hi, hl.hi, 4); break;
-		case 0xA5: and8bit(af.hi, hl.lo, 4); break;
-		case 0xA6: and8bit(af.hi, mem->readByte(hl.reg), 8); break;
-		case 0xE6: and8bit(af.hi, mem->readByte(pc + 1), 8); break;
+		case 0xA7: af.hi = and8bit(af.hi, af.hi); m_cycles += 4; break;
+		case 0xA0: af.hi = and8bit(af.hi, bc.hi); m_cycles += 4; break;
+		case 0xA1: af.hi = and8bit(af.hi, bc.lo); m_cycles += 4; break;
+		case 0xA2: af.hi = and8bit(af.hi, de.hi); m_cycles += 4; break;
+		case 0xA3: af.hi = and8bit(af.hi, de.lo); m_cycles += 4; break;
+		case 0xA4: af.hi = and8bit(af.hi, hl.hi); m_cycles += 4; break;
+		case 0xA5: af.hi = and8bit(af.hi, hl.lo); m_cycles += 4; break;
+		case 0xA6: af.hi = and8bit(af.hi, mem->readByte(hl.reg)); m_cycles += 8; break;
+		case 0xE6: af.hi = and8bit(af.hi, mem->readByte(pc + 1)); m_cycles += 8; break;
 
 		// OR n
-		case 0xB7: or8bit(af.hi, af.hi, 4); break;
-		case 0xB0: or8bit(af.hi, bc.hi, 4); break;
-		case 0xB1: or8bit(af.hi, bc.lo, 4); break;
-		case 0xB2: or8bit(af.hi, de.hi, 4); break;
-		case 0xB3: or8bit(af.hi, de.lo, 4); break;
-		case 0xB4: or8bit(af.hi, hl.hi, 4); break;
-		case 0xB5: or8bit(af.hi, hl.lo, 4); break;
-		case 0xB6: or8bit(af.hi, mem->readByte(hl.reg), 8); break;
-		case 0xF6: or8bit(af.hi, mem->readByte(pc + 1), 8); break;
+		case 0xB7: af.hi = or8bit(af.hi, af.hi); m_cycles += 4; break;
+		case 0xB0: af.hi = or8bit(af.hi, bc.hi); m_cycles += 4; break;
+		case 0xB1: af.hi = or8bit(af.hi, bc.lo); m_cycles += 4; break;
+		case 0xB2: af.hi = or8bit(af.hi, de.hi); m_cycles += 4; break;
+		case 0xB3: af.hi = or8bit(af.hi, de.lo); m_cycles += 4; break;
+		case 0xB4: af.hi = or8bit(af.hi, hl.hi); m_cycles += 4; break;
+		case 0xB5: af.hi = or8bit(af.hi, hl.lo); m_cycles += 4; break;
+		case 0xB6: af.hi = or8bit(af.hi, mem->readByte(hl.reg)); m_cycles += 8; break;
+		case 0xF6: af.hi = or8bit(af.hi, mem->readByte(pc + 1)); m_cycles += 8; break;
 
 		// XOR n
-		case 0xAF: xor8bit(af.hi, af.hi, 4); break;
-		case 0xA8: xor8bit(af.hi, bc.hi, 4); break;
-		case 0xA9: xor8bit(af.hi, bc.lo, 4); break;
-		case 0xAA: xor8bit(af.hi, de.hi, 4); break;
-		case 0xAB: xor8bit(af.hi, de.lo, 4); break;
-		case 0xAC: xor8bit(af.hi, hl.hi, 4); break;
-		case 0xAD: xor8bit(af.hi, hl.lo, 4); break;
-		case 0xAE: xor8bit(af.hi, mem->readByte(hl.reg), 8); break;
-		case 0xEE: xor8bit(af.hi, mem->readByte(pc + 1), 8); break;
+		case 0xAF: af.hi = xor8bit(af.hi, af.hi); m_cycles += 4; break;
+		case 0xA8: af.hi = xor8bit(af.hi, bc.hi); m_cycles += 4; break;
+		case 0xA9: af.hi = xor8bit(af.hi, bc.lo); m_cycles += 4; break;
+		case 0xAA: af.hi = xor8bit(af.hi, de.hi); m_cycles += 4; break;
+		case 0xAB: af.hi = xor8bit(af.hi, de.lo); m_cycles += 4; break;
+		case 0xAC: af.hi = xor8bit(af.hi, hl.hi); m_cycles += 4; break;
+		case 0xAD: af.hi = xor8bit(af.hi, hl.lo); m_cycles += 4; break;
+		case 0xAE: af.hi = xor8bit(af.hi, mem->readByte(hl.reg)); m_cycles += 8; break;
+		case 0xEE: af.hi = xor8bit(af.hi, mem->readByte(pc + 1)); m_cycles += 8; break;
 
 		// CP n
-		case 0xBF: sub8bit(af.hi, af.hi, 4, false); break;
-		case 0xB8: sub8bit(af.hi, bc.hi, 4, false); break;
-		case 0xB9: sub8bit(af.hi, bc.lo, 4, false); break;
-		case 0xBA: sub8bit(af.hi, de.hi, 4, false); break;
-		case 0xBB: sub8bit(af.hi, de.lo, 4, false); break;
-		case 0xBC: sub8bit(af.hi, hl.hi, 4, false); break;
-		case 0xBD: sub8bit(af.hi, hl.lo, 4, false); break;
-		case 0xBE: sub8bit(af.hi, mem->readByte(hl.reg), 8, false); break;
-		case 0xFE: sub8bit(af.hi, mem->readByte(pc + 1), 8, false); break;
+		case 0xBF: af.hi = sub8bit(af.hi, af.hi, false); m_cycles += 4; break;
+		case 0xB8: af.hi = sub8bit(af.hi, bc.hi, false); m_cycles += 4; break;
+		case 0xB9: af.hi = sub8bit(af.hi, bc.lo, false); m_cycles += 4; break;
+		case 0xBA: af.hi = sub8bit(af.hi, de.hi, false); m_cycles += 4; break;
+		case 0xBB: af.hi = sub8bit(af.hi, de.lo, false); m_cycles += 4; break;
+		case 0xBC: af.hi = sub8bit(af.hi, hl.hi, false); m_cycles += 4; break;
+		case 0xBD: af.hi = sub8bit(af.hi, hl.lo, false); m_cycles += 4; break;
+		case 0xBE: af.hi = sub8bit(af.hi, mem->readByte(hl.reg), false); m_cycles += 8; break;
+		case 0xFE: af.hi = sub8bit(af.hi, mem->readByte(pc + 1), false); m_cycles += 8; break;
 
 		// INC n
-		case 0x3C: inc8bit(af.hi, 4); break;
-		case 0x04: inc8bit(bc.hi, 4); break;
-		case 0x0C: inc8bit(bc.lo, 4); break;
-		case 0x14: inc8bit(de.hi, 4); break;
-		case 0x1C: inc8bit(de.lo, 4); break;
-		case 0x24: inc8bit(hl.hi, 4); break;
-		case 0x2C: inc8bit(hl.lo, 4); break;
-		case 0x34: inc8bit(mem->readByte(hl.reg), 12); break;
+		case 0x3C: af.hi = inc8bit(af.hi); m_cycles += 4; break;
+		case 0x04: bc.hi = inc8bit(bc.hi); m_cycles += 4; break;
+		case 0x0C: bc.lo = inc8bit(bc.lo); m_cycles += 4; break;
+		case 0x14: de.hi = inc8bit(de.hi); m_cycles += 4; break;
+		case 0x1C: de.lo = inc8bit(de.lo); m_cycles += 4; break;
+		case 0x24: hl.hi = inc8bit(hl.hi); m_cycles += 4; break;
+		case 0x2C: hl.lo = inc8bit(hl.lo); m_cycles += 4; break;
+		case 0x34: mem->writeByte(hl.reg, inc8bit(mem->readByte(hl.reg))); m_cycles += 12; break;
 
 		// DEC n
-		case 0x3D: dec8bit(af.hi, 4); break;
-		case 0x05: dec8bit(bc.hi, 4); break;
-		case 0x0D: dec8bit(bc.lo, 4); break;
-		case 0x15: dec8bit(de.hi, 4); break;
-		case 0x1D: dec8bit(de.lo, 4); break;
-		case 0x25: dec8bit(hl.hi, 4); break;
-		case 0x2D: dec8bit(hl.lo, 4); break;
-		case 0x35: dec8bit(mem->readByte(hl.reg), 12); break;
+		case 0x3D: af.hi = dec8bit(af.hi); m_cycles += 4; break;
+		case 0x05: bc.hi = dec8bit(bc.hi); m_cycles += 4; break;
+		case 0x0D: bc.lo = dec8bit(bc.lo); m_cycles += 4; break;
+		case 0x15: de.hi = dec8bit(de.hi); m_cycles += 4; break;
+		case 0x1D: de.lo = dec8bit(de.lo); m_cycles += 4; break;
+		case 0x25: hl.hi = dec8bit(hl.hi); m_cycles += 4; break;
+		case 0x2D: hl.lo = dec8bit(hl.lo); m_cycles += 4; break;
+		case 0x35: mem->writeByte(hl.reg, dec8bit(mem->readByte(hl.reg))); m_cycles += 12; break;
 
 		// 16-bit ALU
 

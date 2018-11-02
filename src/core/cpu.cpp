@@ -26,6 +26,8 @@ namespace gb
 	    hl.reg = 0x014D;
 	    pc = 0x0100;
 	    sp = 0xFFFE;
+
+	    cout << "CPU::Initialized" << endl;
 	}
 
 	void CPU::CPUResetBIOS()
@@ -36,6 +38,8 @@ namespace gb
 	    hl.reg = 0x0000;
 	    pc = 0x0000;
 	    sp = 0x0000;
+
+	    cout << "CPU::Initialized" << endl;
 	}
 
 	void CPU::executenextopcode()
@@ -98,12 +102,6 @@ namespace gb
 	    m_cycles += 4;
 	}
 
-	void CPU::load16bit(uint16_t regone, uint16_t regtwo, int cycles)
-	{
-	    regone = regtwo;
-	    m_cycles += cycles;
-	}
-
 	void CPU::pushontostack(uint16_t regone, int cycles)
 	{
 	    uint8_t hi = regone >> 8;
@@ -124,7 +122,7 @@ namespace gb
 	    m_cycles += cycles;
 	}
 
-	void CPU::add8bit(uint8_t regone, uint8_t regtwo, int cycles, bool carry)
+	uint8_t CPU::add8bit(uint8_t regone, uint8_t regtwo, bool carry)
 	{
 	    uint8_t adding = regtwo;
 
@@ -158,11 +156,10 @@ namespace gb
 		BitSet(af.lo, carry);
 	    }
 
-	    regone += adding;
-	    m_cycles += cycles;
+	    return regone + adding;
 	}
 
-	void CPU::sub8bit(uint8_t regone, uint8_t regtwo, int cycles, bool carry)
+	uint8_t CPU::sub8bit(uint8_t regone, uint8_t regtwo, bool carry)
 	{
 	    uint8_t sub = regtwo;
 
@@ -196,11 +193,10 @@ namespace gb
 		BitSet(af.lo, half);
 	    }
 
-	    regone -= sub;
-	    m_cycles += cycles;
+	    return regone - sub;
 	}
 
-	void CPU::and8bit(uint8_t regone, uint8_t regtwo, int cycles)
+	uint8_t CPU::and8bit(uint8_t regone, uint8_t regtwo)
 	{
 	    af.lo = 0;
 
@@ -213,11 +209,10 @@ namespace gb
 	    BitSet(af.lo, half);
 	    BitReset(af.lo, carry);
 
-	    regone &= regtwo;
-	    m_cycles += cycles;
+	    return regone & regtwo;
 	}
 
-	void CPU::or8bit(uint8_t regone, uint8_t regtwo, int cycles)
+	uint8_t CPU::or8bit(uint8_t regone, uint8_t regtwo)
 	{
 	    af.lo = 0;
 
@@ -230,11 +225,10 @@ namespace gb
 	    BitReset(af.lo, half);
 	    BitReset(af.lo, carry);
 
-	    regone |= regtwo;
-	    m_cycles += cycles;
+	    return regone | regtwo;
 	}
 
-	void CPU::xor8bit(uint8_t regone, uint8_t regtwo, int cycles)
+	uint8_t CPU::xor8bit(uint8_t regone, uint8_t regtwo)
 	{
 	    af.lo = 0;
 
@@ -247,11 +241,10 @@ namespace gb
 	    BitReset(af.lo, half);
 	    BitReset(af.lo, carry);
 
-	    regone ^= regtwo;
-	    m_cycles += cycles;
+	    return regone ^ regtwo;
 	}
 
-	void CPU::inc8bit(uint8_t regone, int cycles)
+	uint8_t CPU::inc8bit(uint8_t regone)
 	{
 	    regone++;	
 
@@ -277,10 +270,10 @@ namespace gb
 		BitReset(af.lo, half);
 	    }
 
-	    m_cycles += cycles;
+	    return regone;
 	}
 
-	void CPU::dec8bit(uint8_t regone, int cycles)
+	uint8_t CPU::dec8bit(uint8_t regone)
 	{
 	    regone--;
 
@@ -306,7 +299,7 @@ namespace gb
 		BitReset(af.lo, half);
 	    }
 
-	    m_cycles += cycles;
+	    return regone;
 	}
 
 	void CPU::add16bit(uint16_t regone, uint16_t regtwo, int cycles)
