@@ -47,8 +47,19 @@ namespace gb
 	        int half = 5;
     	        int carry = 4;
 
-	        int m_cycles;
+		bool stopped;
+		bool halted;
 
+	        int m_cycles;
+		
+		bool interruptdis;
+		bool interrupten;
+		bool interruptmaster;
+
+		void dointerrupts();
+		void requestinterrupt(int id);
+		void serviceinterrupt(int interrupt);
+		
 	        MMU *mem;
 
 	        void executenextopcode();
@@ -56,8 +67,7 @@ namespace gb
 	        void executecbopcode(uint8_t opcode);
 
 	        void daa();
-	        void pushontostack(uint16_t regone, int cycles);
-	        void popontostack(uint16_t regone, int cycles);
+		void stop();
 	        uint8_t add8bit(uint8_t regone, uint8_t regtwo, bool carry);
 	        uint8_t sub8bit(uint8_t regone, uint8_t regtwo, bool carry);
 	        uint8_t and8bit(uint8_t regone, uint8_t regtwo);
@@ -67,5 +77,6 @@ namespace gb
 	        uint8_t dec8bit(uint8_t regone);
 	        uint16_t add16bit(uint16_t regone, uint16_t regtwo);
 	        uint16_t adds16bit(uint16_t regone, uint8_t regtwo);
+		uint8_t swap(uint8_t regone);
 	};
 }

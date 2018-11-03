@@ -11,7 +11,13 @@ namespace gb
 	    switch (opcode)
 	    {
 		// NOP
-		case 0x00: m_cycles += 4; break;		
+		case 0x00: m_cycles += 4; break;
+
+		// STOP
+		case 0x10: stop(); break;
+		
+		// HALT
+		case 0x76: halted = true;		
 
 		// 8-bit loads
 
@@ -173,16 +179,16 @@ namespace gb
 		case 0x08: mem->writeWord(mem->readWord(pc), sp); pc += 2; m_cycles += 20; break;
 
 		// PUSH nn
-		case 0xF5: pushontostack(af.reg, 16); break;
-		case 0xC5: pushontostack(bc.reg, 16); break;
-		case 0xD5: pushontostack(de.reg, 16); break;
-		case 0xE5: pushontostack(hl.reg, 16); break;
+		case 0xF5: mem->writeByte(sp--, af.hi); mem->writeByte(sp--, af.lo); m_cycles += 16; break;
+		case 0xC5: mem->writeByte(sp--, bc.hi); mem->writeByte(sp--, bc.lo); m_cycles += 16;; break;
+		case 0xD5: mem->writeByte(sp--, de.hi); mem->writeByte(sp--, de.lo); m_cycles += 16; break;
+		case 0xE5: mem->writeByte(sp--, hl.hi); mem->writeByte(sp--, hl.lo); m_cycles += 16; break;
 
 		// POP nn
-		case 0xF1: popontostack(af.reg, 12); break;
-		case 0xC1: popontostack(bc.reg, 12); break;
-		case 0xD1: popontostack(de.reg, 12); break;
-		case 0xE1: popontostack(hl.reg, 12); break;
+		case 0xF1: af.lo = mem->readByte(sp++) & 0xF0; af.hi = mem->readByte(sp++); m_cycles += 12; break;
+		case 0xC1: bc.lo = mem->readByte(sp++); bc.hi = mem->readByte(sp++); m_cycles += 12; break;
+		case 0xD1: de.lo = mem->readByte(sp++); de.hi = mem->readByte(sp++); m_cycles += 12; break;
+		case 0xE1: hl.lo = mem->readByte(sp++); hl.hi = mem->readByte(sp++); m_cycles += 12; break;
 
 		// 8-bit ALU
 
@@ -319,6 +325,44 @@ namespace gb
 
 		// DAA
 		case 0x27: daa(); break;
+		
+		// SCF
+		case 0x37:
+		{
+		    af.lo = 0;
+		    BitReset(af.lo, subtract);
+		    BitReset(af.lo, half);
+		    BitSet(af.lo, carry);
+
+		    m_cycles += 4;
+		}
+		break;
+
+		// CCF
+		case 0x3F:
+		{
+		    af.lo = 0;
+		    if (TestBit(af.lo, carry))
+		    {
+			BitReset(af.lo, carry);
+		    }
+		    else
+		    {
+			BitSet(af.lo, carry);
+		    }
+
+		    BitReset(af.lo, subtract);
+		    BitReset(af.lo, half);
+
+		    m_cycles += 4;
+		}
+		break;
+
+		// DI
+		case 0xF3: interruptdis = true; m_cycles += 4; break;
+
+		// EI
+		case 0xFB: interrupten = true; m_cycles += 4; break;
 
 		// TODO: More opcodes
 
@@ -330,6 +374,15 @@ namespace gb
 	{
 	    switch (opcode)
 	    {
+		case 0x37: af.hi = swap(af.hi); m_cycles += 8; break;
+		case 0x30: bc.hi = swap(bc.hi); m_cycles += 8; break;
+		case 0x31: bc.lo = swap(bc.lo); m_cycles += 8; break;
+		case 0x32: de.hi = swap(de.hi); m_cycles += 8; break;
+		case 0x33: de.lo = swap(de.lo); m_cycles += 8; break;
+		case 0x34: hl.hi = swap(hl.hi); m_cycles += 8; break;
+		case 0x35: hl.lo = swap(hl.lo); m_cycles += 8; break;
+		case 0x36: mem->writeByte(hl.reg, swap(mem->readByte(hl.reg))); m_cycles += 16; break;
+
 		default: cout << "Unrecognized extended opcode at 0xCB" << hex << (int) opcode << endl;
 	    }
 	}

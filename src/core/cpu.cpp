@@ -27,6 +27,13 @@ namespace gb
 	    pc = 0x0100;
 	    sp = 0xFFFE;
 
+	    stopped = false;
+	    halted = false;
+
+	    interruptdis = false;
+	    interrupten = false;
+	    interruptmaster = false;
+
 	    cout << "CPU::Initialized" << endl;
 	}
 
@@ -39,21 +46,104 @@ namespace gb
 	    pc = 0x0000;
 	    sp = 0x0000;
 
+	    stopped = false;
+	    halted = false;
+
+	    interruptdis = false;
+	    interrupten = false;
+	    interruptmaster = false;
+
 	    cout << "CPU::Initialized" << endl;
 	}
 
 	void CPU::executenextopcode()
 	{
-	    uint8_t opcode = mem->readByte(pc++);
-	    if (opcode != 0xCB)
+	    if (!halted)
 	    {
-		executeopcode(opcode);
+	    	uint8_t opcode = mem->readByte(pc++);
+	    	if (opcode != 0xCB)
+	    	{
+		    executeopcode(opcode);
+	    	}
+	    	else
+		{
+		    opcode = mem->readByte(pc++);	
+		    executecbopcode(opcode);
+	    	}
 	    }
 	    else
 	    {
-		opcode = mem->readByte(pc++);	
-		executecbopcode(opcode);
+		m_cycles += 4;
 	    }
+
+	    if (interruptdis)
+	    {
+		if (mem->readByte(pc - 1) != 0xF3)
+		{
+		    interruptdis = false;
+		    interruptmaster = false;
+		}
+	    }
+
+	    if (interrupten)
+	    {
+		if (mem->readByte(pc - 1) != 0xFB)
+		{
+		    interrupten = false;
+		    interruptmaster = true;
+		}
+	    }
+	}
+
+	void CPU::requestinterrupt(int id)
+	{
+	    uint8_t req = mem->readByte(0xFF0F);
+	    BitSet(req, id);
+	    mem->writeByte(0xFF0F, id);
+	}
+
+	void CPU::dointerrupts()
+	{
+	    if (interruptmaster == true)
+	    {
+		uint8_t req = mem->readByte(0xFF0F);
+		uint8_t enabled = mem->readByte(0xFFFF);
+		if (req > 0)
+		{
+		    for (int i = 0; i < 5; i++)
+		    {
+			if (TestBit(req, i) == true)
+			{
+			    if (TestBit(enabled, i))
+			    {
+				
+			    }
+			}
+		    }
+		}
+	    }
+	}
+
+	void CPU::serviceinterrupt(int interrupt)
+	{
+	    interruptmaster = false;
+	    uint8_t req = mem->readByte(0xFF0F);
+	    BitReset(req, interrupt);
+	    mem->writeByte(0xFF0F, req);
+
+	    sp -= 2;
+	    mem->writeWord(sp, pc);
+
+	    switch (interrupt)
+	    {
+		case 0: pc = 0x40; break;
+		case 1: pc = 0x48; break;
+		case 2: pc = 0x50; break;
+		case 4: pc = 0x60; break;
+	    }
+
+	    m_cycles += 36;
+	    interrupten = false;
 	}
 	
 	// Stolen
@@ -102,24 +192,11 @@ namespace gb
 	    m_cycles += 4;
 	}
 
-	void CPU::pushontostack(uint16_t regone, int cycles)
+	void CPU::stop()
 	{
-	    uint8_t hi = regone >> 8;
-	    uint8_t lo = regone & 0xFF;
-	    mem->writeByte(sp--, hi);
-	    mem->writeByte(sp--, lo);
-
-	    m_cycles += cycles;
-	}
-
-	void CPU::popontostack(uint16_t regone, int cycles)
-	{
-	    uint16_t tempword = mem->readByte(sp + 1) << 8;
-	    tempword |= mem->readByte(sp);
-	    sp += 2;
-	
-	    regone = tempword;
-	    m_cycles += cycles;
+	    stopped = true;
+	    halted = true;
+	    pc++;
 	}
 
 	uint8_t CPU::add8bit(uint8_t regone, uint8_t regtwo, bool carry)
@@ -358,5 +435,24 @@ namespace gb
 	    }
 
 	    return result;
+	}
+
+	uint8_t CPU::swap(uint8_t regone)
+	{
+	    af.lo = 0;
+	    uint8_t tempone = (regone & 0xF) << 4;
+	    uint8_t temptwo = (regone >> 4) & 0xF;
+	    regone = (tempone | temptwo);
+
+	    if (regone == 0)
+	    {
+		BitSet(af.lo, zero);
+	    }
+
+	    BitReset(af.lo, subtract);
+	    BitReset(af.lo, half);
+	    BitReset(af.lo, carry);
+
+	    return regone;
 	}
 }
