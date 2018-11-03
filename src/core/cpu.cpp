@@ -302,7 +302,7 @@ namespace gb
 	    return regone;
 	}
 
-	void CPU::add16bit(uint16_t regone, uint16_t regtwo, int cycles)
+	uint16_t CPU::add16bit(uint16_t regone, uint16_t regtwo)
 	{
 	    af.lo = 0;
 
@@ -326,11 +326,10 @@ namespace gb
 		BitReset(af.lo, half);
 	    }
 
-	    regone += regtwo;
-	    m_cycles += cycles;
+	    return regone + regtwo;
 	}
 
-	void CPU::adds16bit(uint16_t regone, uint8_t regtwo, int cycles)
+	uint16_t CPU::adds16bit(uint16_t regone, uint8_t regtwo)
 	{
 	    int16_t regtwobsx = (int16_t)((int8_t)regtwo);
 	    uint16_t result = regone + regtwobsx;
@@ -358,19 +357,6 @@ namespace gb
 		BitReset(af.lo, half);
 	    }
 
-	    regone = result;
-	    m_cycles += cycles;
-	}
-
-	void CPU::inc16bit(uint16_t regone, int cycles)
-	{
-	    regone++;
-	    m_cycles += cycles;
-	}
-
-	void CPU::dec16bit(uint16_t regone, int cycles)
-	{
-	    regone--;
-	    m_cycles += cycles;
+	    return result;
 	}
 }

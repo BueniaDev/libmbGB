@@ -297,25 +297,25 @@ namespace gb
 		// 16-bit ALU
 
 		// ADD HL, n
-		case 0x09: add16bit(hl.reg, bc.reg, 8); break;
-		case 0x19: add16bit(hl.reg, de.reg, 8); break;
-		case 0x29: add16bit(hl.reg, hl.reg, 8); break;
-		case 0x39: add16bit(hl.reg, sp, 8); break;
+		case 0x09: hl.reg = add16bit(hl.reg, bc.reg); m_cycles += 8; break;
+		case 0x19: hl.reg = add16bit(hl.reg, de.reg); m_cycles += 8; break;
+		case 0x29: hl.reg = add16bit(hl.reg, hl.reg); m_cycles += 8; break;
+		case 0x39: hl.reg = add16bit(hl.reg, sp); m_cycles += 8; break;
 
 		// ADD SP, n
-		case 0xE8: adds16bit(sp, mem->readsByte(pc + 1), 16); break;
+		case 0xE8: sp = adds16bit(sp, mem->readsByte(pc + 1)); m_cycles += 16; break;
 
 		// INC nn
-		case 0x03: inc16bit(bc.reg, 8); break;
-		case 0x13: inc16bit(de.reg, 8); break;
-		case 0x23: inc16bit(hl.reg, 8); break;
-		case 0x33: inc16bit(sp, 8); break;
+		case 0x03: bc.reg++; m_cycles += 8; break;
+		case 0x13: de.reg++; m_cycles += 8; break;
+		case 0x23: hl.reg++; m_cycles += 8;break;
+		case 0x33: sp++; m_cycles += 8; break;
 
 		// DEC nn
-		case 0x0B: dec16bit(bc.reg, 8); break;
-		case 0x1B: dec16bit(de.reg, 8); break;
-		case 0x2B: dec16bit(hl.reg, 8); break;
-		case 0x3B: dec16bit(sp, 8); break;
+		case 0x0B: bc.reg--; m_cycles += 8; break;
+		case 0x1B: de.reg--; m_cycles += 8; break;
+		case 0x2B: hl.reg--; m_cycles += 8; break;
+		case 0x3B: sp--; m_cycles += 8; break;
 
 		// DAA
 		case 0x27: daa(); break;
