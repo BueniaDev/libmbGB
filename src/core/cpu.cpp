@@ -116,7 +116,7 @@ namespace gb
 			{
 			    if (TestBit(enabled, i))
 			    {
-				
+				serviceinterrupt(i);
 			    }
 			}
 		    }
