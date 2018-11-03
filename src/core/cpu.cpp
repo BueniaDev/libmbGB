@@ -455,4 +455,104 @@ namespace gb
 
 	    return regone;
 	}
+
+	uint8_t CPU::rl(uint8_t regone)
+	{
+	    af.lo = 0;
+	    
+	    regone <<= 1;
+
+	    if (TestBit(regone, 7))
+	    {
+		BitSet(af.lo, carry);
+	    }
+
+	    if (TestBit(af.lo, carry))
+	    {
+		BitSet(regone, 0);
+	    }
+
+	    if (regone == 0)
+	    {
+		BitSet(af.lo, zero);
+	    }
+
+	    BitReset(af.lo, subtract);
+	    BitReset(af.lo, half);
+
+	    return regone;
+	}
+
+	uint8_t CPU::rlc(uint8_t regone)
+	{
+	    af.lo = 0;
+
+	    regone <<= 1;
+
+	    if (TestBit(regone, 7))
+	    {
+		BitSet(af.lo, carry);
+		BitSet(regone, 0);
+	    }
+
+	    if (regone == 0)
+	    {
+		BitSet(af.lo, zero);
+	    }
+
+	    BitReset(af.lo, subtract);
+	    BitReset(af.lo, half);
+
+	    return regone;
+	}
+
+	uint8_t CPU::rr(uint8_t regone)
+	{
+	    af.lo = 0;
+
+	    regone >>= 1;
+
+	    if (TestBit(regone, 0))
+	    {
+		BitSet(af.lo, carry);
+	    }
+
+	    if (TestBit(af.lo, carry))
+	    {
+		BitSet(regone, 7);
+	    }
+
+	    if (regone == 0)
+	    {
+		BitSet(af.lo, zero);
+	    }
+
+	    BitReset(af.lo, subtract);
+	    BitReset(af.lo, half);
+
+	    return regone;
+	}
+
+	uint8_t CPU::rrc(uint8_t regone)
+	{
+	    af.lo = 0;
+
+	    regone >>= 1;
+
+	    if (TestBit(regone, 0))
+	    {
+		BitSet(af.lo, carry);
+		BitSet(regone, 7);
+	    }
+
+	    if (regone == 0)
+	    {
+		BitSet(af.lo, zero);
+	    }
+
+	    BitReset(af.lo, subtract);
+	    BitReset(af.lo, half);
+
+	    return regone;
+	}
 }

@@ -78,5 +78,9 @@ namespace gb
 	        uint16_t add16bit(uint16_t regone, uint16_t regtwo);
 	        uint16_t adds16bit(uint16_t regone, uint8_t regtwo);
 		uint8_t swap(uint8_t regone);
+		uint8_t rl(uint8_t regone);
+		uint8_t rlc(uint8_t regone);
+		uint8_t rr(uint8_t regone);
+		uint8_t rrc(uint8_t regone);
 	};
 }

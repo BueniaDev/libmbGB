@@ -364,6 +364,20 @@ namespace gb
 		// EI
 		case 0xFB: interrupten = true; m_cycles += 4; break;
 
+		// Rotates & shifts
+
+		// RLCA
+		case 0x07: af.hi = rlc(af.hi); m_cycles += 4; break;
+
+		// RLA
+		case 0x17: af.hi = rl(af.hi); m_cycles += 4; break;
+
+		// RRCA
+		case 0x0F: af.hi = rrc(af.hi); m_cycles += 4; break;
+
+		// RRA
+		case 0x1F: af.hi = rr(af.hi); m_cycles += 4; break;
+
 		// TODO: More opcodes
 
 		default: cout << "Unrecognized opcode at 0x" << hex << (int) opcode << endl;
