@@ -9,7 +9,7 @@ namespace gb
 {
 	CPU::CPU()
 	{
-	    CPUReset();
+	    reset();
 	}
 
 	CPU::~CPU()
@@ -18,7 +18,7 @@ namespace gb
 	}
 
 
-	void CPU::CPUReset()
+	void CPU::reset()
 	{
 	    af.reg = 0x01B0;
 	    bc.reg = 0x0013;
@@ -37,7 +37,7 @@ namespace gb
 	    cout << "CPU::Initialized" << endl;
 	}
 
-	void CPU::CPUResetBIOS()
+	void CPU::resetBIOS()
 	{
 	    af.reg = 0x0000;
 	    bc.reg = 0x0000;
@@ -543,6 +543,77 @@ namespace gb
 	    {
 		BitSet(af.lo, carry);
 		BitSet(regone, 7);
+	    }
+
+	    if (regone == 0)
+	    {
+		BitSet(af.lo, zero);
+	    }
+
+	    BitReset(af.lo, subtract);
+	    BitReset(af.lo, half);
+
+	    return regone;
+	}
+
+	uint8_t CPU::sla(uint8_t regone)
+	{
+	    af.lo = 0;
+
+	    regone <<= 1;	    
+
+	    if (TestBit(regone, 7))
+	    {
+		BitSet(af.lo, carry);
+	    }
+
+	    if (regone == 0)
+	    {
+		BitSet(af.lo, zero);
+	    }
+
+	    BitReset(af.lo, subtract);
+	    BitReset(af.lo, half);
+
+	    return regone;
+	}
+
+	uint8_t CPU::sra(uint8_t regone)
+	{
+	    af.lo = 0;
+
+	    regone >>= 1;
+
+	    if (TestBit(regone, 7))
+	    {
+		BitSet(regone, 7);
+	    }
+
+	    if (TestBit(regone, 0))
+	    {
+		BitSet(af.lo, carry);
+	    }
+
+	    if (regone == 0)
+	    {
+		BitSet(af.lo, zero);
+	    }
+
+	    BitReset(af.lo, subtract);
+	    BitReset(af.lo, half);
+
+	    return regone;
+	}
+
+	uint8_t CPU::srl(uint8_t regone)
+	{
+	    af.lo = 0;
+
+	    regone >>= 1;
+
+	    if (TestBit(regone, 0))
+	    {
+		BitSet(af.lo, carry);
 	    }
 
 	    if (regone == 0)

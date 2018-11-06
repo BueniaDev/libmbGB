@@ -388,6 +388,8 @@ namespace gb
 	{
 	    switch (opcode)
 	    {
+		// SWAP	n	
+
 		case 0x37: af.hi = swap(af.hi); m_cycles += 8; break;
 		case 0x30: bc.hi = swap(bc.hi); m_cycles += 8; break;
 		case 0x31: bc.lo = swap(bc.lo); m_cycles += 8; break;
@@ -396,6 +398,78 @@ namespace gb
 		case 0x34: hl.hi = swap(hl.hi); m_cycles += 8; break;
 		case 0x35: hl.lo = swap(hl.lo); m_cycles += 8; break;
 		case 0x36: mem->writeByte(hl.reg, swap(mem->readByte(hl.reg))); m_cycles += 16; break;
+
+		// Rotates and shifts
+		
+		// RLC n
+		case 0x07: af.hi = rlc(af.hi); m_cycles += 8; break;
+		case 0x00: bc.hi = rlc(bc.hi); m_cycles += 8; break;
+		case 0x01: bc.lo = rlc(bc.lo); m_cycles += 8; break;
+		case 0x02: de.hi = rlc(de.hi); m_cycles += 8; break;
+		case 0x03: de.lo = rlc(de.lo); m_cycles += 8; break;
+		case 0x04: hl.hi = rlc(hl.hi); m_cycles += 8; break;
+		case 0x05: hl.lo = rlc(hl.lo); m_cycles += 8; break;
+		case 0x06: mem->writeByte(hl.reg, rlc(mem->readByte(hl.reg))); m_cycles += 16; break;
+
+		// RL n
+		case 0x17: af.hi = rl(af.hi); m_cycles += 8; break;
+		case 0x10: bc.hi = rl(bc.hi); m_cycles += 8; break;
+		case 0x11: bc.lo = rl(bc.lo); m_cycles += 8; break;
+		case 0x12: de.hi = rl(de.hi); m_cycles += 8; break;
+		case 0x13: de.lo = rl(de.lo); m_cycles += 8; break;
+		case 0x14: hl.hi = rl(hl.hi); m_cycles += 8; break;
+		case 0x15: hl.lo = rl(hl.lo); m_cycles += 8; break;
+		case 0x16: mem->writeByte(hl.reg, rl(mem->readByte(hl.reg))); m_cycles += 16; break;
+
+		// RRC n
+		case 0x0F: af.hi = rrc(af.hi); m_cycles += 8; break;
+		case 0x08: bc.hi = rrc(bc.hi); m_cycles += 8; break;
+		case 0x09: bc.lo = rrc(bc.lo); m_cycles += 8; break;
+		case 0x0A: de.hi = rrc(de.hi); m_cycles += 8; break;
+		case 0x0B: de.lo = rrc(de.lo); m_cycles += 8; break;
+		case 0x0C: hl.hi = rrc(hl.hi); m_cycles += 8; break;
+		case 0x0D: hl.lo = rrc(hl.lo); m_cycles += 8; break;
+		case 0x0E: mem->writeByte(hl.reg, rrc(mem->readByte(hl.reg))); m_cycles += 16; break;
+
+		// RR n
+		case 0x1F: af.hi = rr(af.hi); m_cycles += 8; break;
+		case 0x18: bc.hi = rr(bc.hi); m_cycles += 8; break;
+		case 0x19: bc.lo = rr(bc.lo); m_cycles += 8; break;
+		case 0x1A: de.hi = rr(de.hi); m_cycles += 8; break;
+		case 0x1B: de.lo = rr(de.lo); m_cycles += 8; break;
+		case 0x1C: hl.hi = rr(hl.hi); m_cycles += 8; break;
+		case 0x1D: hl.lo = rr(hl.lo); m_cycles += 8; break;
+		case 0x1E: mem->writeByte(hl.reg, rr(mem->readByte(hl.reg))); m_cycles += 16; break;
+
+		// SLA n
+		case 0x27: af.hi = sla(af.hi); m_cycles += 8; break;
+		case 0x20: bc.hi = sla(bc.hi); m_cycles += 8; break;
+		case 0x21: bc.lo = sla(bc.lo); m_cycles += 8; break;
+		case 0x22: de.hi = sla(de.hi); m_cycles += 8; break;
+		case 0x23: de.lo = sla(de.lo); m_cycles += 8; break;
+		case 0x24: hl.hi = sla(hl.hi); m_cycles += 8; break;
+		case 0x25: hl.lo = sla(hl.lo); m_cycles += 8; break;
+		case 0x26: mem->writeByte(hl.reg, sla(mem->readByte(hl.reg))); m_cycles += 16; break;
+
+		// SRA n
+		case 0x2F: af.hi = sra(af.hi); m_cycles += 8; break;
+		case 0x28: bc.hi = sra(bc.hi); m_cycles += 8; break;
+		case 0x29: bc.lo = sra(bc.lo); m_cycles += 8; break;
+		case 0x2A: de.hi = sra(de.hi); m_cycles += 8; break;
+		case 0x2B: de.lo = sra(de.lo); m_cycles += 8; break;
+		case 0x2C: hl.hi = sra(hl.hi); m_cycles += 8; break;
+		case 0x2D: hl.lo = sra(hl.lo); m_cycles += 8; break;
+		case 0x2E: mem->writeByte(hl.reg, sra(mem->readByte(hl.reg))); m_cycles += 16; break;
+
+		// SRL n
+		case 0x3F: af.hi = srl(af.hi); m_cycles += 8; break;
+		case 0x38: bc.hi = srl(bc.hi); m_cycles += 8; break;
+		case 0x39: bc.lo = srl(bc.lo); m_cycles += 8; break;
+		case 0x3A: de.hi = srl(de.hi); m_cycles += 8; break;
+		case 0x3B: de.lo = srl(de.lo); m_cycles += 8; break;
+		case 0x3C: hl.hi = srl(hl.hi); m_cycles += 8; break;
+		case 0x3D: hl.lo = srl(hl.lo); m_cycles += 8; break;
+		case 0x3E: mem->writeByte(hl.reg, srl(mem->readByte(hl.reg))); m_cycles += 16; break;
 
 		default: cout << "Unrecognized extended opcode at 0xCB" << hex << (int) opcode << endl;
 	    }

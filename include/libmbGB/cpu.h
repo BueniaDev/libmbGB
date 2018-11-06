@@ -31,8 +31,8 @@ namespace gb
 		CPU();
 		~CPU();
 
-	        void CPUReset();
-	        void CPUResetBIOS();
+	        void reset();
+	        void resetBIOS();
 
 	        Register af;
 	        Register bc;
@@ -82,5 +82,8 @@ namespace gb
 		uint8_t rlc(uint8_t regone);
 		uint8_t rr(uint8_t regone);
 		uint8_t rrc(uint8_t regone);
+		uint8_t sla(uint8_t regone);
+		uint8_t sra(uint8_t regone);
+		uint8_t srl(uint8_t regone);
 	};
 }
