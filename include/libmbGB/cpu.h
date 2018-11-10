@@ -85,5 +85,8 @@ namespace gb
 		uint8_t sla(uint8_t regone);
 		uint8_t sra(uint8_t regone);
 		uint8_t srl(uint8_t regone);
+		void bit(uint8_t regone, int bit);
+		uint8_t set(uint8_t regone, int bit);
+		uint8_t res(uint8_t regone, int bit);
 	};
 }

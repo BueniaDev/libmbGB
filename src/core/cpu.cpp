@@ -626,4 +626,32 @@ namespace gb
 
 	    return regone;
 	}
+
+	void CPU::bit(uint8_t regone, int bit)
+	{
+	    af.lo = 0;
+	    if (TestBit(regone, bit))
+	    {
+		BitReset(af.lo, zero);
+	    }
+	    else
+	    {
+		BitSet(af.lo, zero);
+	    }
+
+	    BitReset(af.lo, subtract);
+	    BitSet(af.lo, half);
+	}
+
+	uint8_t CPU::set(uint8_t regone, int bit)
+	{
+	    BitSet(regone, bit);
+	    return regone;
+	}
+
+	uint8_t CPU::res(uint8_t regone, int bit)
+	{
+	    BitReset(regone, bit);
+	    return regone;
+	}
 }
