@@ -26,7 +26,7 @@ namespace gb
 		#endif
 	    };
 	    uint16_t reg;
-	};	
+	};
 
 	class LIBMBGB_API CPU
 	{
@@ -54,7 +54,7 @@ namespace gb
 		bool halted;
 
 	        int m_cycles;
-		
+
 		bool interruptdis;
 		bool interrupten;
 		bool interruptmaster;
@@ -62,7 +62,7 @@ namespace gb
 		void dointerrupts();
 		void requestinterrupt(int id);
 		void serviceinterrupt(int interrupt);
-		
+
 	        MMU *mem;
 
 	        void executenextopcode();
@@ -91,6 +91,7 @@ namespace gb
 		void bit(uint8_t regone, int bit);
 		uint8_t set(uint8_t regone, int bit);
 		uint8_t res(uint8_t regone, int bit);
+		void jr(uint8_t regone);
 	};
 }
 

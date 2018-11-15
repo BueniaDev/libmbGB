@@ -19,37 +19,17 @@ namespace gb
     void MMU::reset()
     {
         memset(memorymap, 0, sizeof(memorymap));
-	memset(bios, 0, sizeof(bios));
-
-        inbios = true;
         cout << "MMU::Initialized" << endl;
     }
 
     uint8_t MMU::readByte(uint16_t address)
     {
-	if (address == 0x100)
-        {
-            inbios = false;
-            cout << "MMU::Exiting BIOS..." << endl;
-        }
-        else if (address < 0x100)
-        {
-            return bios[address];
-        }
-
         return memorymap[address];
     }
 
     void MMU::writeByte(uint16_t address, uint8_t value)
     {
-	if (address < 0x8000)
-	{
-	    return;
-	} 
-	else
-	{       
-	    memorymap[address] = value;
-	}
+        memorymap[address] = value;
     }
 
     uint16_t MMU::readWord(uint16_t address)

@@ -10,10 +10,10 @@ namespace gb
 	{
 	    switch (opcode)
 	    {
-		
+
 		// 8-bit loads
 
-		// LD nn, n	
+		// LD nn, n
 		case 0x06: bc.hi = mem->readByte(pc++); m_cycles += 8; break;
 		case 0x0E: bc.lo = mem->readByte(pc++); m_cycles += 8; break;
 		case 0x16: de.hi = mem->readByte(pc++); m_cycles += 8; break;
@@ -100,13 +100,13 @@ namespace gb
 
 		// LD A, (C)
 		case 0xF2: af.hi = (0xFF00 + bc.lo); m_cycles += 8; break;
-		
+
 		// LD (C), A
 		case 0xE2: mem->writeByte((bc.lo + 0xFF00), af.hi), m_cycles += 8; break;
 
 		// LDD A, (HL)
 		case 0x3A: af.hi = mem->readByte(hl.reg); hl.reg--; m_cycles += 8; break;
-		
+
 		// LDD (HL), A
 		case 0x32: mem->writeByte((hl.reg--), af.hi); m_cycles += 8; break;
 
@@ -120,11 +120,11 @@ namespace gb
 		case 0xE0: mem->writeByte((mem->readByte(pc++) | 0xFF00), af.hi); m_cycles += 12; break;
 
 		// LDH A, (n)
-		case 0xF0: af.hi = (mem->readByte(pc++) | 0xFF00); m_cycles += 12; break;	
+		case 0xF0: af.hi = (mem->readByte(pc++) | 0xFF00); m_cycles += 12; break;
 
 
 		// 16-bit loads
-		
+
 		// LD n, nn
 		case 0x01: bc.reg = mem->readWord(pc); pc += 2; m_cycles += 12; break;
 		case 0x11: de.reg = mem->readWord(pc); pc += 2; m_cycles += 12; break;
@@ -228,8 +228,8 @@ namespace gb
 		case 0x9C: af.hi = sub8bit(af.hi, hl.hi, true); m_cycles += 4; break;
 		case 0x9D: af.hi = sub8bit(af.hi, hl.lo, true); m_cycles += 4; break;
 		case 0x9E: af.hi = sub8bit(af.hi, mem->readByte(hl.reg), true); m_cycles += 8; break;
-		case 0xDE: af.hi = sub8bit(af.hi, mem->readByte(pc++), true); m_cycles += 8; break;		
-		
+		case 0xDE: af.hi = sub8bit(af.hi, mem->readByte(pc++), true); m_cycles += 8; break;
+
 		// AND n
 		case 0xA7: af.hi = and8bit(af.hi, af.hi); m_cycles += 4; break;
 		case 0xA0: af.hi = and8bit(af.hi, bc.hi); m_cycles += 4; break;
@@ -326,13 +326,13 @@ namespace gb
 
 		// STOP
 		case 0x10: stop(); break;
-		
+
 		// HALT
 		case 0x76: halted = true;
 
 		// DAA
 		case 0x27: daa(); break;
-		
+
 		// SCF
 		case 0x37:
 		{
@@ -386,7 +386,7 @@ namespace gb
 		// RRA
 		case 0x1F: af.hi = rr(af.hi); m_cycles += 4; break;
 
-		
+
 		// Jumps
 
 		// JP nn
@@ -453,20 +453,21 @@ namespace gb
 		case 0xE9: pc = hl.reg; m_cycles += 4;
 
 		// JR n
-		case 0x18: pc += mem->readsByte(pc++); m_cycles += 8; break;
+		case 0x18: jr(mem->readByte(pc++)); m_cycles += 12; break;
 
 		// JR cc, n
 		case 0x20:
 		{
 		    if (!TestBit(af.lo, zero))
 		    {
-			pc += mem->readsByte(pc++);
+			jr(mem->readByte(pc));
 			m_cycles += 12;
 		    }
 		    else
 		    {
 			m_cycles += 8;
 		    }
+
 		    pc += 1;
 		}
 		break;
@@ -475,13 +476,14 @@ namespace gb
 		{
 		    if (TestBit(af.lo, zero))
 		    {
-			pc += mem->readsByte(pc++);
+			jr(mem->readByte(pc));
 			m_cycles += 12;
 		    }
 		    else
 		    {
 			m_cycles += 8;
 		    }
+
 		    pc += 1;
 		}
 		break;
@@ -490,13 +492,14 @@ namespace gb
 		{
 		    if (!TestBit(af.lo, carry))
 		    {
-			pc += mem->readsByte(pc++);
+			jr(mem->readByte(pc));
 			m_cycles += 12;
 		    }
 		    else
 		    {
 			m_cycles += 8;
 		    }
+
 		    pc += 1;
 		}
 		break;
@@ -505,13 +508,14 @@ namespace gb
 		{
 		    if (TestBit(af.lo, carry))
 		    {
-			pc += mem->readsByte(pc++);
+			jr(mem->readByte(pc));
 			m_cycles += 12;
 		    }
 		    else
 		    {
 			m_cycles += 8;
 		    }
+
 		    pc += 1;
 		}
 		break;
@@ -523,7 +527,7 @@ namespace gb
 		{
 		    sp -= 2;
 		    mem->writeWord(sp, pc + 2);
-		    pc = mem->readWord(pc++);
+		    pc = mem->readWord(pc);
 		    m_cycles += 24;
 		}
 		break;
@@ -534,7 +538,7 @@ namespace gb
 		    {
 			sp -= 2;
 		    	mem->writeWord(sp, pc + 2);
-		    	pc = mem->readWord(pc++);
+		    	pc = mem->readWord(pc);
 		    	m_cycles += 24;
 		    }
 		    else
@@ -551,7 +555,7 @@ namespace gb
 		    {
 			sp -= 2;
 		    	mem->writeWord(sp, pc + 2);
-		    	pc = mem->readWord(pc++);
+		    	pc = mem->readWord(pc);
 		    	m_cycles += 24;
 		    }
 		    else
@@ -568,7 +572,7 @@ namespace gb
 		    {
 			sp -= 2;
 		    	mem->writeWord(sp, pc + 2);
-		    	pc = mem->readWord(pc++);
+		    	pc = mem->readWord(pc);
 		    	m_cycles += 24;
 		    }
 		    else
@@ -585,7 +589,7 @@ namespace gb
 		    {
 			sp -= 2;
 		    	mem->writeWord(sp, pc + 2);
-		    	pc = mem->readWord(pc++);
+		    	pc = mem->readWord(pc);
 		    	m_cycles += 24;
 		    }
 		    else
@@ -621,7 +625,7 @@ namespace gb
 		    {
 			pc = mem->readWord(sp);
 			sp += 2;
-			m_cycles += 20; 
+			m_cycles += 20;
 		    }
 		    else
 		    {
@@ -636,7 +640,7 @@ namespace gb
 		    {
 			pc = mem->readWord(sp);
 			sp += 2;
-			m_cycles += 20; 
+			m_cycles += 20;
 		    }
 		    else
 		    {
@@ -651,7 +655,7 @@ namespace gb
 		    {
 			pc = mem->readWord(sp);
 			sp += 2;
-			m_cycles += 20; 
+			m_cycles += 20;
 		    }
 		    else
 		    {
@@ -666,7 +670,7 @@ namespace gb
 		    {
 			pc = mem->readWord(sp);
 			sp += 2;
-			m_cycles += 20; 
+			m_cycles += 20;
 		    }
 		    else
 		    {
@@ -687,12 +691,12 @@ namespace gb
 
 	void CPU::executecbopcode()
 	{
-	    uint8_t opcode = mem->readByte(pc++);	    
+	    uint8_t opcode = mem->readByte(pc++);
 
 	    switch (opcode)
 	    {
 		// Misc
-		
+
 		// SWAP	n
 
 		case 0x37: af.hi = swap(af.hi); m_cycles += 8; break;
@@ -706,7 +710,7 @@ namespace gb
 
 
 		// Rotates and shifts
-		
+
 		// RLC n
 		case 0x07: af.hi = rlc(af.hi); m_cycles += 8; break;
 		case 0x00: bc.hi = rlc(bc.hi); m_cycles += 8; break;

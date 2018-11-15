@@ -130,14 +130,12 @@ namespace gb
 	    {
 		case 0: pc = 0x40; break;
 		case 1: pc = 0x48; break;
-		case 2: pc = 0x50; break;
-		case 4: pc = 0x60; break;
 	    }
 
 	    m_cycles += 36;
 	    interrupten = false;
 	}
-	
+
 	// Stolen
 	void CPU::daa()
 	{
@@ -256,7 +254,7 @@ namespace gb
 
 	    int16_t halftest = (regone & 0xF);
 	    halftest -= (sub & 0xF);
-	
+
 	    if (halftest < 0)
 	    {
 		BitSet(af.lo, half);
@@ -315,9 +313,9 @@ namespace gb
 
 	uint8_t CPU::inc8bit(uint8_t regone)
 	{
-	    regone++;	
+	    regone++;
 
-	    af.lo = 0;    
+	    af.lo = 0;
 
 	    if (regone == 0)
 	    {
@@ -402,7 +400,7 @@ namespace gb
 	{
 	    int16_t regtwobsx = (int16_t)((int8_t)regtwo);
 	    uint16_t result = regone + regtwobsx;
-	
+
 	    af.lo = 0;
 
 	    BitReset(af.lo, zero);
@@ -451,7 +449,7 @@ namespace gb
 	uint8_t CPU::rl(uint8_t regone)
 	{
 	    af.lo = 0;
-	    
+
 	    regone <<= 1;
 
 	    if (TestBit(regone, 7))
@@ -552,7 +550,7 @@ namespace gb
 	{
 	    af.lo = 0;
 
-	    regone <<= 1;	    
+	    regone <<= 1;
 
 	    if (TestBit(regone, 7))
 	    {
@@ -645,5 +643,19 @@ namespace gb
 	{
 	    BitReset(regone, bit);
 	    return regone;
+	}
+
+	void CPU::jr(uint8_t regone)
+	{
+        if (TestBit(regone, zero))
+        {
+            regone--;
+            regone = ~regone;
+            pc -= regone;
+        }
+        else
+        {
+            pc += regone;
+        }
 	}
 }
