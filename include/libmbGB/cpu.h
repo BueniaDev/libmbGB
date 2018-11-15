@@ -1,3 +1,6 @@
+#ifndef GB_CPU
+#define GB_CPU
+
 #include "libmbgb_api.h"
 #include "mmu.h"
 using namespace gb;
@@ -64,7 +67,7 @@ namespace gb
 
 	        void executenextopcode();
 	        void executeopcode(uint8_t opcode);
-	        void executecbopcode(uint8_t opcode);
+	        void executecbopcode();
 
 	        void daa();
 		void stop();
@@ -90,3 +93,5 @@ namespace gb
 		uint8_t res(uint8_t regone, int bit);
 	};
 }
+
+#endif // GB_CPU

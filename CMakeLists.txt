@@ -14,12 +14,16 @@ endif()
 set(LIBMBGB_API_HEADERS
 	include/libmbGB/libmbgb_api.h
 	include/libmbGB/utils.h
-	include/libmbGB/mmu.h)
+	include/libmbGB/mmu.h
+	include/libmbGB/gpu.h
+	include/libmbGB/libmbgb.h)
 
 set(LIBMBGB
 	src/core/mmu.cpp
 	src/core/cpu.cpp
-	src/core/ops.cpp)
+	src/core/ops.cpp
+	src/core/gpu.cpp
+	src/core/libmbgb.cpp)
 
 if (WIN32)
 	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
@@ -51,5 +55,4 @@ elseif (APPLE)
 endif()
 
 add_library(mbGB SHARED ${LIBMBGB} ${LIBMBGB_API_HEADERS})
-
 add_library(mbGB-s STATIC ${LIBMBGB} ${LIBMBGB_API_HEADERS})

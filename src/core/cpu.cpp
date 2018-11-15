@@ -61,15 +61,7 @@ namespace gb
 	    if (!halted)
 	    {
 	    	uint8_t opcode = mem->readByte(pc++);
-	    	if (opcode != 0xCB)
-	    	{
-		    executeopcode(opcode);
-	    	}
-	    	else
-		{
-		    opcode = mem->readByte(pc++);	
-		    executecbopcode(opcode);
-	    	}
+		executeopcode(opcode);
 	    }
 	    else
 	    {
