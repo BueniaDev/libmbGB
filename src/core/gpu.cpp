@@ -26,9 +26,9 @@ namespace gb
     {
 	for (int i = 0; i < 160 * 144; i++)
 	{
-	    framebuffer[i][0] = 0;
-	    framebuffer[i][1] = 0;
-	    framebuffer[i][2] = 0;
+	    framebuffer[i][0] = 255;
+	    framebuffer[i][1] = 255;
+	    framebuffer[i][2] = 255;
 	}
     }
 
@@ -45,22 +45,34 @@ namespace gb
 	    return;
 	}
 
+	if (gmem->memorymap[0xFF44] > 0x99)
+	{
+	    gmem->memorymap[0xFF44] = 0;
+	}
+
 	if (scanlinecounter <= 0)
 	{
-	    gmem->memorymap[0xFF44]++;
-	    uint8_t currentline = gmem->readByte(0xFF44);
+	    if (TestBit(gmem->readByte(0xFF40), 7) == false)
+	    {
+		return;
+	    }
 
+	    gmem->memorymap[0xFF44]++;
 	    scanlinecounter = 456;
 
-	    if (currentline == 144)
+	    uint8_t scanline = gmem->readByte(0xFF44);
+
+	    if (scanline == 0x90)
 	    {
 		gcpu->requestinterrupt(0);
 	    }
-	    else if (currentline > 153)
+
+	    if (scanline > 0x99)
 	    {
 		gmem->memorymap[0xFF44] = 0;
 	    }
-	    else if (currentline < 144)
+
+	    if (scanline < 0x90)
 	    {
 		drawscanline();
 	    }
@@ -69,24 +81,27 @@ namespace gb
 
     void GPU::setlcdstatus()
     {
-	uint8_t status = gmem->readByte(0xFF41);
+	uint8_t status = gmem->memorymap[0xFF41];
+
 	if (TestBit(gmem->readByte(0xFF40), 7) == false)
 	{
 	    scanlinecounter = 456;
 	    gmem->memorymap[0xFF44] = 0;
+	    
 	    status &= 252;
 	    BitSet(status, 0);
 	    gmem->writeByte(0xFF41, status);
 	    return;
 	}
 
-	uint8_t currentline = gmem->readByte(0xFF44);
-	uint8_t currentmode = status & 0x3;
+	uint8_t scanline = gmem->readByte(0xFF44);
 
-	uint8_t mode = 0;
+	uint8_t currentmode = (gmem->memorymap[0xFF41] & 0x3);
+
+	int mode = 0;
 	bool reqint = false;
 
-	if (currentline >= 144)
+	if (scanline >= 0x90)
 	{
 	    mode = 1;
 	    BitSet(status, 0);
@@ -95,9 +110,8 @@ namespace gb
 	}
 	else
 	{
-	    int mode2bounds = 456 - 80;
-	    int mode3bounds = mode2bounds - 172;
-
+	    int mode2bounds = (456 - 80);
+	    int mode3bounds = (mode2bounds - 172);
 	    if (scanlinecounter >= mode2bounds)
 	    {
 		mode = 2;
@@ -114,39 +128,44 @@ namespace gb
 	    else
 	    {
 		mode = 0;
-		BitReset(status, 1);
+		BitReset(status, 1);	
 		BitReset(status, 0);
 		reqint = TestBit(status, 3);
 	    }
 	}
 
-	if (reqint && (mode != currentmode))
+	if (reqint && (currentmode != mode))
 	{
-	    gcpu->requestinterrupt(1);
+	    gcpu->requestinterrupt(0);
 	}
 
-	if (gmem->readByte(0xFF44) == gmem->readByte(0xFF45))
+	if (scanline == gmem->readByte(0xFF45))
 	{
 	    BitSet(status, 2);
+	
 	    if (TestBit(status, 6))
 	    {
-		gcpu->requestinterrupt(1);
+		gcpu->requestinterrupt(0);
 	    }
 	}
 	else
 	{
 	    BitReset(status, 2);
 	}
-	
+
 	gmem->writeByte(0xFF41, status);
+
     }
 
     void GPU::drawscanline()
     {
 	uint8_t control = gmem->readByte(0xFF40);
-	if (TestBit(control, 0))
+	if (TestBit(control, 7))
 	{
-	    rendertiles(control);
+	    if (TestBit(control, 0))
+	    {
+		rendertiles(control);
+	    }
 	}
     }
 

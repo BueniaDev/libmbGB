@@ -20,6 +20,7 @@ set(LIBMBGB_API_HEADERS
 
 set(LIBMBGB
 	src/core/mmu.cpp
+	src/core/utils.cpp
 	src/core/cpu.cpp
 	src/core/ops.cpp
 	src/core/gpu.cpp

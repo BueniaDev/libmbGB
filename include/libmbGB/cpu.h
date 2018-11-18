@@ -55,13 +55,12 @@ namespace gb
 
 	        int m_cycles;
 
-		bool interruptdis;
-		bool interrupten;
-		bool interruptmaster;
+		bool interrupt;
+		bool interruptdelay;
 
 		void dointerrupts();
+		void serviceinterrupt(int id);
 		void requestinterrupt(int id);
-		void serviceinterrupt(int interrupt);
 
 	        MMU *mem;
 
@@ -78,6 +77,7 @@ namespace gb
 	        uint8_t xor8bit(uint8_t regone, uint8_t regtwo);
 	        uint8_t inc8bit(uint8_t regone);
 	        uint8_t dec8bit(uint8_t regone);
+		uint8_t compare8bit(uint8_t regone, uint8_t regtwo);
 	        uint16_t add16bit(uint16_t regone, uint16_t regtwo);
 	        uint16_t adds16bit(uint16_t regone, uint8_t regtwo);
 		uint8_t swap(uint8_t regone);

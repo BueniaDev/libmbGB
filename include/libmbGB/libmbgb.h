@@ -17,6 +17,7 @@ namespace gb
 	    ~DMGCore();
 
 	    void loadROM(string filename);
+	    void loadBIOS(string filename);
 	    void runcore();
 
 	    CPU corecpu;

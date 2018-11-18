@@ -13,6 +13,7 @@ namespace gb
             ~MMU();
 
             uint8_t memorymap[0x10000];
+	    uint8_t bios[0x100];
 
             void reset();
 

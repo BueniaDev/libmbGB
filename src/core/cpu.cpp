@@ -9,7 +9,7 @@ namespace gb
 {
 	CPU::CPU()
 	{
-	    reset();
+	    resetBIOS();
 	}
 
 	CPU::~CPU()
@@ -30,9 +30,8 @@ namespace gb
 	    stopped = false;
 	    halted = false;
 
-	    interruptdis = false;
-	    interrupten = false;
-	    interruptmaster = false;
+	    interrupt = false;
+	    interruptdelay = false;
 
 	    cout << "CPU::Initialized" << endl;
 	}
@@ -49,11 +48,65 @@ namespace gb
 	    stopped = false;
 	    halted = false;
 
-	    interruptdis = false;
-	    interrupten = false;
-	    interruptmaster = false;
+	    interrupt = false;
+	    interruptdelay = false;
 
 	    cout << "CPU::Initialized" << endl;
+	}
+
+	void CPU::dointerrupts()
+	{
+	    if (interruptdelay)
+	    {
+		interruptdelay = false;
+		interrupt = true;
+	    }
+	    else if (interrupt)
+	    {
+		for (int i = 0; i < 5; i++)
+		{
+		    serviceinterrupt(i);
+		}
+	    }
+	    else
+	    {
+		return;
+	    }
+	}
+
+	void CPU::requestinterrupt(int id)
+	{
+	    uint8_t req = mem->readByte(0xFF0F);
+	    req = BitSet(req, id);
+	    mem->writeByte(0xFF0F, req);
+	}
+
+	void CPU::serviceinterrupt(int id)
+	{
+	    if (TestBit(mem->readByte(0xFFFF), id) && (TestBit(mem->readByte(0xFF0F), id)))
+	    {
+		interrupt = false;
+		halted = false;
+
+		uint8_t req = mem->readByte(0xFF0F);
+		BitReset(req, id);
+		mem->writeByte(0xFF0F, req);
+
+		sp--;
+		mem->writeByte(sp, (pc >> 8) & 0xFF);
+		sp--;
+		mem->writeByte(sp, pc & 0xFF);
+		switch (id)
+		{
+		    case 0: pc = 0x40; break;
+		    case 1: pc = 0x48; break;
+		    case 2: pc = 0x50; break;
+		    case 3: pc = 0x58; break;
+		    case 4: pc = 0x60; break;
+		}
+
+		m_cycles += 36;
+	    }
 	}
 
 	void CPU::executenextopcode()
@@ -67,73 +120,6 @@ namespace gb
 	    {
 		m_cycles += 4;
 	    }
-
-	    if (interruptdis)
-	    {
-		if (mem->readByte(pc - 1) != 0xF3)
-		{
-		    interruptdis = false;
-		    interruptmaster = false;
-		}
-	    }
-
-	    if (interrupten)
-	    {
-		if (mem->readByte(pc - 1) != 0xFB)
-		{
-		    interrupten = false;
-		    interruptmaster = true;
-		}
-	    }
-	}
-
-	void CPU::requestinterrupt(int id)
-	{
-	    uint8_t req = mem->readByte(0xFF0F);
-	    BitSet(req, id);
-	    mem->writeByte(0xFF0F, id);
-	}
-
-	void CPU::dointerrupts()
-	{
-	    if (interruptmaster == true)
-	    {
-		uint8_t req = mem->readByte(0xFF0F);
-		uint8_t enabled = mem->readByte(0xFFFF);
-		if (req > 0)
-		{
-		    for (int i = 0; i < 5; i++)
-		    {
-			if (TestBit(req, i) == true)
-			{
-			    if (TestBit(enabled, i))
-			    {
-				serviceinterrupt(i);
-			    }
-			}
-		    }
-		}
-	    }
-	}
-
-	void CPU::serviceinterrupt(int interrupt)
-	{
-	    interruptmaster = false;
-	    uint8_t req = mem->readByte(0xFF0F);
-	    BitReset(req, interrupt);
-	    mem->writeByte(0xFF0F, req);
-
-	    sp -= 2;
-	    mem->writeWord(sp, pc);
-
-	    switch (interrupt)
-	    {
-		case 0: pc = 0x40; break;
-		case 1: pc = 0x48; break;
-	    }
-
-	    m_cycles += 36;
-	    interrupten = false;
 	}
 
 	// Stolen
@@ -141,23 +127,23 @@ namespace gb
 	{
 	    uint8_t tempF = af.lo & 0x50;
 
-	    if ((af.lo & 0x40) == 0x40)
+	    if (TestBit(af.lo, subtract))
 	    {
-		if ((af.lo & 0x20) == 0x20)
+		if (TestBit(af.lo, half))
 		{
 		    af.hi -= 0x06;
 		}
 
-		if ((af.lo & 0x10) == 0x10)
+		if (TestBit(af.lo, carry))
 		{
 		    af.hi -= 0x60;
 		}
 	    }
 	    else
 	    {
-		if (((af.lo & 0x10) == 0x10) || (af.hi > 0x99))
+		if ((TestBit(af.lo, carry)) || (af.hi > 0x99))
 		{
-		    if (((af.lo & 0x20) == 0x20) || (af.hi & 0x0F) > 0x09)
+		    if ((TestBit(af.lo, half)) || (af.hi & 0x0F) > 0x09)
 		    {
 			af.hi += 0x66;
 		    }
@@ -167,7 +153,7 @@ namespace gb
 		    }
 		    tempF |= 0x10;
 		}
-		else if (((af.lo & 0x20) == 0x20) || (af.hi & 0x0F) > 0x09)
+		else if ((TestBit(af.lo, half)) || (af.hi & 0x0F) > 0x09)
 		{
 		    af.hi += 0x06;
 		}
@@ -175,8 +161,9 @@ namespace gb
 
 	    if (af.hi == 0)
 	    {
-		tempF |= 0x80;
+		tempF = BitSet(tempF, zero);
 	    }
+
 	    af.lo = tempF;
 
 	    m_cycles += 4;
@@ -205,7 +192,7 @@ namespace gb
 
 	    if ((regone + adding) == 0)
 	    {
-		BitSet(af.lo, zero);
+		af.lo = BitSet(af.lo, zero);
 	    }
 
 	    BitReset(af.lo, subtract);
@@ -215,12 +202,12 @@ namespace gb
 
 	    if ((halftest & 0x10) == 0x10)
 	    {
-		BitSet(af.lo, half);
+		af.lo = BitSet(af.lo, half);
 	    }
 
 	    if ((regone + adding) > 0xFF)
 	    {
-		BitSet(af.lo, carry);
+		af.lo = BitSet(af.lo, carry);
 	    }
 
 	    return regone + adding;
@@ -240,24 +227,24 @@ namespace gb
 
 	    af.lo = 0;
 
-	    if (regone == 0)
+	    if ((regone - sub) == 0)
 	    {
-		BitSet(af.lo, zero);
+		af.lo = BitSet(af.lo, zero);
 	    }
 
-	    BitSet(af.lo, subtract);
+	    af.lo = BitSet(af.lo, subtract);
 
 	    if (regone < sub)
 	    {
-		BitSet(af.lo, carry);
+		af.lo = BitSet(af.lo, carry);
 	    }
 
 	    int16_t halftest = (regone & 0xF);
 	    halftest -= (sub & 0xF);
-
+	
 	    if (halftest < 0)
 	    {
-		BitSet(af.lo, half);
+		af.lo = BitSet(af.lo, half);
 	    }
 
 	    return regone - sub;
@@ -269,12 +256,12 @@ namespace gb
 
 	    if ((regone & regtwo) == 0)
 	    {
-		BitSet(af.lo, zero);
+		af.lo = BitSet(af.lo, zero);
 	    }
 
-	    BitReset(af.lo, subtract);
-	    BitSet(af.lo, half);
-	    BitReset(af.lo, carry);
+	    af.lo = BitReset(af.lo, subtract);
+	    af.lo = BitSet(af.lo, half);
+	    af.lo = BitReset(af.lo, carry);
 
 	    return regone & regtwo;
 	}
@@ -285,12 +272,12 @@ namespace gb
 
 	    if ((regone | regtwo) == 0)
 	    {
-		BitSet(af.lo, zero);
+		af.lo = BitSet(af.lo, zero);
 	    }
 
-	    BitReset(af.lo, subtract);
-	    BitReset(af.lo, half);
-	    BitReset(af.lo, carry);
+	    af.lo = BitReset(af.lo, subtract);
+	    af.lo = BitReset(af.lo, half);
+	    af.lo = BitReset(af.lo, carry);
 
 	    return regone | regtwo;
 	}
@@ -301,40 +288,46 @@ namespace gb
 
 	    if ((regone ^ regtwo) == 0)
 	    {
-		BitSet(af.lo, zero);
+		af.lo = BitSet(af.lo, zero);
 	    }
 
-	    BitReset(af.lo, subtract);
-	    BitReset(af.lo, half);
-	    BitReset(af.lo, carry);
+	    af.lo = BitReset(af.lo, subtract);
+	    af.lo = BitReset(af.lo, half);
+	    af.lo = BitReset(af.lo, carry);
 
 	    return regone ^ regtwo;
 	}
 
 	uint8_t CPU::inc8bit(uint8_t regone)
 	{
+	    uint8_t carryflag = TestBit(af.lo, carry) ? 1 : 0;
 	    regone++;
 
 	    af.lo = 0;
 
 	    if (regone == 0)
 	    {
-		BitSet(af.lo, zero);
+		af.lo = BitSet(af.lo, zero);
 	    }
 	    else
 	    {
-		BitReset(af.lo, zero);
+		af.lo = BitReset(af.lo, zero);
 	    }
 
 	    BitReset(af.lo, subtract);
 
-	    if ((regone & 0xF) == 0xF)
+	    if ((regone & 0xF) == 0)
 	    {
-		BitSet(af.lo, half);
+		af.lo = BitSet(af.lo, half);
 	    }
 	    else
 	    {
-		BitReset(af.lo, half);
+		af.lo = BitReset(af.lo, half);
+	    }
+
+	    if (carryflag == 1)
+	    {
+		af.lo = BitSet(af.lo, carry);
 	    }
 
 	    return regone;
@@ -342,55 +335,90 @@ namespace gb
 
 	uint8_t CPU::dec8bit(uint8_t regone)
 	{
+	    uint8_t carryflag = TestBit(af.lo, carry) ? 1 : 0;
 	    regone--;
 
 	    af.lo = 0;
 
 	    if (regone == 0)
 	    {
-		BitSet(af.lo, zero);
+		af.lo = BitSet(af.lo, zero);
 	    }
 	    else
 	    {
-		BitReset(af.lo, zero);
+		af.lo = BitReset(af.lo, zero);
 	    }
 
-	    BitSet(af.lo, subtract);
+	    af.lo = BitSet(af.lo, subtract);
 
-	    if ((regone & 0xF) == 0)
+	    if ((regone & 0xF) == 0xF)
 	    {
-		BitSet(af.lo, half);
+		af.lo = BitSet(af.lo, half);
 	    }
 	    else
 	    {
-		BitReset(af.lo, half);
+		af.lo = BitReset(af.lo, half);
+	    }
+
+	    if (carryflag == 1)
+	    {
+		af.lo = BitSet(af.lo, carry);
 	    }
 
 	    return regone;
+	}
+
+	uint8_t CPU::compare8bit(uint8_t regone, uint8_t regtwo)
+	{
+	    uint8_t sub = regtwo;
+
+	    af.lo = 0;
+
+	    if ((regone - sub) == 0)
+	    {
+		af.lo = BitSet(af.lo, zero);
+	    }
+
+	    af.lo = BitSet(af.lo, subtract);
+
+	    if (regone < sub)
+	    {
+		af.lo = BitSet(af.lo, carry);
+	    }
+
+	    int16_t htest = (regone & 0xF);
+	    htest -= (sub & 0xF);
+
+	    if (htest < 0)
+	    {
+		af.lo = BitSet(af.lo, half);
+	    }
+
+	    return regone - sub;
 	}
 
 	uint16_t CPU::add16bit(uint16_t regone, uint16_t regtwo)
 	{
 	    af.lo = 0;
 
-	    BitReset(af.lo, subtract);
+	    af.lo = BitReset(af.lo, subtract);
 
 	    if ((regone + regtwo) > 0xFFFF)
 	    {
-		BitSet(af.lo, carry);
+		af.lo = BitSet(af.lo, carry);
 	    }
 	    else
 	    {
-		BitReset(af.lo, carry);
+		af.lo = BitReset(af.lo, carry);
 	    }
 
 	    if (((regone & 0xFF00) & 0xF) + ((regtwo >> 8) & 0xF))
 	    {
-		BitSet(af.lo, half);
+		af.lo = BitSet(af.lo, half);
 	    }
 	    else
 	    {
-		BitReset(af.lo, half);
+		af.lo = BitReset(af.lo, half);
 	    }
 
 	    return regone + regtwo;
@@ -403,25 +431,25 @@ namespace gb
 
 	    af.lo = 0;
 
-	    BitReset(af.lo, zero);
-	    BitReset(af.lo, subtract);
+	    af.lo = BitReset(af.lo, zero);
+	    af.lo = BitReset(af.lo, subtract);
 
 	    if (((regone & 0xFF) + regtwo) > 0xFF)
 	    {
-		BitSet(af.lo, carry);
+		af.lo = BitSet(af.lo, carry);
 	    }
 	    else
 	    {
-		BitReset(af.lo, carry);
+		af.lo = BitReset(af.lo, carry);
 	    }
 
 	    if (((regone & 0xF) + (regtwo & 0xF)) > 0xF)
 	    {
-		BitSet(af.lo, half);
+		af.lo = BitSet(af.lo, half);
 	    }
 	    else
 	    {
-		BitReset(af.lo, half);
+		af.lo = BitReset(af.lo, half);
 	    }
 
 	    return result;
@@ -436,89 +464,84 @@ namespace gb
 
 	    if (regone == 0)
 	    {
-		BitSet(af.lo, zero);
+		af.lo = BitSet(af.lo, zero);
 	    }
 
-	    BitReset(af.lo, subtract);
-	    BitReset(af.lo, half);
-	    BitReset(af.lo, carry);
+	    af.lo = BitReset(af.lo, subtract);
+	    af.lo = BitReset(af.lo, half);
+	    af.lo = BitReset(af.lo, carry);
 
 	    return regone;
 	}
 
 	uint8_t CPU::rl(uint8_t regone)
-	{
+	{	    
+	    uint8_t oldcarry = TestBit(af.lo, carry) ? 1 : 0;
 	    af.lo = 0;
 
-	    regone <<= 1;
+	    uint8_t carryflag = TestBit(regone, 7) ? 1 : 0;
+	    regone = (regone << 1) + oldcarry;
 
-	    if (TestBit(regone, 7))
+	    if (carryflag == 1)
 	    {
-		BitSet(af.lo, carry);
-	    }
-
-	    if (TestBit(af.lo, carry))
-	    {
-		BitSet(regone, 0);
+		af.lo = BitSet(af.lo, carry);
 	    }
 
 	    if (regone == 0)
 	    {
-		BitSet(af.lo, zero);
+		af.lo = BitSet(af.lo, zero);
 	    }
 
-	    BitReset(af.lo, subtract);
-	    BitReset(af.lo, half);
+	    af.lo = BitReset(af.lo, subtract);
+	    af.lo = BitReset(af.lo, half);
 
 	    return regone;
 	}
 
 	uint8_t CPU::rlc(uint8_t regone)
 	{
+	    uint8_t carryflag = TestBit(af.lo, carry) ? 1 : 0;
+
 	    af.lo = 0;
 
-	    regone <<= 1;
+	    regone = (regone << 1) + carryflag;
 
-	    if (TestBit(regone, 7))
+	    if (carryflag == 1)
 	    {
-		BitSet(af.lo, carry);
-		BitSet(regone, 0);
+		af.lo = BitSet(af.lo, carry);
 	    }
 
 	    if (regone == 0)
 	    {
-		BitSet(af.lo, zero);
+		af.lo = BitSet(af.lo, zero);
 	    }
 
-	    BitReset(af.lo, subtract);
-	    BitReset(af.lo, half);
+	    af.lo = BitReset(af.lo, subtract);
+	    af.lo = BitReset(af.lo, half);
 
 	    return regone;
 	}
 
 	uint8_t CPU::rr(uint8_t regone)
 	{
+	    uint8_t oldcarry = TestBit(af.lo, carry) ? 1 : 0;
 	    af.lo = 0;
 
-	    regone >>= 1;
+	    uint8_t carryflag = TestBit(af.lo, 0) ? 1 : 0;
+	    regone = (regone >> 1) + (oldcarry << 7);
 
-	    if (TestBit(regone, 0))
+	    if (carryflag == 1)
 	    {
-		BitSet(af.lo, carry);
-	    }
-
-	    if (TestBit(af.lo, carry))
-	    {
-		BitSet(regone, 7);
+		af.lo = BitSet(af.lo, carry);
 	    }
 
 	    if (regone == 0)
 	    {
-		BitSet(af.lo, zero);
+		af.lo = BitSet(af.lo, zero);
 	    }
 
-	    BitReset(af.lo, subtract);
-	    BitReset(af.lo, half);
+	    af.lo = BitReset(af.lo, subtract);
+	    af.lo = BitReset(af.lo, half);
 
 	    return regone;
 	}
@@ -527,21 +550,22 @@ namespace gb
 	{
 	    af.lo = 0;
 
-	    regone >>= 1;
+	    uint8_t carryflag = TestBit(regone, 0) ? 1 : 0;
 
-	    if (TestBit(regone, 0))
+	    regone = (regone >> 1) | (carryflag << 7);
+
+	    if (carryflag == 1)
 	    {
-		BitSet(af.lo, carry);
-		BitSet(regone, 7);
+		af.lo = BitSet(af.lo, carry);
 	    }
 
 	    if (regone == 0)
 	    {
-		BitSet(af.lo, zero);
+		af.lo = BitSet(af.lo, zero);
 	    }
 
-	    BitReset(af.lo, subtract);
-	    BitReset(af.lo, half);
+	    af.lo = BitReset(af.lo, subtract);
+	    af.lo = BitReset(af.lo, half);
 
 	    return regone;
 	}
@@ -554,16 +578,16 @@ namespace gb
 
 	    if (TestBit(regone, 7))
 	    {
-		BitSet(af.lo, carry);
+		af.lo = BitSet(af.lo, carry);
 	    }
 
 	    if (regone == 0)
 	    {
-		BitSet(af.lo, zero);
+		af.lo = BitSet(af.lo, zero);
 	    }
 
-	    BitReset(af.lo, subtract);
-	    BitReset(af.lo, half);
+	    af.lo = BitReset(af.lo, subtract);
+	    af.lo = BitReset(af.lo, half);
 
 	    return regone;
 	}
@@ -576,21 +600,21 @@ namespace gb
 
 	    if (TestBit(regone, 7))
 	    {
-		BitSet(regone, 7);
+		af.lo = BitSet(regone, 7);
 	    }
 
 	    if (TestBit(regone, 0))
 	    {
-		BitSet(af.lo, carry);
+		af.lo = BitSet(af.lo, carry);
 	    }
 
 	    if (regone == 0)
 	    {
-		BitSet(af.lo, zero);
+		af.lo = BitSet(af.lo, zero);
 	    }
 
-	    BitReset(af.lo, subtract);
-	    BitReset(af.lo, half);
+	    af.lo = BitReset(af.lo, subtract);
+	    af.lo = BitReset(af.lo, half);
 
 	    return regone;
 	}
@@ -603,16 +627,16 @@ namespace gb
 
 	    if (TestBit(regone, 0))
 	    {
-		BitSet(af.lo, carry);
+		af.lo = BitSet(af.lo, carry);
 	    }
 
 	    if (regone == 0)
 	    {
-		BitSet(af.lo, zero);
+		af.lo = BitSet(af.lo, zero);
 	    }
 
-	    BitReset(af.lo, subtract);
-	    BitReset(af.lo, half);
+	    af.lo = BitReset(af.lo, subtract);
+	    af.lo = BitReset(af.lo, half);
 
 	    return regone;
 	}
@@ -622,40 +646,40 @@ namespace gb
 	    af.lo = 0;
 	    if (TestBit(regone, bit))
 	    {
-		BitReset(af.lo, zero);
+		af.lo = BitReset(af.lo, zero);
 	    }
 	    else
 	    {
-		BitSet(af.lo, zero);
+		af.lo = BitSet(af.lo, zero);
 	    }
 
-	    BitReset(af.lo, subtract);
-	    BitSet(af.lo, half);
+	    af.lo = BitReset(af.lo, subtract);
+	    af.lo = BitSet(af.lo, half);
 	}
 
 	uint8_t CPU::set(uint8_t regone, int bit)
 	{
-	    BitSet(regone, bit);
+	    regone = BitSet(regone, bit);
 	    return regone;
 	}
 
 	uint8_t CPU::res(uint8_t regone, int bit)
 	{
-	    BitReset(regone, bit);
+	    regone = BitReset(regone, bit);
 	    return regone;
 	}
 
 	void CPU::jr(uint8_t regone)
 	{
-        if (TestBit(regone, zero))
-        {
-            regone--;
-            regone = ~regone;
-            pc -= regone;
-        }
-        else
-        {
-            pc += regone;
-        }
+            if (TestBit(regone, zero))
+            {
+                regone--;
+                regone = ~regone;
+                pc -= regone;
+            }
+            else
+            {
+                pc += regone;
+            }
 	}
 }
