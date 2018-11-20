@@ -1,3 +1,6 @@
+#ifndef GB_CPU
+#define GB_CPU
+
 #include "libmbgb_api.h"
 #include "mmu.h"
 using namespace gb;
@@ -23,7 +26,7 @@ namespace gb
 		#endif
 	    };
 	    uint16_t reg;
-	};	
+	};
 
 	class LIBMBGB_API CPU
 	{
@@ -51,30 +54,30 @@ namespace gb
 		bool halted;
 
 	        int m_cycles;
-		
-		bool interruptdis;
-		bool interrupten;
-		bool interruptmaster;
+
+		bool interrupt;
+		bool interruptdelay;
 
 		void dointerrupts();
+		void serviceinterrupt(int id);
 		void requestinterrupt(int id);
-		void serviceinterrupt(int interrupt);
-		
+
 	        MMU *mem;
 
 	        void executenextopcode();
 	        void executeopcode(uint8_t opcode);
-	        void executecbopcode(uint8_t opcode);
+	        void executecbopcode();
 
 	        void daa();
 		void stop();
-	        uint8_t add8bit(uint8_t regone, uint8_t regtwo, bool carry);
-	        uint8_t sub8bit(uint8_t regone, uint8_t regtwo, bool carry);
+	        uint8_t add8bit(uint8_t regone, uint8_t regtwo, bool addcarry);
+	        uint8_t sub8bit(uint8_t regone, uint8_t regtwo, bool subcarry);
 	        uint8_t and8bit(uint8_t regone, uint8_t regtwo);
 	        uint8_t or8bit(uint8_t regone, uint8_t regtwo);
 	        uint8_t xor8bit(uint8_t regone, uint8_t regtwo);
 	        uint8_t inc8bit(uint8_t regone);
 	        uint8_t dec8bit(uint8_t regone);
+		uint8_t compare8bit(uint8_t regone, uint8_t regtwo);
 	        uint16_t add16bit(uint16_t regone, uint16_t regtwo);
 	        uint16_t adds16bit(uint16_t regone, uint8_t regtwo);
 		uint8_t swap(uint8_t regone);
@@ -88,5 +91,8 @@ namespace gb
 		void bit(uint8_t regone, int bit);
 		uint8_t set(uint8_t regone, int bit);
 		uint8_t res(uint8_t regone, int bit);
+		void jr(uint8_t regone);
 	};
 }
+
+#endif // GB_CPU
