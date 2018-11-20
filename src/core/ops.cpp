@@ -117,10 +117,10 @@ namespace gb
 		case 0x22: mem->writeByte((hl.reg++), af.hi); m_cycles += 8; break;
 
 		// LDH (n), A
-		case 0xE0: mem->writeByte((mem->readByte(pc++) + 0xFF00), af.hi); m_cycles += 12; break;
+		case 0xE0: mem->writeByte((mem->readByte(pc++) | 0xFF00), af.hi); m_cycles += 12; break;
 
 		// LDH A, (n)
-		case 0xF0: af.hi = (mem->readByte(pc++) + 0xFF00); m_cycles += 12; break;
+		case 0xF0: af.hi = mem->readByte((mem->readByte(pc++) | 0xFF00)); m_cycles += 12; break;
 
 
 		// 16-bit loads

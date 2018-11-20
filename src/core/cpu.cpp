@@ -176,11 +176,12 @@ namespace gb
 	    pc++;
 	}
 
-	uint8_t CPU::add8bit(uint8_t regone, uint8_t regtwo, bool carry)
+	uint8_t CPU::add8bit(uint8_t regone, uint8_t regtwo, bool addcarry)
 	{
+	    uint8_t before = regone;
 	    uint8_t adding = regtwo;
 
-	    if (carry)
+	    if (addcarry)
 	    {
 		if (TestBit(af.lo, carry))
 		{
@@ -190,17 +191,19 @@ namespace gb
 
 	    af.lo = 0;
 
-	    if ((regone + adding) == 0)
+	    before += adding;
+
+	    if (before == 0)
 	    {
 		af.lo = BitSet(af.lo, zero);
 	    }
 
 	    BitReset(af.lo, subtract);
+	
+	    uint16_t halftest = (regone & 0xF);
+	    halftest += (adding & 0xF);
 
-	    uint16_t halftest = regone & 0xF;
-	    halftest += adding & 0xF;
-
-	    if ((halftest & 0x10) == 0x10)
+	    if (halftest > 0xF)
 	    {
 		af.lo = BitSet(af.lo, half);
 	    }
@@ -210,14 +213,14 @@ namespace gb
 		af.lo = BitSet(af.lo, carry);
 	    }
 
-	    return regone + adding;
+	    return before;
 	}
 
-	uint8_t CPU::sub8bit(uint8_t regone, uint8_t regtwo, bool carry)
+	uint8_t CPU::sub8bit(uint8_t regone, uint8_t regtwo, bool subcarry)
 	{
 	    uint8_t sub = regtwo;
 
-	    if (carry)
+	    if (subcarry)
 	    {
 		if (TestBit(af.lo, carry))
 		{

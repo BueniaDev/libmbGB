@@ -70,8 +70,8 @@ namespace gb
 
 	        void daa();
 		void stop();
-	        uint8_t add8bit(uint8_t regone, uint8_t regtwo, bool carry);
-	        uint8_t sub8bit(uint8_t regone, uint8_t regtwo, bool carry);
+	        uint8_t add8bit(uint8_t regone, uint8_t regtwo, bool addcarry);
+	        uint8_t sub8bit(uint8_t regone, uint8_t regtwo, bool subcarry);
 	        uint8_t and8bit(uint8_t regone, uint8_t regtwo);
 	        uint8_t or8bit(uint8_t regone, uint8_t regtwo);
 	        uint8_t xor8bit(uint8_t regone, uint8_t regtwo);
