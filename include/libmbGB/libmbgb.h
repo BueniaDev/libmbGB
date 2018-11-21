@@ -18,6 +18,7 @@ namespace gb
 
 	    void loadROM(string filename);
 	    void loadBIOS(string filename);
+	    bool getoptions(int argc, char* argv[]);
 	    void runcore();
 
 	    CPU corecpu;

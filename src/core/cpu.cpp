@@ -9,12 +9,12 @@ namespace gb
 {
 	CPU::CPU()
 	{
-	    resetBIOS();
+	    reset();
 	}
 
 	CPU::~CPU()
 	{
-	    cout << "CPU::Shuting down..." << endl;
+	    cout << "CPU::Shutting down..." << endl;
 	}
 
 
