@@ -17,6 +17,7 @@ First, fetch the source:
 
 `cd libmbGB`
 
+
 To build the library, simply run the following commands:
 
 `mkdir build && cd build`
@@ -24,6 +25,7 @@ To build the library, simply run the following commands:
 `cmake .. -G "Unix Makefiles"`
 
 `make -j4`
+
 
 ## Building on Windows:
 
@@ -34,15 +36,18 @@ For 32-bit builds:
 
 `pacman -S mingw-w64-i686-toolchain mingw-w64-i686-cmake git`
 
+
 For 64-bit builds:
 
 `pacman -S mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake git`
+
 
 Then fetch the source:
 
 `git clone --recursive https://github.com/Buenia0/libmbGB.git`
 
 `cd libmbGB`
+
 
 To build the library, simply run the following commands:
 
@@ -51,6 +56,7 @@ To build the library, simply run the following commands:
 `cmake .. -G "MSYS Makefiles"`
 
 `mingw32-make -j4`
+
 
 ## Legal Disclaimers
 
