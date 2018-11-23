@@ -96,13 +96,13 @@ namespace gb
 		case 0x02: mem->writeByte(bc.reg, af.hi); m_cycles += 8; break;
 		case 0x12: mem->writeByte(de.reg, af.hi); m_cycles += 8; break;
 		case 0x77: mem->writeByte(hl.reg, af.hi); m_cycles += 8; break;
-		case 0xEA: mem->writeByte(mem->readByte(mem->readWord(pc)), af.hi); pc += 2; m_cycles += 16; break;
+		case 0xEA: mem->writeByte(mem->readWord(pc), af.hi); pc += 2; m_cycles += 16; break;
 
 		// LD A, (C)
-		case 0xF2: af.hi = (0xFF00 + bc.lo); m_cycles += 8; break;
+		case 0xF2: af.hi = mem->readByte(0xFF00 | bc.lo); m_cycles += 8; break;
 
 		// LD (C), A
-		case 0xE2: mem->writeByte((bc.lo + 0xFF00), af.hi), m_cycles += 8; break;
+		case 0xE2: mem->writeByte((bc.lo | 0xFF00), af.hi), m_cycles += 8; break;
 
 		// LDD A, (HL)
 		case 0x3A: af.hi = mem->readByte(hl.reg); hl.reg--; m_cycles += 8; break;
@@ -328,7 +328,7 @@ namespace gb
 		case 0x10: stop(); break;
 
 		// HALT
-		case 0x76: halted = true;
+		case 0x76: halted = true; break;
 
 		// DAA
 		case 0x27: daa(); break;
@@ -366,10 +366,10 @@ namespace gb
 		break;
 
 		// DI
-		case 0xF3: interrupt = false; m_cycles += 4; break;
+		case 0xF3: interruptmaster = false; m_cycles += 4; break;
 
 		// EI
-		case 0xFB: interruptdelay = true; m_cycles += 4; break;
+		case 0xFB: interruptmaster = false; m_cycles += 4; break;
 
 
 		// Rotates & shifts
@@ -406,6 +406,7 @@ namespace gb
 			m_cycles += 12;
 		    }
 		}
+		break;
 
 		case 0xCA:
 		{
@@ -420,6 +421,7 @@ namespace gb
 			m_cycles += 12;
 		    }
 		}
+		break;
 
 		case 0xD2:
 		{
@@ -448,9 +450,10 @@ namespace gb
 			m_cycles += 12;
 		    }
 		}
+		break;
 
 		// JP (HL)
-		case 0xE9: pc = hl.reg; m_cycles += 4;
+		case 0xE9: pc = hl.reg; m_cycles += 4; break;
 
 		// JR n
 		case 0x18: jr(mem->readByte(pc++)); m_cycles += 12; break;
@@ -468,7 +471,7 @@ namespace gb
 			m_cycles += 8;
 		    }
 
-		    pc += 1;
+		    pc++;
 		}
 		break;
 
@@ -484,7 +487,7 @@ namespace gb
 			m_cycles += 8;
 		    }
 
-		    pc += 1;
+		    pc++;
 		}
 		break;
 
@@ -500,7 +503,7 @@ namespace gb
 			m_cycles += 8;
 		    }
 
-		    pc += 1;
+		    pc++;
 		}
 		break;
 
@@ -516,7 +519,7 @@ namespace gb
 			m_cycles += 8;
 		    }
 
-		    pc += 1;
+		    pc++;
 		}
 		break;
 
@@ -680,7 +683,14 @@ namespace gb
 		break;
 
 		// RETI
-		case 0xD9: pc = mem->readWord(sp); sp += 2; m_cycles += 16; interrupt = true; break;
+		case 0xD9:
+		{
+		    pc = mem->readWord(sp); 
+		    sp += 2; 
+		    interruptmaster = true; 
+		    m_cycles += 16;
+		}
+		break;
 
 		// Extended ops
 		case 0xCB: executecbopcode(); break;

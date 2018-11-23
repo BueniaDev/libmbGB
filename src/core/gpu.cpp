@@ -260,12 +260,14 @@ namespace gb
 	    uint8_t data1 = gmem->readByte(tileloc + line);
 	    uint8_t data2 = gmem->readByte(tileloc + line + 1);
 
-	    uint8_t reqbit = 7 - (xpos % 8);
-	    uint8_t bit1 = (data1 >> reqbit) & 1;
-	    uint8_t bit2 = (data2 >> reqbit) & 1;
+	    uint8_t reqbit = xpos % 8;
+	    reqbit -= 7;
+	    reqbit *= -1;
 
-	    uint8_t colorid = (bit1 << 1) | bit2;
-	    int color = getcolor(colorid, 0xFF47);
+	    int colornum = BitGetVal(data2, reqbit);
+	    colornum <<= 1;
+	    colornum |= BitGetVal(data1, reqbit);
+	    int color = getcolor(colornum, 0xFF47);
 
 	    int red, green, blue;
 	    
@@ -274,7 +276,7 @@ namespace gb
 		case 0: red = 0xFF; green = 0xFF; blue = 0xFF; break;
 		case 1: red = 0xCC; green = 0xCC; blue = 0xCC; break;
 		case 2: red = 0x77; green = 0x77; blue = 0x77; break;
-		default: red = 0; green = 0; blue = 0; break;
+		case 3: red = 0x00; green = 0x00; blue = 0x00; break;
 	    }
 
 	    int finaly = gmem->readByte(0xFF44);

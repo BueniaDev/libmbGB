@@ -22,7 +22,38 @@ namespace gb
 	memset(bios, 0, sizeof(bios));
 
 	biosload = false;
+	resetmem();
+
         cout << "MMU::Initialized" << endl;
+    }
+
+    void MMU::resetmem()
+    {
+	if (biosload == false)
+	{
+	    memorymap[0xFF10] = 0x80;
+	    memorymap[0xFF11] = 0xBF;
+	    memorymap[0xFF12] = 0xF3;
+	    memorymap[0xFF14] = 0xBF;
+	    memorymap[0xFF16] = 0x3F;
+	    memorymap[0xFF19] = 0xBF;
+	    memorymap[0xFF1A] = 0x7F;
+	    memorymap[0xFF1C] = 0x9F;
+	    memorymap[0xFF1E] = 0xBF;
+	    memorymap[0xFF20] = 0xFF;
+	    memorymap[0xFF23] = 0xBF;
+	    memorymap[0xFF24] = 0x77;
+	    memorymap[0xFF25] = 0xF3;
+	    memorymap[0xFF26] = 0xF1;
+	    memorymap[0xFF40] = 0x91;
+	    memorymap[0xFF47] = 0xFC;
+	    memorymap[0xFF48] = 0xFF;
+	    memorymap[0xFF49] = 0xFF;
+	}
+	else
+	{
+	    return;
+	}
     }
 
     uint8_t MMU::readByte(uint16_t address)

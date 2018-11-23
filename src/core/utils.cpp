@@ -16,3 +16,8 @@ uint8_t BitReset(uint8_t reg, int bit)
     return (reg & ~(1 << bit));
 }
 
+int BitGetVal(uint8_t reg, int bit)
+{
+    return (reg & (1 << bit)) ? 1 : 0;
+}
+

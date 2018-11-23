@@ -55,8 +55,7 @@ namespace gb
 
 	        int m_cycles;
 
-		bool interrupt;
-		bool interruptdelay;
+		bool interruptmaster;
 
 		void dointerrupts();
 		void serviceinterrupt(int id);

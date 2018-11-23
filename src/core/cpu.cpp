@@ -30,8 +30,7 @@ namespace gb
 	    stopped = false;
 	    halted = false;
 
-	    interrupt = false;
-	    interruptdelay = false;
+	    interruptmaster = false;
 
 	    cout << "CPU::Initialized" << endl;
 	}
@@ -48,29 +47,27 @@ namespace gb
 	    stopped = false;
 	    halted = false;
 
-	    interrupt = false;
-	    interruptdelay = false;
+	    interruptmaster = false;
 
 	    cout << "CPU::Initialized" << endl;
 	}
 
 	void CPU::dointerrupts()
 	{
-	    if (interruptdelay)
+	    if (interruptmaster)
 	    {
-		interruptdelay = false;
-		interrupt = true;
-	    }
-	    else if (interrupt)
-	    {
-		for (int i = 0; i < 5; i++)
+		uint8_t req = mem->readByte(0xFF0F);
+		uint8_t enabled = mem->readByte(0xFFFF);
+		for (int id = 0; id < 8; id++)
 		{
-		    serviceinterrupt(i);
+		    if (TestBit(req, id))
+		    {
+			if (TestBit(enabled, id))
+			{
+			    serviceinterrupt(id);
+			}
+		    }
 		}
-	    }
-	    else
-	    {
-		return;
 	    }
 	}
 
@@ -83,37 +80,31 @@ namespace gb
 
 	void CPU::serviceinterrupt(int id)
 	{
-	    if (TestBit(mem->readByte(0xFFFF), id) && (TestBit(mem->readByte(0xFF0F), id)))
+	    interruptmaster = false;
+
+	    uint8_t req = mem->readByte(0xFF0F);
+	    req = BitReset(req, id);
+	    mem->writeByte(0xFF0F, req);
+
+	    sp -= 2;
+	    mem->writeWord(sp, pc);
+
+	    switch (id)
 	    {
-		interrupt = false;
-		halted = false;
-
-		uint8_t req = mem->readByte(0xFF0F);
-		BitReset(req, id);
-		mem->writeByte(0xFF0F, req);
-
-		sp--;
-		mem->writeByte(sp, (pc >> 8) & 0xFF);
-		sp--;
-		mem->writeByte(sp, pc & 0xFF);
-		switch (id)
-		{
-		    case 0: pc = 0x40; break;
-		    case 1: pc = 0x48; break;
-		    case 2: pc = 0x50; break;
-		    case 3: pc = 0x58; break;
-		    case 4: pc = 0x60; break;
-		}
-
-		m_cycles += 36;
+		case 0: pc = 0x40; break;
+		case 1: pc = 0x48; break;
+		case 2: pc = 0x50; break;
+		case 4: pc = 0x60; break;
 	    }
 	}
 
 	void CPU::executenextopcode()
 	{
+	    uint8_t opcode = mem->readByte(pc);	    
+
 	    if (!halted)
 	    {
-	    	uint8_t opcode = mem->readByte(pc++);
+		pc++;		
 		executeopcode(opcode);
 	    }
 	    else
