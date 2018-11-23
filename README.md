@@ -14,12 +14,15 @@ libmbGB does not rely on any additional libraries as dependencies. However, it d
 First, fetch the source:
 
 `git clone --recursive https://github.com/Buenia0/libmbGB.git`
+
 `cd libmbGB`
 
 To build the library, simply run the following commands:
 
 `mkdir build && cd build`
+
 `cmake .. -G "Unix Makefiles"`
+
 `make -j4`
 
 ## Building on Windows:
@@ -38,12 +41,15 @@ For 64-bit builds:
 Then fetch the source:
 
 `git clone --recursive https://github.com/Buenia0/libmbGB.git`
+
 `cd libmbGB`
 
 To build the library, simply run the following commands:
 
 `mkdir build && cd build`
+
 `cmake .. -G "MSYS Makefiles"`
+
 `mingw32-make -j4`
 
 ## Legal Disclaimers
