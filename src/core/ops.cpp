@@ -135,38 +135,7 @@ namespace gb
 		case 0xF9: sp = hl.reg; m_cycles += 8; break;
 
 		// LDHL SP, n
-		case 0xF8:
-		{
-		    int8_t n = mem->readsByte(pc++);
-		    uint16_t value = (sp + n) & 0xFFFF;
-		    hl.reg = value;
-
-		    af.lo = 0;
-
-		    af.lo = BitReset(af.lo, zero);
-		    af.lo = BitReset(af.lo, subtract);
-
-		    if ((sp & 0xF) + (n & 0xF) > 0xF)
-		    {
-			af.lo = BitSet(af.lo, half);
-		    }
-		    else
-		    {
-			af.lo = BitReset(af.lo, half);
-		    }
-
-		    if ((sp + n) > 0xFFFF)
-		    {
-			af.lo = BitSet(af.lo, carry);
-		    }
-		    else
-		    {
-			af.lo = BitReset(af.lo, carry);
-		    }
-
-		    m_cycles += 12;
-		}
-		break;
+		case 0xF8: hl.reg = adds8bit(sp, mem->readsByte(pc++)); m_cycles += 12; break;
 
 		// LD (nn), SP
 		case 0x08: mem->writeWord(mem->readWord(pc), sp); pc += 2; m_cycles += 20; break;
@@ -304,7 +273,7 @@ namespace gb
 		case 0x39: hl.reg = add16bit(hl.reg, sp); m_cycles += 8; break;
 
 		// ADD SP, n
-		case 0xE8: sp = adds16bit(sp, mem->readsByte(pc++)); m_cycles += 16; break;
+		case 0xE8: sp = adds8bit(sp, mem->readsByte(pc++)); m_cycles += 16; break;
 
 		// INC nn
 		case 0x03: bc.reg++; m_cycles += 8; break;
@@ -332,6 +301,16 @@ namespace gb
 
 		// DAA
 		case 0x27: daa(); break;
+
+		// CPL
+		case 0x2F:
+		{
+		    af.hi = ~af.hi;
+		    af.lo = BitSet(af.lo, subtract);
+		    af.lo = BitSet(af.lo, half);
+		    m_cycles += 4;
+		}
+		break;
 
 		// SCF
 		case 0x37:
@@ -369,7 +348,7 @@ namespace gb
 		case 0xF3: interruptmaster = false; m_cycles += 4; break;
 
 		// EI
-		case 0xFB: interruptmaster = false; m_cycles += 4; break;
+		case 0xFB: interruptmaster = true; m_cycles += 4; break;
 
 
 		// Rotates & shifts
@@ -436,6 +415,7 @@ namespace gb
 			m_cycles += 12;
 		    }
 		}
+		break;
 
 		case 0xDA:
 		{
@@ -863,133 +843,133 @@ namespace gb
 		// SET b, r
 		case 0xC7: af.hi = set(af.hi, 0); m_cycles += 8; break;
 		case 0xC0: bc.hi = set(bc.hi, 0); m_cycles += 8; break;
-		case 0xC1: bc.lo = set(bc.hi, 0); m_cycles += 8; break;
-		case 0xC2: de.hi = set(bc.hi, 0); m_cycles += 8; break;
-		case 0xC3: de.lo = set(bc.hi, 0); m_cycles += 8; break;
-		case 0xC4: hl.hi = set(bc.hi, 0); m_cycles += 8; break;
-		case 0xC5: hl.lo = set(bc.hi, 0); m_cycles += 8; break;
+		case 0xC1: bc.lo = set(bc.lo, 0); m_cycles += 8; break;
+		case 0xC2: de.hi = set(de.hi, 0); m_cycles += 8; break;
+		case 0xC3: de.lo = set(de.lo, 0); m_cycles += 8; break;
+		case 0xC4: hl.hi = set(hl.hi, 0); m_cycles += 8; break;
+		case 0xC5: hl.lo = set(hl.lo, 0); m_cycles += 8; break;
 		case 0xC6: mem->writeByte(hl.reg, set(mem->readByte(hl.reg), 0)); m_cycles += 16; break;
 		case 0xCF: af.hi = set(af.hi, 1); m_cycles += 8; break;
 		case 0xC8: bc.hi = set(bc.hi, 1); m_cycles += 8; break;
-		case 0xC9: bc.lo = set(bc.hi, 1); m_cycles += 8; break;
-		case 0xCA: de.hi = set(bc.hi, 1); m_cycles += 8; break;
-		case 0xCB: de.lo = set(bc.hi, 1); m_cycles += 8; break;
-		case 0xCC: hl.hi = set(bc.hi, 1); m_cycles += 8; break;
-		case 0xCD: hl.lo = set(bc.hi, 1); m_cycles += 8; break;
+		case 0xC9: bc.lo = set(bc.lo, 1); m_cycles += 8; break;
+		case 0xCA: de.hi = set(de.hi, 1); m_cycles += 8; break;
+		case 0xCB: de.lo = set(de.lo, 1); m_cycles += 8; break;
+		case 0xCC: hl.hi = set(hl.hi, 1); m_cycles += 8; break;
+		case 0xCD: hl.lo = set(hl.lo, 1); m_cycles += 8; break;
 		case 0xCE: mem->writeByte(hl.reg, set(mem->readByte(hl.reg), 1)); m_cycles += 16; break;
 		case 0xD7: af.hi = set(af.hi, 2); m_cycles += 8; break;
 		case 0xD0: bc.hi = set(bc.hi, 2); m_cycles += 8; break;
-		case 0xD1: bc.lo = set(bc.hi, 2); m_cycles += 8; break;
-		case 0xD2: de.hi = set(bc.hi, 2); m_cycles += 8; break;
-		case 0xD3: de.lo = set(bc.hi, 2); m_cycles += 8; break;
-		case 0xD4: hl.hi = set(bc.hi, 2); m_cycles += 8; break;
-		case 0xD5: hl.lo = set(bc.hi, 2); m_cycles += 8; break;
+		case 0xD1: bc.lo = set(bc.lo, 2); m_cycles += 8; break;
+		case 0xD2: de.hi = set(de.hi, 2); m_cycles += 8; break;
+		case 0xD3: de.lo = set(de.lo, 2); m_cycles += 8; break;
+		case 0xD4: hl.hi = set(hl.hi, 2); m_cycles += 8; break;
+		case 0xD5: hl.lo = set(hl.lo, 2); m_cycles += 8; break;
 		case 0xD6: mem->writeByte(hl.reg, set(mem->readByte(hl.reg), 2)); m_cycles += 16; break;
 		case 0xDF: af.hi = set(af.hi, 3); m_cycles += 8; break;
 		case 0xD8: bc.hi = set(bc.hi, 3); m_cycles += 8; break;
-		case 0xD9: bc.lo = set(bc.hi, 3); m_cycles += 8; break;
-		case 0xDA: de.hi = set(bc.hi, 3); m_cycles += 8; break;
-		case 0xDB: de.lo = set(bc.hi, 3); m_cycles += 8; break;
-		case 0xDC: hl.hi = set(bc.hi, 3); m_cycles += 8; break;
-		case 0xDD: hl.lo = set(bc.hi, 3); m_cycles += 8; break;
+		case 0xD9: bc.lo = set(bc.lo, 3); m_cycles += 8; break;
+		case 0xDA: de.hi = set(de.hi, 3); m_cycles += 8; break;
+		case 0xDB: de.lo = set(de.lo, 3); m_cycles += 8; break;
+		case 0xDC: hl.hi = set(hl.hi, 3); m_cycles += 8; break;
+		case 0xDD: hl.lo = set(hl.lo, 3); m_cycles += 8; break;
 		case 0xDE: mem->writeByte(hl.reg, set(mem->readByte(hl.reg), 3)); m_cycles += 16; break;
 		case 0xE7: af.hi = set(af.hi, 4); m_cycles += 8; break;
 		case 0xE0: bc.hi = set(bc.hi, 4); m_cycles += 8; break;
-		case 0xE1: bc.lo = set(bc.hi, 4); m_cycles += 8; break;
-		case 0xE2: de.hi = set(bc.hi, 4); m_cycles += 8; break;
-		case 0xE3: de.lo = set(bc.hi, 4); m_cycles += 8; break;
-		case 0xE4: hl.hi = set(bc.hi, 4); m_cycles += 8; break;
-		case 0xE5: hl.lo = set(bc.hi, 4); m_cycles += 8; break;
+		case 0xE1: bc.lo = set(bc.lo, 4); m_cycles += 8; break;
+		case 0xE2: de.hi = set(de.hi, 4); m_cycles += 8; break;
+		case 0xE3: de.lo = set(de.lo, 4); m_cycles += 8; break;
+		case 0xE4: hl.hi = set(hl.hi, 4); m_cycles += 8; break;
+		case 0xE5: hl.lo = set(hl.lo, 4); m_cycles += 8; break;
 		case 0xE6: mem->writeByte(hl.reg, set(mem->readByte(hl.reg), 4)); m_cycles += 16; break;
 		case 0xEF: af.hi = set(af.hi, 5); m_cycles += 8; break;
 		case 0xE8: bc.hi = set(bc.hi, 5); m_cycles += 8; break;
-		case 0xE9: bc.lo = set(bc.hi, 5); m_cycles += 8; break;
-		case 0xEA: de.hi = set(bc.hi, 5); m_cycles += 8; break;
-		case 0xEB: de.lo = set(bc.hi, 5); m_cycles += 8; break;
-		case 0xEC: hl.hi = set(bc.hi, 5); m_cycles += 8; break;
-		case 0xED: hl.lo = set(bc.hi, 5); m_cycles += 8; break;
+		case 0xE9: bc.lo = set(bc.lo, 5); m_cycles += 8; break;
+		case 0xEA: de.hi = set(de.hi, 5); m_cycles += 8; break;
+		case 0xEB: de.lo = set(de.lo, 5); m_cycles += 8; break;
+		case 0xEC: hl.hi = set(hl.hi, 5); m_cycles += 8; break;
+		case 0xED: hl.lo = set(hl.lo, 5); m_cycles += 8; break;
 		case 0xEE: mem->writeByte(hl.reg, set(mem->readByte(hl.reg), 5)); m_cycles += 16; break;
 		case 0xF7: af.hi = set(af.hi, 6); m_cycles += 8; break;
 		case 0xF0: bc.hi = set(bc.hi, 6); m_cycles += 8; break;
-		case 0xF1: bc.lo = set(bc.hi, 6); m_cycles += 8; break;
-		case 0xF2: de.hi = set(bc.hi, 6); m_cycles += 8; break;
-		case 0xF3: de.lo = set(bc.hi, 6); m_cycles += 8; break;
-		case 0xF4: hl.hi = set(bc.hi, 6); m_cycles += 8; break;
-		case 0xF5: hl.lo = set(bc.hi, 6); m_cycles += 8; break;
+		case 0xF1: bc.lo = set(bc.lo, 6); m_cycles += 8; break;
+		case 0xF2: de.hi = set(de.hi, 6); m_cycles += 8; break;
+		case 0xF3: de.lo = set(de.lo, 6); m_cycles += 8; break;
+		case 0xF4: hl.hi = set(hl.hi, 6); m_cycles += 8; break;
+		case 0xF5: hl.lo = set(hl.lo, 6); m_cycles += 8; break;
 		case 0xF6: mem->writeByte(hl.reg, set(mem->readByte(hl.reg), 6)); m_cycles += 16; break;
 		case 0xFF: af.hi = set(af.hi, 7); m_cycles += 8; break;
 		case 0xF8: bc.hi = set(bc.hi, 7); m_cycles += 8; break;
-		case 0xF9: bc.lo = set(bc.hi, 7); m_cycles += 8; break;
-		case 0xFA: de.hi = set(bc.hi, 7); m_cycles += 8; break;
-		case 0xFB: de.lo = set(bc.hi, 7); m_cycles += 8; break;
-		case 0xFC: hl.hi = set(bc.hi, 7); m_cycles += 8; break;
-		case 0xFD: hl.lo = set(bc.hi, 7); m_cycles += 8; break;
+		case 0xF9: bc.lo = set(bc.lo, 7); m_cycles += 8; break;
+		case 0xFA: de.hi = set(de.hi, 7); m_cycles += 8; break;
+		case 0xFB: de.lo = set(de.lo, 7); m_cycles += 8; break;
+		case 0xFC: hl.hi = set(hl.hi, 7); m_cycles += 8; break;
+		case 0xFD: hl.lo = set(hl.lo, 7); m_cycles += 8; break;
 		case 0xFE: mem->writeByte(hl.reg, set(mem->readByte(hl.reg), 7)); m_cycles += 16; break;
 
 		// RES b, r
 		case 0x87: af.hi = res(af.hi, 0); m_cycles += 8; break;
 		case 0x80: bc.hi = res(bc.hi, 0); m_cycles += 8; break;
-		case 0x81: bc.lo = res(bc.hi, 0); m_cycles += 8; break;
-		case 0x82: de.hi = res(bc.hi, 0); m_cycles += 8; break;
-		case 0x83: de.lo = res(bc.hi, 0); m_cycles += 8; break;
-		case 0x84: hl.hi = res(bc.hi, 0); m_cycles += 8; break;
-		case 0x85: hl.lo = res(bc.hi, 0); m_cycles += 8; break;
+		case 0x81: bc.lo = res(bc.lo, 0); m_cycles += 8; break;
+		case 0x82: de.hi = res(de.hi, 0); m_cycles += 8; break;
+		case 0x83: de.lo = res(de.lo, 0); m_cycles += 8; break;
+		case 0x84: hl.hi = res(hl.hi, 0); m_cycles += 8; break;
+		case 0x85: hl.lo = res(hl.lo, 0); m_cycles += 8; break;
 		case 0x86: mem->writeByte(hl.reg, res(mem->readByte(hl.reg), 0)); m_cycles += 16; break;
 		case 0x8F: af.hi = res(af.hi, 1); m_cycles += 8; break;
 		case 0x88: bc.hi = res(bc.hi, 1); m_cycles += 8; break;
-		case 0x89: bc.lo = res(bc.hi, 1); m_cycles += 8; break;
-		case 0x8A: de.hi = res(bc.hi, 1); m_cycles += 8; break;
-		case 0x8B: de.lo = res(bc.hi, 1); m_cycles += 8; break;
-		case 0x8C: hl.hi = res(bc.hi, 1); m_cycles += 8; break;
-		case 0x8D: hl.lo = res(bc.hi, 1); m_cycles += 8; break;
+		case 0x89: bc.lo = res(bc.lo, 1); m_cycles += 8; break;
+		case 0x8A: de.hi = res(de.hi, 1); m_cycles += 8; break;
+		case 0x8B: de.lo = res(de.lo, 1); m_cycles += 8; break;
+		case 0x8C: hl.hi = res(hl.hi, 1); m_cycles += 8; break;
+		case 0x8D: hl.lo = res(hl.lo, 1); m_cycles += 8; break;
 		case 0x8E: mem->writeByte(hl.reg, res(mem->readByte(hl.reg), 1)); m_cycles += 16; break;
 		case 0x97: af.hi = res(af.hi, 2); m_cycles += 8; break;
 		case 0x90: bc.hi = res(bc.hi, 2); m_cycles += 8; break;
-		case 0x91: bc.lo = res(bc.hi, 2); m_cycles += 8; break;
-		case 0x92: de.hi = res(bc.hi, 2); m_cycles += 8; break;
-		case 0x93: de.lo = res(bc.hi, 2); m_cycles += 8; break;
-		case 0x94: hl.hi = res(bc.hi, 2); m_cycles += 8; break;
-		case 0x95: hl.lo = res(bc.hi, 2); m_cycles += 8; break;
+		case 0x91: bc.lo = res(bc.lo, 2); m_cycles += 8; break;
+		case 0x92: de.hi = res(de.hi, 2); m_cycles += 8; break;
+		case 0x93: de.lo = res(de.lo, 2); m_cycles += 8; break;
+		case 0x94: hl.hi = res(hl.hi, 2); m_cycles += 8; break;
+		case 0x95: hl.lo = res(hl.lo, 2); m_cycles += 8; break;
 		case 0x96: mem->writeByte(hl.reg, res(mem->readByte(hl.reg), 2)); m_cycles += 16; break;
 		case 0x9F: af.hi = res(af.hi, 3); m_cycles += 8; break;
 		case 0x98: bc.hi = res(bc.hi, 3); m_cycles += 8; break;
-		case 0x99: bc.lo = res(bc.hi, 3); m_cycles += 8; break;
-		case 0x9A: de.hi = res(bc.hi, 3); m_cycles += 8; break;
-		case 0x9B: de.lo = res(bc.hi, 3); m_cycles += 8; break;
-		case 0x9C: hl.hi = res(bc.hi, 3); m_cycles += 8; break;
-		case 0x9D: hl.lo = res(bc.hi, 3); m_cycles += 8; break;
+		case 0x99: bc.lo = res(bc.lo, 3); m_cycles += 8; break;
+		case 0x9A: de.hi = res(de.hi, 3); m_cycles += 8; break;
+		case 0x9B: de.lo = res(de.lo, 3); m_cycles += 8; break;
+		case 0x9C: hl.hi = res(hl.hi, 3); m_cycles += 8; break;
+		case 0x9D: hl.lo = res(hl.lo, 3); m_cycles += 8; break;
 		case 0x9E: mem->writeByte(hl.reg, res(mem->readByte(hl.reg), 3)); m_cycles += 16; break;
 		case 0xA7: af.hi = res(af.hi, 4); m_cycles += 8; break;
 		case 0xA0: bc.hi = res(bc.hi, 4); m_cycles += 8; break;
-		case 0xA1: bc.lo = res(bc.hi, 4); m_cycles += 8; break;
-		case 0xA2: de.hi = res(bc.hi, 4); m_cycles += 8; break;
-		case 0xA3: de.lo = res(bc.hi, 4); m_cycles += 8; break;
-		case 0xA4: hl.hi = res(bc.hi, 4); m_cycles += 8; break;
-		case 0xA5: hl.lo = res(bc.hi, 4); m_cycles += 8; break;
+		case 0xA1: bc.lo = res(bc.lo, 4); m_cycles += 8; break;
+		case 0xA2: de.hi = res(de.hi, 4); m_cycles += 8; break;
+		case 0xA3: de.lo = res(de.lo, 4); m_cycles += 8; break;
+		case 0xA4: hl.hi = res(hl.hi, 4); m_cycles += 8; break;
+		case 0xA5: hl.lo = res(hl.lo, 4); m_cycles += 8; break;
 		case 0xA6: mem->writeByte(hl.reg, res(mem->readByte(hl.reg), 4)); m_cycles += 16; break;
 		case 0xAF: af.hi = res(af.hi, 5); m_cycles += 8; break;
 		case 0xA8: bc.hi = res(bc.hi, 5); m_cycles += 8; break;
-		case 0xA9: bc.lo = res(bc.hi, 5); m_cycles += 8; break;
-		case 0xAA: de.hi = res(bc.hi, 5); m_cycles += 8; break;
-		case 0xAB: de.lo = res(bc.hi, 5); m_cycles += 8; break;
-		case 0xAC: hl.hi = res(bc.hi, 5); m_cycles += 8; break;
-		case 0xAD: hl.lo = res(bc.hi, 5); m_cycles += 8; break;
+		case 0xA9: bc.lo = res(bc.lo, 5); m_cycles += 8; break;
+		case 0xAA: de.hi = res(de.hi, 5); m_cycles += 8; break;
+		case 0xAB: de.lo = res(de.lo, 5); m_cycles += 8; break;
+		case 0xAC: hl.hi = res(hl.hi, 5); m_cycles += 8; break;
+		case 0xAD: hl.lo = res(hl.lo, 5); m_cycles += 8; break;
 		case 0xAE: mem->writeByte(hl.reg, res(mem->readByte(hl.reg), 5)); m_cycles += 16; break;
 		case 0xB7: af.hi = res(af.hi, 6); m_cycles += 8; break;
 		case 0xB0: bc.hi = res(bc.hi, 6); m_cycles += 8; break;
-		case 0xB1: bc.lo = res(bc.hi, 6); m_cycles += 8; break;
-		case 0xB2: de.hi = res(bc.hi, 6); m_cycles += 8; break;
-		case 0xB3: de.lo = res(bc.hi, 6); m_cycles += 8; break;
-		case 0xB4: hl.hi = res(bc.hi, 6); m_cycles += 8; break;
-		case 0xB5: hl.lo = res(bc.hi, 6); m_cycles += 8; break;
+		case 0xB1: bc.lo = res(bc.lo, 6); m_cycles += 8; break;
+		case 0xB2: de.hi = res(de.hi, 6); m_cycles += 8; break;
+		case 0xB3: de.lo = res(de.lo, 6); m_cycles += 8; break;
+		case 0xB4: hl.hi = res(hl.hi, 6); m_cycles += 8; break;
+		case 0xB5: hl.lo = res(hl.lo, 6); m_cycles += 8; break;
 		case 0xB6: mem->writeByte(hl.reg, res(mem->readByte(hl.reg), 6)); m_cycles += 16; break;
 		case 0xBF: af.hi = res(af.hi, 7); m_cycles += 8; break;
 		case 0xB8: bc.hi = res(bc.hi, 7); m_cycles += 8; break;
-		case 0xB9: bc.lo = res(bc.hi, 7); m_cycles += 8; break;
-		case 0xBA: de.hi = res(bc.hi, 7); m_cycles += 8; break;
-		case 0xBB: de.lo = res(bc.hi, 7); m_cycles += 8; break;
-		case 0xBC: hl.hi = res(bc.hi, 7); m_cycles += 8; break;
-		case 0xBD: hl.lo = res(bc.hi, 7); m_cycles += 8; break;
+		case 0xB9: bc.lo = res(bc.lo, 7); m_cycles += 8; break;
+		case 0xBA: de.hi = res(de.hi, 7); m_cycles += 8; break;
+		case 0xBB: de.lo = res(de.lo, 7); m_cycles += 8; break;
+		case 0xBC: hl.hi = res(hl.hi, 7); m_cycles += 8; break;
+		case 0xBD: hl.lo = res(hl.lo, 7); m_cycles += 8; break;
 		case 0xBE: mem->writeByte(hl.reg, res(mem->readByte(hl.reg), 7)); m_cycles += 16; break;
 
 		default: cout << "Unrecognized extended opcode at 0xcb" << hex << (int) opcode << endl;
