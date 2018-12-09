@@ -156,48 +156,48 @@ namespace gb
 		// 8-bit ALU
 
 		// ADD A, n
-		case 0x87: af.hi = add8bit(af.hi, af.hi, false); m_cycles += 4; break;
-		case 0x80: af.hi = add8bit(af.hi, bc.hi, false); m_cycles += 4; break;
-		case 0x81: af.hi = add8bit(af.hi, bc.lo, false); m_cycles += 4; break;
-		case 0x82: af.hi = add8bit(af.hi, de.hi, false); m_cycles += 4; break;
-		case 0x83: af.hi = add8bit(af.hi, de.lo, false); m_cycles += 4; break;
-		case 0x84: af.hi = add8bit(af.hi, hl.hi, false); m_cycles += 4; break;
-		case 0x85: af.hi = add8bit(af.hi, hl.lo, false); m_cycles += 4; break;
-		case 0x86: af.hi = add8bit(af.hi, mem->readByte(hl.reg), false); m_cycles += 8; break;
-		case 0xC6: af.hi = add8bit(af.hi, mem->readByte(pc++), false); m_cycles += 8; break;
+		case 0x87: af.hi = add8bit(af.hi, af.hi); m_cycles += 4; break;
+		case 0x80: af.hi = add8bit(af.hi, bc.hi); m_cycles += 4; break;
+		case 0x81: af.hi = add8bit(af.hi, bc.lo); m_cycles += 4; break;
+		case 0x82: af.hi = add8bit(af.hi, de.hi); m_cycles += 4; break;
+		case 0x83: af.hi = add8bit(af.hi, de.lo); m_cycles += 4; break;
+		case 0x84: af.hi = add8bit(af.hi, hl.hi); m_cycles += 4; break;
+		case 0x85: af.hi = add8bit(af.hi, hl.lo); m_cycles += 4; break;
+		case 0x86: af.hi = add8bit(af.hi, mem->readByte(hl.reg)); m_cycles += 8; break;
+		case 0xC6: af.hi = add8bit(af.hi, mem->readByte(pc++)); m_cycles += 8; break;
 
 		// ADC A, n
-		case 0x8F: af.hi = add8bit(af.hi, af.hi, true); m_cycles += 4; break;
-		case 0x88: af.hi = add8bit(af.hi, bc.hi, true); m_cycles += 4; break;
-		case 0x89: af.hi = add8bit(af.hi, bc.lo, true); m_cycles += 4; break;
-		case 0x8A: af.hi = add8bit(af.hi, de.hi, true); m_cycles += 4; break;
-		case 0x8B: af.hi = add8bit(af.hi, de.lo, true); m_cycles += 4; break;
-		case 0x8C: af.hi = add8bit(af.hi, hl.hi, true); m_cycles += 4; break;
-		case 0x8D: af.hi = add8bit(af.hi, hl.lo, true); m_cycles += 4; break;
-		case 0x8E: af.hi = add8bit(af.hi, mem->readByte(hl.reg), true); m_cycles += 8; break;
-		case 0xCE: af.hi = add8bit(af.hi, mem->readByte(pc++), true); m_cycles += 8; break;
+		case 0x8F: af.hi = add8bitc(af.hi, af.hi); m_cycles += 4; break;
+		case 0x88: af.hi = add8bitc(af.hi, bc.hi); m_cycles += 4; break;
+		case 0x89: af.hi = add8bitc(af.hi, bc.lo); m_cycles += 4; break;
+		case 0x8A: af.hi = add8bitc(af.hi, de.hi); m_cycles += 4; break;
+		case 0x8B: af.hi = add8bitc(af.hi, de.lo); m_cycles += 4; break;
+		case 0x8C: af.hi = add8bitc(af.hi, hl.hi); m_cycles += 4; break;
+		case 0x8D: af.hi = add8bitc(af.hi, hl.lo); m_cycles += 4; break;
+		case 0x8E: af.hi = add8bitc(af.hi, mem->readByte(hl.reg)); m_cycles += 8; break;
+		case 0xCE: af.hi = add8bitc(af.hi, mem->readByte(pc++)); m_cycles += 8; break;
 
 		// SUB n
-		case 0x97: af.hi = sub8bit(af.hi, af.hi, false); m_cycles += 4; break;
-		case 0x90: af.hi = sub8bit(af.hi, bc.hi, false); m_cycles += 4; break;
-		case 0x91: af.hi = sub8bit(af.hi, bc.lo, false); m_cycles += 4; break;
-		case 0x92: af.hi = sub8bit(af.hi, de.hi, false); m_cycles += 4; break;
-		case 0x93: af.hi = sub8bit(af.hi, de.lo, false); m_cycles += 4; break;
-		case 0x94: af.hi = sub8bit(af.hi, hl.hi, false); m_cycles += 4; break;
-		case 0x95: af.hi = sub8bit(af.hi, hl.lo, false); m_cycles += 4; break;
-		case 0x96: af.hi = sub8bit(af.hi, mem->readByte(hl.reg), false); m_cycles += 8; break;
-		case 0xD6: af.hi = sub8bit(af.hi, mem->readByte(pc++), false); m_cycles += 8; break;
+		case 0x97: af.hi = sub8bit(af.hi, af.hi); m_cycles += 4; break;
+		case 0x90: af.hi = sub8bit(af.hi, bc.hi); m_cycles += 4; break;
+		case 0x91: af.hi = sub8bit(af.hi, bc.lo); m_cycles += 4; break;
+		case 0x92: af.hi = sub8bit(af.hi, de.hi); m_cycles += 4; break;
+		case 0x93: af.hi = sub8bit(af.hi, de.lo); m_cycles += 4; break;
+		case 0x94: af.hi = sub8bit(af.hi, hl.hi); m_cycles += 4; break;
+		case 0x95: af.hi = sub8bit(af.hi, hl.lo); m_cycles += 4; break;
+		case 0x96: af.hi = sub8bit(af.hi, mem->readByte(hl.reg)); m_cycles += 8; break;
+		case 0xD6: af.hi = sub8bit(af.hi, mem->readByte(pc++)); m_cycles += 8; break;
 
 		// SBC A, n
-		case 0x9F: af.hi = sub8bit(af.hi, af.hi, true); m_cycles += 4; break;
-		case 0x98: af.hi = sub8bit(af.hi, bc.hi, true); m_cycles += 4; break;
-		case 0x99: af.hi = sub8bit(af.hi, bc.lo, true); m_cycles += 4; break;
-		case 0x9A: af.hi = sub8bit(af.hi, de.hi, true); m_cycles += 4; break;
-		case 0x9B: af.hi = sub8bit(af.hi, de.lo, true); m_cycles += 4; break;
-		case 0x9C: af.hi = sub8bit(af.hi, hl.hi, true); m_cycles += 4; break;
-		case 0x9D: af.hi = sub8bit(af.hi, hl.lo, true); m_cycles += 4; break;
-		case 0x9E: af.hi = sub8bit(af.hi, mem->readByte(hl.reg), true); m_cycles += 8; break;
-		case 0xDE: af.hi = sub8bit(af.hi, mem->readByte(pc++), true); m_cycles += 8; break;
+		case 0x9F: af.hi = sub8bitc(af.hi, af.hi); m_cycles += 4; break;
+		case 0x98: af.hi = sub8bitc(af.hi, bc.hi); m_cycles += 4; break;
+		case 0x99: af.hi = sub8bitc(af.hi, bc.lo); m_cycles += 4; break;
+		case 0x9A: af.hi = sub8bitc(af.hi, de.hi); m_cycles += 4; break;
+		case 0x9B: af.hi = sub8bitc(af.hi, de.lo); m_cycles += 4; break;
+		case 0x9C: af.hi = sub8bitc(af.hi, hl.hi); m_cycles += 4; break;
+		case 0x9D: af.hi = sub8bitc(af.hi, hl.lo); m_cycles += 4; break;
+		case 0x9E: af.hi = sub8bitc(af.hi, mem->readByte(hl.reg)); m_cycles += 8; break;
+		case 0xDE: af.hi = sub8bitc(af.hi, mem->readByte(pc++)); m_cycles += 8; break;
 
 		// AND n
 		case 0xA7: af.hi = and8bit(af.hi, af.hi); m_cycles += 4; break;
@@ -315,10 +315,14 @@ namespace gb
 		// SCF
 		case 0x37:
 		{
+		    uint8_t zeroflag = BitGetVal(af.lo, zero);
 		    af.lo = 0;
-		    af.lo = BitReset(af.lo, subtract);
-		    af.lo = BitReset(af.lo, half);
 		    af.lo = BitSet(af.lo, carry);
+
+		    if (zeroflag == 1)
+		    {
+			af.lo = BitSet(af.lo, zero);
+		    }
 
 		    m_cycles += 4;
 		}
@@ -327,18 +331,23 @@ namespace gb
 		// CCF
 		case 0x3F:
 		{
+		    uint8_t zeroflag = BitGetVal(af.lo, zero);
+		    uint8_t carryflag = BitGetVal(af.lo, carry);
 		    af.lo = 0;
-		    if (TestBit(af.lo, carry))
+
+		    if (zeroflag == 1)
 		    {
-			af.lo = BitReset(af.lo, carry);
+			af.lo = BitSet(af.lo, zero);
 		    }
-		    else
+
+		    if (carryflag == 0)
 		    {
 			af.lo = BitSet(af.lo, carry);
 		    }
-
-		    af.lo = BitReset(af.lo, subtract);
-		    af.lo = BitReset(af.lo, half);
+		    else
+		    {
+			af.lo = BitReset(af.lo, carry);
+		    }
 
 		    m_cycles += 4;
 		}
@@ -354,16 +363,16 @@ namespace gb
 		// Rotates & shifts
 
 		// RLCA
-		case 0x07: af.hi = rlc(af.hi); m_cycles += 4; break;
+		case 0x07: af.hi = rlc(af.hi); af.lo = BitReset(af.lo, zero); m_cycles += 4; break;
 
 		// RLA
-		case 0x17: af.hi = rl(af.hi); m_cycles += 4; break;
+		case 0x17: af.hi = rl(af.hi); af.lo = BitReset(af.lo, zero); m_cycles += 8; break;
 
 		// RRCA
-		case 0x0F: af.hi = rrc(af.hi); m_cycles += 4; break;
+		case 0x0F: af.hi = rrc(af.hi); af.lo = BitReset(af.lo, zero); m_cycles += 8; break;
 
 		// RRA
-		case 0x1F: af.hi = rr(af.hi); m_cycles += 4; break;
+		case 0x1F: af.hi = rr(af.hi); af.lo = BitReset(af.lo, zero); m_cycles += 8; break;
 
 
 		// Jumps
@@ -551,7 +560,7 @@ namespace gb
 
 		case 0xD4:
 		{
-		    if (!TestBit(af.lo, zero))
+		    if (!TestBit(af.lo, carry))
 		    {
 			sp -= 2;
 		    	mem->writeWord(sp, pc + 2);
@@ -568,7 +577,7 @@ namespace gb
 
 		case 0xDC:
 		{
-		    if (TestBit(af.lo, zero))
+		    if (TestBit(af.lo, carry))
 		    {
 			sp -= 2;
 		    	mem->writeWord(sp, pc + 2);

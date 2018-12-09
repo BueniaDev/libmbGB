@@ -58,15 +58,29 @@ namespace gb
 	    {
 		uint8_t req = mem->readByte(0xFF0F);
 		uint8_t enabled = mem->readByte(0xFFFF);
-		for (int id = 0; id < 8; id++)
+		uint8_t firedinterrupts = req & enabled;
+
+		if (!firedinterrupts)
 		{
-		    if (TestBit(req, id))
-		    {
-			if (TestBit(enabled, id))
-			{
-			    serviceinterrupt(id);
-			}
-		    }
+		    return;
+		}
+
+		halted = false;
+		sp -= 2;
+		mem->writeWord(sp, pc);
+
+		if (TestBit(firedinterrupts, 0))
+		{
+		    serviceinterrupt(0);
+		    m_cycles += 20;
+		    return;
+		}
+
+		if (TestBit(firedinterrupts, 1))
+		{
+		    serviceinterrupt(1);
+		    m_cycles += 20;
+		    return;
 		}
 	    }
 	}
@@ -80,22 +94,17 @@ namespace gb
 
 	void CPU::serviceinterrupt(int id)
 	{
-	    interruptmaster = false;
-
-	    uint8_t req = mem->readByte(0xFF0F);
-	    req = BitReset(req, id);
-	    mem->writeByte(0xFF0F, req);
-
-	    sp -= 2;
-	    mem->writeWord(sp, pc);
+	    uint8_t flags = mem->readByte(0xFF0F);
+	    flags = BitReset(flags, id);
+	    mem->writeByte(0xFF0F, flags);
 
 	    switch (id)
 	    {
 		case 0: pc = 0x40; break;
 		case 1: pc = 0x48; break;
-		case 2: pc = 0x50; break;
-		case 4: pc = 0x60; break;
 	    }
+
+	    interruptmaster = false;
 	}
 
 	void CPU::executenextopcode()
@@ -167,73 +176,158 @@ namespace gb
 	    pc++;
 	}
 
-	uint8_t CPU::add8bit(uint8_t regone, uint8_t regtwo, bool addcarry)
+	uint8_t CPU::add8bit(uint8_t regone, uint8_t regtwo)
 	{
-	    uint8_t before = regone;
-	    uint8_t adding = regtwo;
-
-	    if (addcarry)
-	    {
-		if (TestBit(af.lo, carry))
-		{
-		    adding++;
-		}
-	    }
-
 	    af.lo = 0;
 
-	    before += adding;
-
-	    if (before == 0)
+	    if (uint8_t(regone + regtwo) == 0)
 	    {
 		af.lo = BitSet(af.lo, zero);
 	    }
 
-	    if (((regone & 0xF) + (adding & 0xF)) > 0xF)
+	    if (((regone & 0xF) + (regtwo & 0xF)) > 0xF)
 	    {
 		af.lo = BitSet(af.lo, half);
 	    }
 
-	    if ((regone + adding) > 0xFF)
+	    if ((regone + regtwo) > 0xFF)
 	    {
 		af.lo = BitSet(af.lo, carry);
 	    }
 
-	    return before;
+	    return regone + regtwo;
 	}
 
-	uint8_t CPU::sub8bit(uint8_t regone, uint8_t regtwo, bool subcarry)
+	uint8_t CPU::add8bitc(uint8_t regone, uint8_t regtwo)
 	{
-	    uint8_t sub = regtwo;
+	    uint8_t carryflag = BitGetVal(af.lo, carry);
+	    uint8_t carryset = 0;
+	    uint8_t halfcarryset = 0;
 
-	    if (subcarry)
+	    uint8_t temp1 = 0;
+	    uint8_t temp2 = 0;
+
+	    temp1 = regone + carryflag;
+
+	    if ((regone + carryflag) > 0xFF)
 	    {
-		if (TestBit(af.lo, carry))
-		{
-		    sub++;
-		}
+		carryset = 1;
+	    }
+
+	    if (((regone & 0x0F) + (carryflag & 0x0F)) > 0x0F)
+	    {
+		halfcarryset = 1;
+	    }
+
+	    temp2 = temp1 + regtwo;
+
+	    if ((temp1 + regtwo) > 0xFF)
+	    {
+		carryset = 1;
+	    }
+
+	    if (((temp1 & 0x0F) + (regtwo & 0x0F)) > 0x0F)
+	    {
+		halfcarryset = 1;
 	    }
 
 	    af.lo = 0;
 
-	    if ((regone - sub) == 0)
+	    if (carryset == 1)
+	    {
+		af.lo = BitSet(af.lo, carry);
+	    }
+
+	    if (halfcarryset == 1)
+	    {
+		af.lo = BitSet(af.lo, half);
+	    }
+
+	    if (temp2 == 0)
+	    {
+		af.lo = BitSet(af.lo, zero);
+	    }
+
+	    return temp2;
+	}
+
+	uint8_t CPU::sub8bit(uint8_t regone, uint8_t regtwo)
+	{
+	    af.lo = 0;
+
+	    if (uint8_t(regone - regtwo) == 0)
 	    {
 		af.lo = BitSet(af.lo, zero);
 	    }
 
 	    af.lo = BitSet(af.lo, subtract);
 
-	    if (regone < sub)
+	    if (regone < regtwo)
 	    {
 		af.lo = BitSet(af.lo, carry);
 	    }
 	
-	    if (((regone & 0xF) - (sub & 0xF)) < 0)
+	    if ((regone & 0xF) < (regtwo & 0xF))
 	    {
 		af.lo = BitSet(af.lo, half);
 	    }
 
-	    return regone - sub;
+	    return regone - regtwo;
+	}
+
+	uint8_t CPU::sub8bitc(uint8_t regone, uint8_t regtwo)
+	{
+	    uint8_t carryflag = BitGetVal(af.lo, carry);
+	    uint8_t carryset = 0;
+	    uint8_t halfcarryset = 0;
+
+	    uint8_t temp1 = 0;
+	    uint8_t temp2 = 0;
+
+	    temp1 = regone - carryflag;
+
+	    if (regone < carryflag)
+	    {
+		carryset = 1;
+	    }
+
+	    if ((regone & 0x0F) < (carryflag & 0x0F))
+	    {
+		halfcarryset = 1;
+	    }
+
+	    temp2 = temp1 - regtwo;
+
+	    if (temp1 < regtwo)
+	    {
+		carryset = 1;
+	    }
+
+	    if ((temp1 & 0x0F) < (regtwo & 0x0F))
+	    {
+		halfcarryset = 1;
+	    }
+
+	    af.lo = 0;
+
+	    if (carryset == 1)
+	    {
+		af.lo = BitSet(af.lo, carry);
+	    }
+
+	    if (halfcarryset == 1)
+	    {
+		af.lo = BitSet(af.lo, half);
+	    }
+
+	    af.lo = BitSet(af.lo, subtract);
+
+	    if (temp2 == 0)
+	    {
+		af.lo = BitSet(af.lo, zero);
+	    }
+
+	    return temp2;
 	}
 
 	uint8_t CPU::and8bit(uint8_t regone, uint8_t regtwo)
@@ -426,7 +520,7 @@ namespace gb
 	    uint8_t oldcarry = TestBit(af.lo, carry) ? 1 : 0;
 	    af.lo = 0;
 
-	    uint8_t carryflag = (TestBit(regone, 7) >> 7);
+	    uint8_t carryflag = BitGetVal(regone, 7);
 	    regone = (regone << 1) + oldcarry;
 
 	    if (carryflag == 1)
@@ -446,7 +540,7 @@ namespace gb
 	{
 	    af.lo = 0;
 
-	    uint8_t carryflag = (TestBit(regone, 7) >> 7);
+	    uint8_t carryflag = BitGetVal(regone, 7);
 	    regone = (regone << 1) + carryflag;
 
 	    if (carryflag == 1)
@@ -467,7 +561,7 @@ namespace gb
 	    uint8_t oldcarry = TestBit(af.lo, carry) ? 1 : 0;
 	    af.lo = 0;
 
-	    uint8_t carryflag = TestBit(regone, 0) ? 1 : 0;
+	    uint8_t carryflag = BitGetVal(regone, 0);
 	    regone = (regone >> 1) + (oldcarry << 7);
 
 	    if (carryflag == 1)
@@ -487,8 +581,7 @@ namespace gb
 	{
 	    af.lo = 0;
 
-	    uint8_t carryflag = TestBit(regone, 0) ? 1 : 0;
-
+	    uint8_t carryflag = BitGetVal(regone, 0);
 	    regone = (regone >> 1) + (carryflag << 7);
 
 	    if (carryflag == 1)
@@ -512,7 +605,7 @@ namespace gb
 
 	    regone <<= 1;
 
-	    if (carryflag)
+	    if (carryflag == 1)
 	    {
 		af.lo = BitSet(af.lo, carry);
 	    }
