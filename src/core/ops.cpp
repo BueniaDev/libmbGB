@@ -108,7 +108,7 @@ namespace gb
 		case 0x3A: af.hi = mem->readByte(hl.reg); hl.reg--; m_cycles += 8; break;
 
 		// LDD (HL), A
-		case 0x32: mem->writeByte((hl.reg--), af.hi); m_cycles += 8; break;
+		case 0x32: mem->writeByte(hl.reg--, af.hi); m_cycles += 8; break;
 
 		// LDI A, (HL)
 		case 0x2A: af.hi = mem->readByte(hl.reg); hl.reg++; m_cycles += 8; break;
@@ -357,7 +357,7 @@ namespace gb
 		case 0xF3: interruptmaster = false; m_cycles += 4; break;
 
 		// EI
-		case 0xFB: interruptmaster = true; m_cycles += 4; break;
+		case 0xFB: interruptdelay = true; m_cycles += 4; break;
 
 
 		// Rotates & shifts

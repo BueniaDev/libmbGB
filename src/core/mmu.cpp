@@ -31,6 +31,7 @@ namespace gb
     {
 	if (biosload == false)
 	{
+	    memorymap[0xFF0F] = 0xE1;
 	    memorymap[0xFF10] = 0x80;
 	    memorymap[0xFF11] = 0xBF;
 	    memorymap[0xFF12] = 0xF3;
@@ -66,6 +67,7 @@ namespace gb
 	    }
 	    else if (address == 0x0100)
 	    {
+		biosload = false;		
 		cout << "MMU::Exiting BIOS" << endl;
 	    }
 	}
@@ -75,7 +77,12 @@ namespace gb
 
     void MMU::writeByte(uint16_t address, uint8_t value)
     {
-	if (address == 0xFF44)
+	if (address == 0xFF0F)
+	{
+	    value |= 0xE0;
+	    memorymap[address] = value;
+	}	
+	else if (address == 0xFF44)
 	{
 	    memorymap[address] = 0;
 	}        

@@ -31,6 +31,8 @@ namespace gb
 	    halted = false;
 
 	    interruptmaster = false;
+	    interruptdelay = false;
+	    washalted = false;
 
 	    cout << "CPU::Initialized" << endl;
 	}
@@ -48,39 +50,34 @@ namespace gb
 	    halted = false;
 
 	    interruptmaster = false;
+	    interruptdelay = false;
+	    washalted = false;
 
 	    cout << "CPU::Initialized" << endl;
 	}
 
 	void CPU::dointerrupts()
 	{
+	    if (interruptdelay)
+	    {
+		interruptdelay = false;
+		interruptmaster = true;
+		return;
+	    }	    
+
 	    if (interruptmaster)
 	    {
 		uint8_t req = mem->readByte(0xFF0F);
 		uint8_t enabled = mem->readByte(0xFFFF);
-		uint8_t firedinterrupts = req & enabled;
 
-		if (!firedinterrupts)
+		for (int id = 0; id < 5; id++)
 		{
-		    return;
-		}
-
-		halted = false;
-		sp -= 2;
-		mem->writeWord(sp, pc);
-
-		if (TestBit(firedinterrupts, 0))
-		{
-		    serviceinterrupt(0);
-		    m_cycles += 20;
-		    return;
-		}
-
-		if (TestBit(firedinterrupts, 1))
-		{
-		    serviceinterrupt(1);
-		    m_cycles += 20;
-		    return;
+		    if (TestBit(req, id) && TestBit(enabled, id))
+		    {
+			washalted = halted;
+			halted = false;			
+			serviceinterrupt(id);
+		    }
 		}
 	    }
 	}
@@ -97,13 +94,19 @@ namespace gb
 	    uint8_t flags = mem->readByte(0xFF0F);
 	    flags = BitReset(flags, id);
 	    mem->writeByte(0xFF0F, flags);
+	    sp -= 2;
+	    mem->writeWord(sp, pc);
 
 	    switch (id)
 	    {
 		case 0: pc = 0x40; break;
 		case 1: pc = 0x48; break;
+		case 2: pc = 0x50; break;
+		case 4: pc = 0x60; break;
 	    }
 
+	    m_cycles += (washalted) ? 24 : 20;
+	    washalted = false;
 	    interruptmaster = false;
 	}
 
