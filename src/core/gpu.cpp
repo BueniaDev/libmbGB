@@ -27,9 +27,9 @@ namespace gb
     {
 	for (int i = 0; i < 160 * 144; i++)
 	{
-	    framebuffer[i][0] = 255;
-	    framebuffer[i][1] = 255;
-	    framebuffer[i][2] = 255;
+	    framebuffer[i][0] = 0;
+	    framebuffer[i][1] = 0;
+	    framebuffer[i][2] = 0;
 	}
     }
 
