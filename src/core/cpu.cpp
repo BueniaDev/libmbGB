@@ -32,7 +32,7 @@ namespace gb
 
 	    interruptmaster = false;
 	    interruptdelay = false;
-	    washalted = false;
+	    skipinstruction = false;
 
 	    cout << "CPU::Initialized" << endl;
 	}
@@ -51,13 +51,16 @@ namespace gb
 
 	    interruptmaster = false;
 	    interruptdelay = false;
-	    washalted = false;
+	    skipinstruction = false;
 
 	    cout << "CPU::Initialized" << endl;
 	}
 
 	void CPU::dointerrupts()
 	{
+	    uint8_t req = mem->readByte(0xFF0F);
+	    uint8_t enabled = mem->readByte(0xFFFF);	    
+
 	    if (interruptdelay)
 	    {
 		interruptdelay = false;
@@ -67,18 +70,69 @@ namespace gb
 
 	    if (interruptmaster)
 	    {
-		uint8_t req = mem->readByte(0xFF0F);
-		uint8_t enabled = mem->readByte(0xFFFF);
-
-		for (int id = 0; id < 5; id++)
+		if (TestBit(req, 0) && TestBit(enabled, 0))
 		{
-		    if (TestBit(req, id) && TestBit(enabled, id))
-		    {
-			washalted = halted;
-			halted = false;			
-			serviceinterrupt(id);
-		    }
+		    interruptmaster = false;
+		    halted = false;
+		    req = BitReset(req, 0);
+		    sp -= 2;
+		    mem->writeWord(sp, pc);
+		    pc = 0x40;
+		    m_cycles += 36;
 		}
+		
+		if (TestBit(req, 1) && TestBit(enabled, 1))
+		{
+		    interruptmaster = false;
+		    halted = false;
+		    req = BitReset(req, 1);
+		    sp -= 2;
+		    mem->writeWord(sp, pc);
+		    pc = 0x48;
+		    m_cycles += 36;
+		}
+
+		if (TestBit(req, 2) && TestBit(enabled, 2))
+		{
+		    interruptmaster = false;
+		    halted = false;
+		    req = BitReset(req, 2);
+		    sp -= 2;
+		    mem->writeWord(sp, pc);
+		    pc = 0x50;
+		    m_cycles += 36;
+		}
+
+		if (TestBit(req, 3) && TestBit(enabled, 3))
+		{
+		    interruptmaster = false;
+		    halted = false;
+		    req = BitReset(req, 3);
+		    sp -= 2;
+		    mem->writeWord(sp, pc);
+		    pc = 0x58;
+		    m_cycles += 36;
+		}
+
+		if (TestBit(req, 4) && TestBit(enabled, 4))
+		{
+		    interruptmaster = false;
+		    halted = false;
+		    req = BitReset(req, 0);
+		    sp -= 2;
+		    mem->writeWord(sp, pc);
+		    pc = 0x60;
+		    m_cycles += 36;
+		}
+
+		req |= 0xE0;
+		mem->writeByte(0xFF0F, req);
+		return;
+	    }
+	    else if ((req & enabled & 0x1F) && (!skipinstruction))
+	    {
+		halted = false;
+		return;
 	    }
 	}
 
@@ -90,39 +144,27 @@ namespace gb
 	    mem->writeByte(0xFF0F, req);
 	}
 
-	void CPU::serviceinterrupt(int id)
-	{
-	    uint8_t flags = mem->readByte(0xFF0F);
-	    flags = BitReset(flags, id);
-	    mem->writeByte(0xFF0F, flags);
-	    sp -= 2;
-	    mem->writeWord(sp, pc);
-
-	    switch (id)
-	    {
-		case 0: pc = 0x40; break;
-		case 1: pc = 0x48; break;
-		case 2: pc = 0x50; break;
-		case 4: pc = 0x60; break;
-	    }
-
-	    m_cycles += (washalted) ? 24 : 20;
-	    washalted = false;
-	    interruptmaster = false;
-	}
-
 	void CPU::executenextopcode()
 	{
 	    uint8_t opcode = mem->readByte(pc);	    
 
-	    if (!halted)
+	    if (halted)
 	    {
-		pc++;		
-		executeopcode(opcode);
+		if (interruptmaster || !skipinstruction)
+		{
+		    m_cycles += 4;
+		}
+		else if (skipinstruction)
+		{
+		    halted = false;
+		    skipinstruction = false;
+		    executeopcode(opcode);
+		}
 	    }
 	    else
 	    {
-		m_cycles += 4;
+		opcode = mem->readByte(pc++);
+		executeopcode(opcode);
 	    }
 	}
 
@@ -633,12 +675,12 @@ namespace gb
 		af.lo = BitSet(af.lo, carry);
 	    }
 
+	    af.lo = BitSet(af.lo, half);
+
 	    if (!TestBit(regone, bit))
 	    {
 		af.lo = BitSet(af.lo, zero);
 	    }
-
-	    af.lo = BitSet(af.lo, half);
 	}
 
 	uint8_t CPU::set(uint8_t regone, int bit)

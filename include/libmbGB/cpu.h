@@ -57,10 +57,9 @@ namespace gb
 
 		bool interruptmaster;
 		bool interruptdelay;
-		bool washalted;
+		bool skipinstruction;
 
 		void dointerrupts();
-		void serviceinterrupt(int id);
 		void requestinterrupt(int id);
 
 	        MMU *mem;

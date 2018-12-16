@@ -77,10 +77,13 @@ namespace gb
 	int maxcycles = 69905;
 	while (corecpu.m_cycles < maxcycles)
 	{
+	    int corecycles = corecpu.m_cycles;
 	    corecpu.executenextopcode();
+	    int cycles = corecpu.m_cycles - corecycles;
+
 	    if (!corecpu.stopped)
 	    {
-	        coregpu.updategraphics(corecpu.m_cycles);
+	        coregpu.updategraphics(cycles);
 	        corecpu.dointerrupts();
 	    }
 	}

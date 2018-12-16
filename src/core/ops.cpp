@@ -297,7 +297,13 @@ namespace gb
 		case 0x10: stop(); break;
 
 		// HALT
-		case 0x76: halted = true; break;
+		case 0x76:
+		{
+		    halted = true;
+		    skipinstruction = ((mem->memorymap[0xFF0F] & mem->memorymap[0xFFFF] & 0x1F) && (!interruptmaster)) ? true : false;
+		    m_cycles += 4;
+		}
+		break;
 
 		// DAA
 		case 0x27: daa(); break;
