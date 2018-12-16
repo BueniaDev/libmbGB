@@ -31,6 +31,8 @@ namespace gb
     {
 	if (biosload == false)
 	{
+	    memorymap[0xFF00] = 0xFF;
+	    memorymap[0xFF04] = 0xAB;
 	    memorymap[0xFF07] = 0xF8;
 	    memorymap[0xFF0F] = 0xE1;
 	    memorymap[0xFF10] = 0x80;
@@ -38,7 +40,6 @@ namespace gb
 	    memorymap[0xFF12] = 0xF3;
 	    memorymap[0xFF13] = 0xC1;
 	    memorymap[0xFF14] = 0xBF;
-	    memorymap[0xFF15] = 0xFF;
 	    memorymap[0xFF16] = 0x3F;
 	    memorymap[0xFF19] = 0xB8;
 	    memorymap[0xFF1A] = 0x7F;
@@ -53,8 +54,8 @@ namespace gb
 	    memorymap[0xFF26] = 0xF1;
 	    memorymap[0xFF40] = 0x91;
 	    memorymap[0xFF41] = 0x85;
-	    memorymap[0xFF46] = 0xFF;
-	    memorymap[0xFF47] = 0xFC;
+	    memorymap[0xFF44] = 0x90;
+	    memorymap[0xFF47] = 0xBF;
 	    memorymap[0xFF48] = 0xFF;
 	    memorymap[0xFF49] = 0xFF;
 	}
@@ -79,20 +80,50 @@ namespace gb
 	    }
 	}
 
+	if (address == 0xFF00)
+	{
+	    return 0xFF;
+	}
+	else if ((address >= 0xFF10) && (address <= 0xFF26))
+	{
+	    return 0xFF;
+	}
+	else if ((address >= 0xFEA0) && (address <= 0xFEFF))
+	{
+	    return 0xFF;
+	}
+
 	return memorymap[address];
     }
 
     void MMU::writeByte(uint16_t address, uint8_t value)
     {
-	if (address == 0xFF0F)
+	if (address < 0x8000)
 	{
-	    value |= 0xE0;
+	    return;
+	}
+	else if ((address >= 0xE000) && (address < 0xFE00))
+	{
 	    memorymap[address] = value;
+	    writeByte(address - 0x2000, value);
+	}
+	else if ((address >= 0xFEA0) && (address <= 0xFEFF))
+	{
+	    return;
 	}	
 	else if (address == 0xFF44)
 	{
-	    memorymap[address] = 0;
-	}        
+	    return;
+	}
+	else if (address == 0xFF46)
+	{
+	    uint16_t addr = (value << 8);
+
+	    for (uint16_t i = 0; i < 0xA0; i++)
+	    {
+		memorymap[0xFE00 + i] = readByte(addr + i);
+	    }
+	}
 
 	memorymap[address] = value;
     }

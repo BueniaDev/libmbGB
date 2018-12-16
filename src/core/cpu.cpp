@@ -86,6 +86,7 @@ namespace gb
 	{
 	    uint8_t req = mem->readByte(0xFF0F);
 	    req = BitSet(req, id);
+	    req |= 0xE0;
 	    mem->writeByte(0xFF0F, req);
 	}
 
@@ -382,11 +383,6 @@ namespace gb
 	    {
 		af.lo = BitSet(af.lo, zero);
 	    }
-	    else
-	    {
-		af.lo = BitReset(af.lo, zero);
-	    }
-
 
 	    if ((regone & 0xF) == 0)
 	    {
@@ -428,35 +424,6 @@ namespace gb
 	    return regone;
 	}
 
-	uint8_t CPU::compare8bit(uint8_t regone, uint8_t regtwo)
-	{
-	    uint8_t sub = regtwo;
-
-	    af.lo = 0;
-
-	    if ((regone - sub) == 0)
-	    {
-		af.lo = BitSet(af.lo, zero);
-	    }
-
-	    af.lo = BitSet(af.lo, subtract);
-
-	    if (regone < sub)
-	    {
-		af.lo = BitSet(af.lo, carry);
-	    }
-
-	    int16_t htest = (regone & 0xF);
-	    htest -= (sub & 0xF);
-
-	    if (htest < 0)
-	    {
-		af.lo = BitSet(af.lo, half);
-	    }
-
-	    return regone - sub;
-	}
-
 	uint16_t CPU::add16bit(uint16_t regone, uint16_t regtwo)
 	{
 	    uint8_t zeroflag = TestBit(af.lo, zero) ? 1 : 0;
@@ -486,9 +453,6 @@ namespace gb
 	    uint16_t result = regone + regtwobsx;
 
 	    af.lo = 0;
-
-	    af.lo = BitReset(af.lo, zero);
-	    af.lo = BitReset(af.lo, subtract);
 
 	    if (((regone & 0xFF) + regtwo) > 0xFF)
 	    {
@@ -605,7 +569,6 @@ namespace gb
 	    af.lo = 0;
 
 	    uint8_t carryflag = TestBit(regone, 7) ? 1 : 0;
-
 	    regone <<= 1;
 
 	    if (carryflag == 1)

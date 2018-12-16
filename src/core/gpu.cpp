@@ -25,7 +25,7 @@ namespace gb
 
     void GPU::clearscreen()
     {
-	for (int i = 0; i < 160 * 144; i++)
+	for (int i = 0; i < (160 * 144); i++)
 	{
 	    framebuffer[i][0] = 0;
 	    framebuffer[i][1] = 0;
@@ -37,30 +37,28 @@ namespace gb
     {
 	setlcdstatus();
 	
-	if (!TestBit(gmem->readByte(0xFF40), 7))
+	if (!TestBit(gmem->memorymap[0xFF40], 7))
 	{
 	    return;
 	}
 
-	uint8_t status = gmem->readByte(0xFF41);
-
 	scanlinecounter += cycles;
+
+	uint8_t status = gmem->memorymap[0xFF41];
 
 	if (scanlinecounter >= 456)
 	{
-	    uint8_t scanline = gmem->readByte(0xFF44);
+	    uint8_t scanline = gmem->memorymap[0xFF44];
 
 	    if (scanline == 144)
 	    {
 		gcpu->requestinterrupt(0);
 	    }
-
-	    if (scanline == 154)
+	    else if (scanline == 154)
 	    {
 		gmem->memorymap[0xFF44] = 0xFF;
 	    }
-
-	    if (scanline < 144)
+	    else if (scanline < 144)
 	    {
 		drawscanline();
 	    }
@@ -70,19 +68,18 @@ namespace gb
 	    if (scanline == gmem->readByte(0xFF45))
 	    {
 		status = BitSet(status, 2);
-	
-		if (TestBit(status, 2) && TestBit(status, 6))
-		{
-		    gcpu->requestinterrupt(1);
-		}
 	    }
 	    else
 	    {
 		status = BitReset(status, 2);
 	    }
+
+	    if (TestBit(status, 2) && TestBit(status, 6))
+	    {
+		gcpu->requestinterrupt(1);
+	    }
 	
 	    status |= 0x80;
-	    gmem->writeByte(0xFF41, status);
 	    scanlinecounter -= 456;
 	}
 
@@ -90,10 +87,10 @@ namespace gb
 
     void GPU::setlcdstatus()
     {
-	uint8_t status = gmem->readByte(0xFF41);
+	uint8_t status = gmem->memorymap[0xFF41];
 	uint8_t mode = 0;
 
-	if (TestBit(gmem->readByte(0xFF40), 7) == false)
+	if (!TestBit(gmem->memorymap[0xFF40], 7))
 	{
 	    mode = 1;
 	    status = BitSet(status, 0);
@@ -105,7 +102,7 @@ namespace gb
 	    return;
 	}
 
-	uint8_t scanline = gmem->readByte(0xFF44);
+	uint8_t scanline = gmem->memorymap[0xFF44];
 	uint8_t currentmode = (status & 0x3);
 
 	bool reqint = false;
@@ -122,26 +119,26 @@ namespace gb
 	{
 	    int mode2bounds = (456 - 80);
 	    int mode3bounds = (mode2bounds - 172);
-	    if (scanlinecounter >= mode2bounds)
+	    if ((scanlinecounter >= mode2bounds) && (scanlinecounter <= 456))
 	    {
 		mode = 2;
-		status = BitSet(status, 1);
 		status = BitReset(status, 0);
+		status = BitSet(status, 1);
 		status |= 0x80;
 		reqint = TestBit(status, 5);
 	    }
-	    else if (scanlinecounter >= mode3bounds)
+	    else if ((scanlinecounter >= mode3bounds) && (scanlinecounter < mode2bounds))
 	    {
 		mode = 3;
-		status = BitSet(status, 1);
 		status = BitSet(status, 0);
+		status = BitSet(status, 1);
 		status |= 0x80;
 	    }
 	    else
 	    {
 		mode = 0;
-		status = BitReset(status, 1);	
 		status = BitReset(status, 0);
+		status = BitReset(status, 1);
 		status |= 0x80;
 		reqint = TestBit(status, 3);
 	    }
@@ -151,35 +148,35 @@ namespace gb
 	{
 	    gcpu->requestinterrupt(1);
 	}
-
-	gmem->writeByte(0xFF41, status);
     }
 
     void GPU::drawscanline()
     {
-	uint8_t control = gmem->readByte(0xFF40);
-	if (TestBit(control, 0))
-	{
-	    rendertiles(control);
-	}
+	uint8_t control = gmem->memorymap[0xFF40];
+	rendertiles(control);
     }
 
     void GPU::rendertiles(uint8_t lcdcontrol)
     {	
-	bool unsig = TestBit(lcdcontrol, 4);
-	bool windowenabled = TestBit(lcdcontrol, 5);
-	uint16_t tiledata = TestBit(lcdcontrol, 4) ? 0x8000 : 0x8800;
-	uint16_t bgmem = TestBit(lcdcontrol, 3) ? 0x9C00 : 0x9800;
-	uint16_t bgmemaddr = bgmem;
-	uint16_t winmemaddr = TestBit(lcdcontrol, 6) ? 0x9C00 : 0x9800;
+	if (!TestBit(lcdcontrol, 0))
+	{
+	    return;
+	}	
+
 	uint8_t scrollY = gmem->readByte(0xFF42);
 	uint8_t scrollX = gmem->readByte(0xFF43);
 	uint8_t windowY = gmem->readByte(0xFF4A);
 	uint8_t windowX = gmem->readByte(0xFF4B);
+	uint16_t tiledata = TestBit(lcdcontrol, 4) ? 0x8000 : 0x8800;
+	uint16_t bgmem = TestBit(lcdcontrol, 3) ? 0x9C00 : 0x9800;
+	uint16_t bgmemaddr = bgmem;
+	uint16_t winmemaddr = TestBit(lcdcontrol, 6) ? 0x9C00 : 0x9800;
+	bool unsig = TestBit(lcdcontrol, 4);
+	bool windowenabled = TestBit(lcdcontrol, 5);
 
-	uint8_t scanline = gmem->readByte(0xFF44);
+	uint8_t scanline = gmem->memorymap[0xFF44];
 
-	for (int x = 0; x < 160; x++)
+	for (uint8_t x = 0; x < 160; x++)
 	{
 	    uint8_t ypos = (scrollY + scanline);
 	    uint8_t xpos = (scrollX + x);
@@ -204,7 +201,7 @@ namespace gb
 	    uint8_t pixeldata1 = gmem->readByte(tileloc + tileyline);
 	    uint8_t pixeldata2 = gmem->readByte(tileloc + tileyline + 1);
 	    int colorbit = (((xpos % 8) - 7) * -1);
-	    uint8_t colornum = ((BitGetVal(pixeldata2, colorbit) << 1) | (BitGetVal(pixeldata1, colorbit)));
+	    int colornum = ((BitGetVal(pixeldata2, colorbit) << 1) | (BitGetVal(pixeldata1, colorbit)));
 	    int color = getcolor(colornum, 0xFF47);
 	    int red = 0;
 	    int blue = 0;

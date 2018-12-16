@@ -114,7 +114,7 @@ namespace gb
 		case 0x2A: af.hi = mem->readByte(hl.reg); hl.reg++; m_cycles += 8; break;
 
 		// LDI (HL), A
-		case 0x22: mem->writeByte((hl.reg++), af.hi); m_cycles += 8; break;
+		case 0x22: mem->writeByte(hl.reg, af.hi); hl.reg++; m_cycles += 8; break;
 
 		// LDH (n), A
 		case 0xE0: mem->writeByte((mem->readByte(pc++) | 0xFF00), af.hi); m_cycles += 12; break;
@@ -233,15 +233,15 @@ namespace gb
 		case 0xEE: af.hi = xor8bit(af.hi, mem->readByte(pc++)); m_cycles += 8; break;
 
 		// CP n
-		case 0xBF: compare8bit(af.hi, af.hi); m_cycles += 4; break;
-		case 0xB8: compare8bit(af.hi, bc.hi); m_cycles += 4; break;
-		case 0xB9: compare8bit(af.hi, bc.lo); m_cycles += 4; break;
-		case 0xBA: compare8bit(af.hi, de.hi); m_cycles += 4; break;
-		case 0xBB: compare8bit(af.hi, de.lo); m_cycles += 4; break;
-		case 0xBC: compare8bit(af.hi, hl.hi); m_cycles += 4; break;
-		case 0xBD: compare8bit(af.hi, hl.lo); m_cycles += 4; break;
-		case 0xBE: compare8bit(af.hi, mem->readByte(hl.reg)); m_cycles += 8; break;
-		case 0xFE: compare8bit(af.hi, mem->readByte(pc++)); m_cycles += 8; break;
+		case 0xBF: sub8bit(af.hi, af.hi); m_cycles += 4; break;
+		case 0xB8: sub8bit(af.hi, bc.hi); m_cycles += 4; break;
+		case 0xB9: sub8bit(af.hi, bc.lo); m_cycles += 4; break;
+		case 0xBA: sub8bit(af.hi, de.hi); m_cycles += 4; break;
+		case 0xBB: sub8bit(af.hi, de.lo); m_cycles += 4; break;
+		case 0xBC: sub8bit(af.hi, hl.hi); m_cycles += 4; break;
+		case 0xBD: sub8bit(af.hi, hl.lo); m_cycles += 4; break;
+		case 0xBE: sub8bit(af.hi, mem->readByte(hl.reg)); m_cycles += 8; break;
+		case 0xFE: sub8bit(af.hi, mem->readByte(pc++)); m_cycles += 8; break;
 
 		// INC n
 		case 0x3C: af.hi = inc8bit(af.hi); m_cycles += 4; break;
@@ -317,12 +317,13 @@ namespace gb
 		{
 		    uint8_t zeroflag = BitGetVal(af.lo, zero);
 		    af.lo = 0;
-		    af.lo = BitSet(af.lo, carry);
 
 		    if (zeroflag == 1)
 		    {
 			af.lo = BitSet(af.lo, zero);
 		    }
+
+		    af.lo = BitSet(af.lo, carry);
 
 		    m_cycles += 4;
 		}
