@@ -154,6 +154,7 @@ namespace gb
     {
 	uint8_t control = gmem->memorymap[0xFF40];
 	rendertiles(control);
+	rendersprites(control);
     }
 
     void GPU::rendertiles(uint8_t lcdcontrol)
@@ -219,6 +220,103 @@ namespace gb
 	    framebuffer[index][0] = red;
 	    framebuffer[index][1] = green;
 	    framebuffer[index][2] = blue;
+	}
+    }
+
+    void GPU::rendersprites(uint8_t lcdcontrol)
+    {
+	if (!TestBit(lcdcontrol, 1))
+	{
+	    return;
+	}
+
+	uint16_t spritedata = 0x8000;
+	uint16_t spriteattribdata = 0xFE00;
+	bool use8by16 = TestBit(lcdcontrol, 2) ? true : false;
+	uint8_t spritelimit = 40;
+
+	for (int i = 0; i < spritelimit; i++)
+	{
+	    uint8_t index = (i * 4);
+	    uint8_t ypos = gmem->readByte(spriteattribdata + index) - 16;
+	    uint8_t xpos = gmem->readByte(spriteattribdata + index + 1) - 8;
+	    uint8_t patternnum = gmem->readByte(spriteattribdata + index + 2);
+	    uint8_t flags = gmem->readByte(spriteattribdata + index + 3);
+
+	    bool yflip = TestBit(flags, 6);
+	    bool xflip = TestBit(flags, 5);
+
+	    uint8_t scanline = gmem->readByte(0xFF44);
+
+	    int ysize = 8;
+	    if (use8by16)
+	    {
+		ysize = 16;
+	    }
+
+	    if ((scanline >= ypos) && (scanline < (ypos + ysize)))
+	    {
+		int line = scanline - ypos;
+
+		if (yflip)
+		{
+		    line -= ysize;
+		    line *= -1;
+		}
+
+		line *= 2;
+		uint16_t dataaddr = (spritedata + (patternnum * 16)) + line;
+		uint8_t pixeldata1 = gmem->readByte(dataaddr);
+		uint8_t pixeldata2 = gmem->readByte(dataaddr + 1);
+
+		for (int tilepixel = 7; tilepixel >= 0; tilepixel--)
+		{
+		    int colorbit = tilepixel;
+
+		    if (xflip)
+		    {
+			colorbit -= 7;
+			colorbit *= -1;
+		    }
+
+		    int colornum = ((BitGetVal(pixeldata2, colorbit) << 1) | (BitGetVal(pixeldata1, colorbit)));
+
+		    uint16_t coloraddr = TestBit(flags, 4) ? 0xFF49 : 0xFF48;
+		    int color = getcolor(colornum, coloraddr);
+
+		    if (color == 0)
+		    {
+			continue;
+		    }
+
+		    int red = 0;
+		    int blue = 0;
+		    int green = 0;
+
+		    switch (color)
+		    {
+			case 0: red = 0xFF; green = 0xFF; blue = 0xFF; break;
+			case 1: red = 0xCC; green = 0xCC; blue = 0xCC; break;
+			case 2: red = 0x77; green = 0x77; blue = 0x77; break;
+			case 3: red = 0x00; green = 0x00; blue = 0x00; break;
+		    }
+
+		    int xpix = 0 - tilepixel;
+		    xpix += 7;
+
+		    int pixel = xpos + xpix;
+
+		    if ((scanline < 0) || (scanline > 143) || (pixel < 0) || (pixel > 159))
+		    {
+			continue;
+		    }
+
+		    int index = (pixel + (scanline * 160));
+		    framebuffer[index][0] = red;
+		    framebuffer[index][1] = green;
+		    framebuffer[index][2] = blue;
+		}
+	    }
 	}
     }
 

@@ -28,6 +28,7 @@ namespace gb
 	    
 	    void drawscanline();
 	    void rendertiles(uint8_t lcdcontrol);
+	    void rendersprites(uint8_t lcdcontrol);
 	    int getcolor(int id, uint16_t palette);
 
 	    int scanlinecounter;
