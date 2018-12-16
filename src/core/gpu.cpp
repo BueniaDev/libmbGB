@@ -17,6 +17,7 @@ namespace gb
 
     void GPU::reset()
     {
+	scanlinecounter = 0;	
 	clearscreen();
 
 	cout << "GPU::Initialized" << endl;
@@ -24,11 +25,11 @@ namespace gb
 
     void GPU::clearscreen()
     {
-	for (int i = 0; i < 160 * 144; i++)
+	for (int i = 0; i < (160 * 144); i++)
 	{
-	    framebuffer[i][0] = 255;
-	    framebuffer[i][1] = 255;
-	    framebuffer[i][2] = 255;
+	    framebuffer[i][0] = 0;
+	    framebuffer[i][1] = 0;
+	    framebuffer[i][2] = 0;
 	}
     }
 
@@ -36,57 +37,74 @@ namespace gb
     {
 	setlcdstatus();
 	
-	if (TestBit(gmem->readByte(0xFF40), 7) == true)
-	{
-	    scanlinecounter -= cycles;
-	}
-	else
+	if (!TestBit(gmem->memorymap[0xFF40], 7))
 	{
 	    return;
 	}
 
-	if (scanlinecounter <= 0)
-	{
-	    gmem->memorymap[0xFF44]++;
-	    scanlinecounter = 456;
+	scanlinecounter += cycles;
 
-	    uint8_t scanline = gmem->readByte(0xFF44);
+	uint8_t status = gmem->memorymap[0xFF41];
+
+	if (scanlinecounter >= 456)
+	{
+	    uint8_t scanline = gmem->memorymap[0xFF44];
 
 	    if (scanline == 144)
 	    {
 		gcpu->requestinterrupt(0);
 	    }
-
-	    if (scanline > 153)
+	    else if (scanline == 154)
 	    {
-		gmem->memorymap[0xFF44] = 0;
+		gmem->memorymap[0xFF44] = 0xFF;
 	    }
-
-	    if (scanline < 144)
+	    else if (scanline < 144)
 	    {
 		drawscanline();
 	    }
+
+	    gmem->memorymap[0xFF44] += 1;
+
+	    if (scanline == gmem->readByte(0xFF45))
+	    {
+		status = BitSet(status, 2);
+	    }
+	    else
+	    {
+		status = BitReset(status, 2);
+	    }
+
+	    if (TestBit(status, 2) && TestBit(status, 6))
+	    {
+		gcpu->requestinterrupt(1);
+	    }
+	
+	    status |= 0x80;
+	    scanlinecounter -= 456;
 	}
+
     }
 
     void GPU::setlcdstatus()
     {
-	uint8_t status = gmem->readByte(0xFF41);
+	uint8_t status = gmem->memorymap[0xFF41];
+	uint8_t mode = 0;
 
-	if (TestBit(gmem->readByte(0xFF40), 7) == false)
+	if (!TestBit(gmem->memorymap[0xFF40], 7))
 	{
-	    scanlinecounter = 456;
-	    gmem->memorymap[0xFF44] = 0;
-	    status &= 252;
+	    mode = 1;
 	    status = BitSet(status, 0);
-	    gmem->writeByte(0xFF41, status);
+	    status = BitReset(status, 1);
+	    status |= 0x80;
+	    status &= 0xF8;
+	    gmem->memorymap[0xFF44] = 0;
+	    scanlinecounter = 0;
 	    return;
 	}
 
-	uint8_t scanline = gmem->readByte(0xFF44);
+	uint8_t scanline = gmem->memorymap[0xFF44];
 	uint8_t currentmode = (status & 0x3);
 
-	uint8_t mode = 0;
 	bool reqint = false;
 
 	if (scanline >= 144)
@@ -94,30 +112,34 @@ namespace gb
 	    mode = 1;
 	    status = BitSet(status, 0);
 	    status = BitReset(status, 1);
+	    status |= 0x80;
 	    reqint = TestBit(status, 4);
 	}
 	else
 	{
 	    int mode2bounds = (456 - 80);
 	    int mode3bounds = (mode2bounds - 172);
-	    if (scanlinecounter >= mode2bounds)
+	    if ((scanlinecounter >= mode2bounds) && (scanlinecounter <= 456))
 	    {
 		mode = 2;
-		status = BitSet(status, 1);
 		status = BitReset(status, 0);
+		status = BitSet(status, 1);
+		status |= 0x80;
 		reqint = TestBit(status, 5);
 	    }
-	    else if (scanlinecounter >= mode3bounds)
+	    else if ((scanlinecounter >= mode3bounds) && (scanlinecounter < mode2bounds))
 	    {
 		mode = 3;
-		status = BitSet(status, 1);
 		status = BitSet(status, 0);
+		status = BitSet(status, 1);
+		status |= 0x80;
 	    }
 	    else
 	    {
 		mode = 0;
-		status = BitReset(status, 1);	
 		status = BitReset(status, 0);
+		status = BitReset(status, 1);
+		status |= 0x80;
 		reqint = TestBit(status, 3);
 	    }
 	}
@@ -126,151 +148,65 @@ namespace gb
 	{
 	    gcpu->requestinterrupt(1);
 	}
-
-	if (scanline == gmem->readByte(0xFF45))
-	{
-	    status = BitSet(status, 2);
-	
-	    if (TestBit(status, 6))
-	    {
-		gcpu->requestinterrupt(1);
-	    }
-	}
-	else
-	{
-	    status = BitReset(status, 2);
-	}
-
-	gmem->writeByte(0xFF41, status);
     }
 
     void GPU::drawscanline()
     {
-	uint8_t control = gmem->readByte(0xFF40);
-	if (TestBit(control, 0))
-	{
-	    rendertiles(control);
-	}
+	uint8_t control = gmem->memorymap[0xFF40];
+	rendertiles(control);
     }
 
     void GPU::rendertiles(uint8_t lcdcontrol)
-    {
-	bool unsig = true;
-	uint16_t tiledata = 0;
-	uint16_t bgmem = 0;
+    {	
+	if (!TestBit(lcdcontrol, 0))
+	{
+	    return;
+	}	
+
 	uint8_t scrollY = gmem->readByte(0xFF42);
 	uint8_t scrollX = gmem->readByte(0xFF43);
 	uint8_t windowY = gmem->readByte(0xFF4A);
-	uint8_t windowX = gmem->readByte(0xFF4B) - 7;
+	uint8_t windowX = gmem->readByte(0xFF4B);
+	uint16_t tiledata = TestBit(lcdcontrol, 4) ? 0x8000 : 0x8800;
+	uint16_t bgmem = TestBit(lcdcontrol, 3) ? 0x9C00 : 0x9800;
+	uint16_t bgmemaddr = bgmem;
+	uint16_t winmemaddr = TestBit(lcdcontrol, 6) ? 0x9C00 : 0x9800;
+	bool unsig = TestBit(lcdcontrol, 4);
+	bool windowenabled = TestBit(lcdcontrol, 5);
 
-	bool usingwindow = false;
+	uint8_t scanline = gmem->memorymap[0xFF44];
 
-	if (TestBit(lcdcontrol, 5))
+	for (uint8_t x = 0; x < 160; x++)
 	{
-	    if (windowY <= gmem->readByte(0xFF44))
+	    uint8_t ypos = (scrollY + scanline);
+	    uint8_t xpos = (scrollX + x);
+
+	    if (windowenabled && (scanline >= windowY) && (x >= (windowX - 7)))
 	    {
-		usingwindow = true;
-	    }
-	}
-
-	if (TestBit(lcdcontrol, 4))
-	{
-	    tiledata = 0x8000;
-	}
-	else
-	{
-	    tiledata = 0x8800;
-	    unsig = false;
-	}
-
-	if (usingwindow == false)
-	{
-	    if (TestBit(lcdcontrol, 3))
-	    {
-		bgmem = 0x9C00;
+		bgmem = winmemaddr;
+		ypos = (scanline - windowY);
+		xpos = ((windowX - 7) + x);
 	    }
 	    else
 	    {
-		bgmem = 0x9800;
-	    }
-	}
-	else
-	{
-	    if (TestBit(lcdcontrol, 6))
-	    {
-		bgmem = 0x9C00;
-	    }
-	    else
-	    {
-		bgmem = 0x9800;
-	    }
-	}
-
-	uint8_t ypos = 0;
-	
-	if (!usingwindow)
-	{
-	    ypos = scrollY + gmem->readByte(0xFF44);
-	}
-	else
-	{
-	    ypos = gmem->readByte(0xFF44) - windowY;
-	}
-
-	uint16_t tilerow = (((uint8_t)(ypos / 8)) * 32);
-
-	for (int pixel = 0; pixel < 160; pixel++)
-	{
-	    uint8_t xpos = pixel + scrollX;
-
-	    if (usingwindow)
-	    {
-		if (pixel >= windowX)
-		{
-		    xpos = pixel - windowX;
-		}
+		bgmem = bgmemaddr;
 	    }
 
 	    uint16_t tilecol = (xpos / 8);
-	    int16_t tilenum;
-
-	    uint16_t tileaddr = bgmem + tilerow + tilecol;
-	    if (unsig)
-	    {
-		tilenum = (uint8_t)gmem->readByte(tileaddr);
-	    }
-	    else
-	    {
-		tilenum = (int8_t)gmem->readByte(tileaddr);
-	    }
-
-	    uint16_t tileloc = tiledata;
-
-	    if (unsig)
-	    {
-		tileloc += (tilenum * 16);
-	    }
-	    else
-	    {
-		tileloc += ((tilenum + 128) * 16);
-	    }
-
-	    uint8_t line = ypos % 8;
-	    line *= 2;
-	    uint8_t data1 = gmem->readByte(tileloc + line);
-	    uint8_t data2 = gmem->readByte(tileloc + line + 1);
-
-	    uint8_t reqbit = xpos % 8;
-	    reqbit -= 7;
-	    reqbit *= -1;
-
-	    int colornum = BitGetVal(data2, reqbit);
-	    colornum <<= 1;
-	    colornum |= BitGetVal(data1, reqbit);
+	    uint16_t tilerow = ((ypos / 8) * 32);
+	    uint8_t tileyline = ((ypos % 8) * 2);
+	    uint16_t tileaddr = (bgmem + tilecol + tilerow);
+	    int16_t tilenum = (unsig) ? (uint8_t)gmem->readByte(tileaddr) : (int8_t)gmem->readByte(tileaddr);
+	    uint16_t tileloc = (unsig) ? (tiledata + (tilenum * 16)) : ((tiledata + ((tilenum + 128) * 16)));
+	    uint8_t pixeldata1 = gmem->readByte(tileloc + tileyline);
+	    uint8_t pixeldata2 = gmem->readByte(tileloc + tileyline + 1);
+	    int colorbit = (((xpos % 8) - 7) * -1);
+	    int colornum = ((BitGetVal(pixeldata2, colorbit) << 1) | (BitGetVal(pixeldata1, colorbit)));
 	    int color = getcolor(colornum, 0xFF47);
+	    int red = 0;
+	    int blue = 0;
+	    int green = 0;
 
-	    int red, green, blue;
-	    
 	    switch (color)
 	    {
 		case 0: red = 0xFF; green = 0xFF; blue = 0xFF; break;
@@ -279,18 +215,10 @@ namespace gb
 		case 3: red = 0x00; green = 0x00; blue = 0x00; break;
 	    }
 
-	    int finaly = gmem->readByte(0xFF44);
-
-	    if ((finaly < 0) || (finaly > 143) || (pixel < 0) || (pixel > 159))
-	    {
-		continue;
-	    }
-
-	    int index = pixel + (finaly * 160);
+	    int index = (x + (scanline * 160));
 	    framebuffer[index][0] = red;
 	    framebuffer[index][1] = green;
 	    framebuffer[index][2] = blue;
-	    
 	}
     }
 

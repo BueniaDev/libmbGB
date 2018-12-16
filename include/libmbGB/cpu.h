@@ -56,6 +56,8 @@ namespace gb
 	        int m_cycles;
 
 		bool interruptmaster;
+		bool interruptdelay;
+		bool washalted;
 
 		void dointerrupts();
 		void serviceinterrupt(int id);
@@ -69,16 +71,17 @@ namespace gb
 
 	        void daa();
 		void stop();
-	        uint8_t add8bit(uint8_t regone, uint8_t regtwo, bool addcarry);
-	        uint8_t sub8bit(uint8_t regone, uint8_t regtwo, bool subcarry);
+	        uint8_t add8bit(uint8_t regone, uint8_t regtwo);
+		uint8_t add8bitc(uint8_t regone, uint8_t regtwo);
+	        uint8_t sub8bit(uint8_t regone, uint8_t regtwo);
+	        uint8_t sub8bitc(uint8_t regone, uint8_t regtwo);
 	        uint8_t and8bit(uint8_t regone, uint8_t regtwo);
 	        uint8_t or8bit(uint8_t regone, uint8_t regtwo);
 	        uint8_t xor8bit(uint8_t regone, uint8_t regtwo);
 	        uint8_t inc8bit(uint8_t regone);
 	        uint8_t dec8bit(uint8_t regone);
-		uint8_t compare8bit(uint8_t regone, uint8_t regtwo);
 	        uint16_t add16bit(uint16_t regone, uint16_t regtwo);
-	        uint16_t adds16bit(uint16_t regone, uint8_t regtwo);
+	        uint16_t adds8bit(uint16_t regone, uint8_t regtwo);
 		uint8_t swap(uint8_t regone);
 		uint8_t rl(uint8_t regone);
 		uint8_t rlc(uint8_t regone);
