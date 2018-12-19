@@ -4,6 +4,7 @@
 #include "mmu.h"
 #include "cpu.h"
 #include "gpu.h"
+#include "input.h"
 #include <string>
 using namespace gb;
 using namespace std;
@@ -24,6 +25,7 @@ namespace gb
 	    CPU corecpu;
 	    MMU coremmu;
 	    GPU coregpu;
+	    Input coreinput;
     };
 }
 

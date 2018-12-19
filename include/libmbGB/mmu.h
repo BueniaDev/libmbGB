@@ -2,6 +2,7 @@
 #define GB_MMU
 
 #include "libmbgb_api.h"
+#include "input.h"
 #include <cstdint>
 
 namespace gb
@@ -25,6 +26,8 @@ namespace gb
             uint16_t readWord(uint16_t address);
             void writeWord(uint16_t address, uint16_t value);
 	    int8_t readsByte(uint16_t address);
+
+	    Input *joypad;
     };
 }
 

@@ -22,7 +22,12 @@ int BitGetVal(uint8_t reg, int bit)
     return (reg & (1 << bit)) ? 1 : 0;
 }
 
-string tohexstring(uint16_t val)
+uint8_t BitSetTo(uint8_t reg, int bit, bool set)
+{
+    return set ? (reg | (1 << bit)) : (reg & ~(1 << bit));
+}
+
+string tohexstring(uint32_t val)
 {
     stringstream temp;
     if (val < 0x10) 

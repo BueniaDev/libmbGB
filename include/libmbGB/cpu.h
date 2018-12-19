@@ -11,6 +11,7 @@ using namespace gb;
 #define IS_LITTLE_ENDIAN
 #endif
 
+
 namespace gb
 {
 	union Register

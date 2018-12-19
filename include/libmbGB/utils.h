@@ -13,7 +13,9 @@ uint8_t BitReset(uint8_t reg, int bit);
 
 int BitGetVal(uint8_t reg, int bit);
 
-string tohexstring(uint16_t val);
+uint8_t BitSetTo(uint8_t reg, int bit, bool set);
+
+string tohexstring(uint32_t val);
 string getmnemonic(uint8_t opcode, uint16_t nn, uint8_t n);
 string getextmnemonic(uint8_t opcode);
 

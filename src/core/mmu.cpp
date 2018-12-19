@@ -79,7 +79,7 @@ namespace gb
 
 	if (address == 0xFF00)
 	{
-	    return 0xFF;
+	    return joypad->getjoypadstate();
 	}
 	else if ((address >= 0xFF10) && (address <= 0xFF26))
 	{
@@ -107,6 +107,10 @@ namespace gb
 	else if ((address >= 0xFEA0) && (address <= 0xFEFF))
 	{
 	    return;
+	}
+	else if (address == 0xFF00)
+	{
+	    joypad->write(value);
 	}	
 	else if (address == 0xFF44)
 	{

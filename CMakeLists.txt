@@ -16,6 +16,7 @@ set(LIBMBGB_API_HEADERS
 	include/libmbGB/utils.h
 	include/libmbGB/mmu.h
 	include/libmbGB/gpu.h
+	include/libmbGB/input.h
 	include/libmbGB/libmbgb.h)
 
 set(LIBMBGB
@@ -24,6 +25,7 @@ set(LIBMBGB
 	src/core/cpu.cpp
 	src/core/ops.cpp
 	src/core/gpu.cpp
+	src/core/input.cpp
 	src/core/libmbgb.cpp)
 
 if (WIN32)

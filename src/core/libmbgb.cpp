@@ -12,6 +12,7 @@ namespace gb
 	corecpu.mem = &coremmu;
 	coregpu.gmem = &coremmu;
 	coregpu.gcpu = &corecpu;
+	coremmu.joypad = &coreinput;
 
 	cout << "DMGCore::Initialized" << endl;
     }
