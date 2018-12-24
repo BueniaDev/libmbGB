@@ -52,7 +52,9 @@ namespace gb
 
 	    if (scanline == 144)
 	    {
-		gcpu->requestinterrupt(0);
+		uint8_t req = gmem->readByte(0xFF0F);
+		req = BitSet(req, 0);
+		gmem->writeByte(0xFF0F, req);
 	    }
 	    else if (scanline == 154)
 	    {
@@ -76,7 +78,9 @@ namespace gb
 
 	    if (TestBit(status, 2) && TestBit(status, 6))
 	    {
-		gcpu->requestinterrupt(1);
+		uint8_t req = gmem->readByte(0xFF0F);
+		req = BitSet(req, 1);
+		gmem->writeByte(0xFF0F, req);
 	    }
 	
 	    status |= 0x80;
@@ -146,7 +150,9 @@ namespace gb
 
 	if (reqint && (mode != currentmode))
 	{
-	    gcpu->requestinterrupt(1);
+	    uint8_t req = gmem->readByte(0xFF0F);
+	    req = BitSet(req, 1);
+	    gmem->writeByte(0xFF0F, req);
 	}
     }
 

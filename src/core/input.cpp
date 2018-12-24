@@ -7,12 +7,17 @@ namespace gb
 {
     Input::Input()
     {
-	cout << "Input::Initialized" << endl;
+	reset();
     }
 
     Input::~Input()
     {
 	cout << "Input::Shutting down..." << endl;
+    }
+
+    void Input::reset()
+    {
+	cout << "Input::Initialized" << endl;
     }
 
     void Input::setkey(int key, bool set)

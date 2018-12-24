@@ -31,9 +31,6 @@ namespace gb
     {
 	if (biosload == false)
 	{
-	    memorymap[0xFF00] = 0xFF;
-	    memorymap[0xFF04] = 0xAF;
-	    memorymap[0xFF07] = 0xF8;
 	    memorymap[0xFF0F] = 0xE0;
 	    memorymap[0xFF10] = 0x80;
 	    memorymap[0xFF11] = 0xBF;
@@ -45,7 +42,6 @@ namespace gb
 	    memorymap[0xFF1B] = 0xFF;
 	    memorymap[0xFF1C] = 0x9F;
 	    memorymap[0xFF1E] = 0xBF;
-	    memorymap[0xFF1F] = 0xFF;
 	    memorymap[0xFF20] = 0xFF;
 	    memorymap[0xFF23] = 0xBF;
 	    memorymap[0xFF24] = 0x77;
@@ -81,6 +77,12 @@ namespace gb
 	{
 	    return joypad->getjoypadstate();
 	}
+	else if (address == 0xFF0F)
+	{
+	    uint8_t value = memorymap[address];
+	    value |= 0xE0;
+	    return value;
+	}
 	else if ((address >= 0xFF10) && (address <= 0xFF26))
 	{
 	    return 0xFF;
@@ -111,6 +113,10 @@ namespace gb
 	else if (address == 0xFF00)
 	{
 	    joypad->write(value);
+	}
+	else if (address == 0xFF04)
+	{
+	    memorymap[address] = 0;
 	}	
 	else if (address == 0xFF44)
 	{

@@ -12,6 +12,7 @@ namespace gb
 	    Input();
 	    ~Input();
 
+	    void reset();
 	    void keypressed(int key);
 	    void keyreleased(int key);
 	    void write(uint8_t set);

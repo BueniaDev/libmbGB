@@ -1,5 +1,6 @@
 #include "../../include/libmbGB/libmbgb.h"
 #include <iostream>
+#include <fstream>
 #include <cstring>
 #include <vector>
 using namespace gb;
@@ -9,12 +10,7 @@ namespace gb
 {
     DMGCore::DMGCore()
     {
-	corecpu.mem = &coremmu;
-	coregpu.gmem = &coremmu;
-	coregpu.gcpu = &corecpu;
-	coremmu.joypad = &coreinput;
-
-	cout << "DMGCore::Initialized" << endl;
+	reset();
     }
 
     DMGCore::~DMGCore()
@@ -22,22 +18,76 @@ namespace gb
 	cout << "DMGCore::Shutting down..." << endl;
     }
 
-    void DMGCore::loadROM(string filename)
+    void DMGCore::reset()
     {
-	FILE *rom;
-	rom = fopen(filename.c_str(), "rb");
-	fread(coremmu.memorymap, sizeof(uint8_t), 0x8000, rom);
-	fclose(rom);
-	cout << filename << " succesfully loaded." << endl;
+	corecpu.mem = &coremmu;
+	coregpu.gmem = &coremmu;
+	coretimers.tmem = &coremmu;
+	coremmu.joypad = &coreinput;
+
+	cout << "DMGCore::Initialized" << endl;
     }
 
-    void DMGCore::loadBIOS(string filename)
+    bool DMGCore::loadROM(string filename)
     {
-	FILE *fh;
-	fh = fopen(filename.c_str(), "rb");
-	fread(coremmu.bios, sizeof(uint8_t), 0x100, fh);
-	fclose(fh);
-	cout << "BIOS succesfully loaded." << endl;
+	streampos size;
+
+	cout << "Loading ROM: " << filename << endl;
+	
+	ifstream file(filename.c_str(), ios::in | ios::binary | ios::ate);
+
+	if (file.is_open())
+	{
+	    size = file.tellg();
+
+	    if (size > 0x8000)
+	    {
+		cout << "MMU::Error - " << filename << " is too big." << endl;
+		return false;
+	    }
+
+	    file.seekg(0, ios::beg);
+	    file.read((char*)&coremmu.memorymap[0], size);
+	    file.close();
+	    cout << "MMU::" << filename << " succesfully loaded." << endl;
+	    return true;
+	}
+	else
+	{
+	    cout << "MMU::" << filename << " could not be opened. Check file path or permissions." << endl;
+	    return false;
+	}
+    }
+
+    bool DMGCore::loadBIOS(string filename)
+    {
+	streampos size;
+
+	cout << "Loading ROM: " << filename << endl;
+	
+	ifstream file(filename.c_str(), ios::in | ios::binary | ios::ate);
+
+	if (file.is_open())
+	{
+	    size = file.tellg();
+
+	    if (size > 256)
+	    {
+		cout << "MMU::Error - BIOS is too big." << endl;
+		return false;
+	    }
+
+	    file.seekg(0, ios::beg);
+	    file.read((char*)&coremmu.bios[0], size);
+	    file.close();
+	    cout << "BIOS succesfully loaded." << endl;
+	    return true;
+	}
+	else
+	{
+	    cout << "MMU::BIOS could not be opened. Check file path or permissions." << endl;
+	    return false;
+	}
     }
 
     bool DMGCore::getoptions(int argc, char* argv[])
@@ -82,10 +132,12 @@ namespace gb
 	    corecpu.executenextopcode();
 	    int cycles = corecpu.m_cycles - corecycles;
 
+	    corecpu.dointerrupts();
+
 	    if (!corecpu.stopped)
 	    {
-	        coregpu.updategraphics(cycles);
-	        corecpu.dointerrupts();
+		coretimers.updatetimers(cycles);	        
+		coregpu.updategraphics(cycles);
 	    }
 	}
     }

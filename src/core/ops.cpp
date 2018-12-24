@@ -373,13 +373,13 @@ namespace gb
 		case 0x07: af.hi = rlc(af.hi); af.lo = BitReset(af.lo, zero); m_cycles += 4; break;
 
 		// RLA
-		case 0x17: af.hi = rl(af.hi); af.lo = BitReset(af.lo, zero); m_cycles += 8; break;
+		case 0x17: af.hi = rl(af.hi); af.lo = BitReset(af.lo, zero); m_cycles += 4; break;
 
 		// RRCA
-		case 0x0F: af.hi = rrc(af.hi); af.lo = BitReset(af.lo, zero); m_cycles += 8; break;
+		case 0x0F: af.hi = rrc(af.hi); af.lo = BitReset(af.lo, zero); m_cycles += 4; break;
 
 		// RRA
-		case 0x1F: af.hi = rr(af.hi); af.lo = BitReset(af.lo, zero); m_cycles += 8; break;
+		case 0x1F: af.hi = rr(af.hi); af.lo = BitReset(af.lo, zero); m_cycles += 4; break;
 
 
 		// Jumps
@@ -603,14 +603,14 @@ namespace gb
 		// Restarts
 
 		// RST n
-		case 0xC7: sp -= 2; mem->writeWord(sp, pc); pc = 0x00; m_cycles += 32; break;
-		case 0xCF: sp -= 2; mem->writeWord(sp, pc); pc = 0x08; m_cycles += 32; break;
-		case 0xD7: sp -= 2; mem->writeWord(sp, pc); pc = 0x10; m_cycles += 32; break;
-		case 0xDF: sp -= 2; mem->writeWord(sp, pc); pc = 0x18; m_cycles += 32; break;
-		case 0xE7: sp -= 2; mem->writeWord(sp, pc); pc = 0x20; m_cycles += 32; break;
-		case 0xEF: sp -= 2; mem->writeWord(sp, pc); pc = 0x28; m_cycles += 32; break;
-		case 0xF7: sp -= 2; mem->writeWord(sp, pc); pc = 0x30; m_cycles += 32; break;
-		case 0xFF: sp -= 2; mem->writeWord(sp, pc); pc = 0x38; m_cycles += 32; break;
+		case 0xC7: sp -= 2; mem->writeWord(sp, pc); pc = 0x00; m_cycles += 16; break;
+		case 0xCF: sp -= 2; mem->writeWord(sp, pc); pc = 0x08; m_cycles += 16; break;
+		case 0xD7: sp -= 2; mem->writeWord(sp, pc); pc = 0x10; m_cycles += 16; break;
+		case 0xDF: sp -= 2; mem->writeWord(sp, pc); pc = 0x18; m_cycles += 16; break;
+		case 0xE7: sp -= 2; mem->writeWord(sp, pc); pc = 0x20; m_cycles += 16; break;
+		case 0xEF: sp -= 2; mem->writeWord(sp, pc); pc = 0x28; m_cycles += 16; break;
+		case 0xF7: sp -= 2; mem->writeWord(sp, pc); pc = 0x30; m_cycles += 16; break;
+		case 0xFF: sp -= 2; mem->writeWord(sp, pc); pc = 0x38; m_cycles += 16; break;
 
 		// Returns
 
@@ -798,7 +798,7 @@ namespace gb
 		case 0x43: bit(de.lo, 0); m_cycles += 8; break;
 		case 0x44: bit(hl.hi, 0); m_cycles += 8; break;
 		case 0x45: bit(hl.lo, 0); m_cycles += 8; break;
-		case 0x46: bit(mem->readByte(hl.reg), 0); m_cycles += 16; break;
+		case 0x46: bit(mem->readByte(hl.reg), 0); m_cycles += 12; break;
 		case 0x4F: bit(af.hi, 1); m_cycles += 8; break;
 		case 0x48: bit(bc.hi, 1); m_cycles += 8; break;
 		case 0x49: bit(bc.lo, 1); m_cycles += 8; break;
@@ -806,7 +806,7 @@ namespace gb
 		case 0x4B: bit(de.lo, 1); m_cycles += 8; break;
 		case 0x4C: bit(hl.hi, 1); m_cycles += 8; break;
 		case 0x4D: bit(hl.lo, 1); m_cycles += 8; break;
-		case 0x4E: bit(mem->readByte(hl.reg), 1); m_cycles += 16; break;
+		case 0x4E: bit(mem->readByte(hl.reg), 1); m_cycles += 12; break;
 		case 0x57: bit(af.hi, 2); m_cycles += 8; break;
 		case 0x50: bit(bc.hi, 2); m_cycles += 8; break;
 		case 0x51: bit(bc.lo, 2); m_cycles += 8; break;
@@ -814,7 +814,7 @@ namespace gb
 		case 0x53: bit(de.lo, 2); m_cycles += 8; break;
 		case 0x54: bit(hl.hi, 2); m_cycles += 8; break;
 		case 0x55: bit(hl.lo, 2); m_cycles += 8; break;
-		case 0x56: bit(mem->readByte(hl.reg), 2); m_cycles += 16; break;
+		case 0x56: bit(mem->readByte(hl.reg), 2); m_cycles += 12; break;
 		case 0x5F: bit(af.hi, 3); m_cycles += 8; break;
 		case 0x58: bit(bc.hi, 3); m_cycles += 8; break;
 		case 0x59: bit(bc.lo, 3); m_cycles += 8; break;
@@ -822,7 +822,7 @@ namespace gb
 		case 0x5B: bit(de.lo, 3); m_cycles += 8; break;
 		case 0x5C: bit(hl.hi, 3); m_cycles += 8; break;
 		case 0x5D: bit(hl.lo, 3); m_cycles += 8; break;
-		case 0x5E: bit(mem->readByte(hl.reg), 3); m_cycles += 16; break;
+		case 0x5E: bit(mem->readByte(hl.reg), 3); m_cycles += 12; break;
 		case 0x67: bit(af.hi, 4); m_cycles += 8; break;
 		case 0x60: bit(bc.hi, 4); m_cycles += 8; break;
 		case 0x61: bit(bc.lo, 4); m_cycles += 8; break;
@@ -830,7 +830,7 @@ namespace gb
 		case 0x63: bit(de.lo, 4); m_cycles += 8; break;
 		case 0x64: bit(hl.hi, 4); m_cycles += 8; break;
 		case 0x65: bit(hl.lo, 4); m_cycles += 8; break;
-		case 0x66: bit(mem->readByte(hl.reg), 4); m_cycles += 16; break;
+		case 0x66: bit(mem->readByte(hl.reg), 4); m_cycles += 12; break;
 		case 0x6F: bit(af.hi, 5); m_cycles += 8; break;
 		case 0x68: bit(bc.hi, 5); m_cycles += 8; break;
 		case 0x69: bit(bc.lo, 5); m_cycles += 8; break;
@@ -838,7 +838,7 @@ namespace gb
 		case 0x6B: bit(de.lo, 5); m_cycles += 8; break;
 		case 0x6C: bit(hl.hi, 5); m_cycles += 8; break;
 		case 0x6D: bit(hl.lo, 5); m_cycles += 8; break;
-		case 0x6E: bit(mem->readByte(hl.reg), 5); m_cycles += 16; break;
+		case 0x6E: bit(mem->readByte(hl.reg), 5); m_cycles += 12; break;
 		case 0x77: bit(af.hi, 6); m_cycles += 8; break;
 		case 0x70: bit(bc.hi, 6); m_cycles += 8; break;
 		case 0x71: bit(bc.lo, 6); m_cycles += 8; break;
@@ -846,7 +846,7 @@ namespace gb
 		case 0x73: bit(de.lo, 6); m_cycles += 8; break;
 		case 0x74: bit(hl.hi, 6); m_cycles += 8; break;
 		case 0x75: bit(hl.lo, 6); m_cycles += 8; break;
-		case 0x76: bit(mem->readByte(hl.reg), 6); m_cycles += 16; break;
+		case 0x76: bit(mem->readByte(hl.reg), 6); m_cycles += 12; break;
 		case 0x7F: bit(af.hi, 7); m_cycles += 8; break;
 		case 0x78: bit(bc.hi, 7); m_cycles += 8; break;
 		case 0x79: bit(bc.lo, 7); m_cycles += 8; break;
@@ -854,7 +854,7 @@ namespace gb
 		case 0x7B: bit(de.lo, 7); m_cycles += 8; break;
 		case 0x7C: bit(hl.hi, 7); m_cycles += 8; break;
 		case 0x7D: bit(hl.lo, 7); m_cycles += 8; break;
-		case 0x7E: bit(mem->readByte(hl.reg), 7); m_cycles += 16; break;
+		case 0x7E: bit(mem->readByte(hl.reg), 7); m_cycles += 12; break;
 
 		// SET b, r
 		case 0xC7: af.hi = set(af.hi, 0); m_cycles += 8; break;

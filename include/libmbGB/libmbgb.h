@@ -5,6 +5,7 @@
 #include "cpu.h"
 #include "gpu.h"
 #include "input.h"
+#include "timers.h"
 #include <string>
 using namespace gb;
 using namespace std;
@@ -17,8 +18,9 @@ namespace gb
 	    DMGCore();
 	    ~DMGCore();
 
-	    void loadROM(string filename);
-	    void loadBIOS(string filename);
+	    void reset();
+	    bool loadROM(string filename);
+	    bool loadBIOS(string filename);
 	    bool getoptions(int argc, char* argv[]);
 	    void runcore();
 
@@ -26,6 +28,7 @@ namespace gb
 	    MMU coremmu;
 	    GPU coregpu;
 	    Input coreinput;
+	    Timers coretimers;
     };
 }
 

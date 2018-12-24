@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8.11)
 project(libmbGB)
 
+option(BUILD_EXAMPLE "Enables the example renderer (requires SDL2)." OFF)
+
 if (WIN32)
 	message(STATUS "Operating system is Windows.")
 elseif(UNIX)
@@ -17,6 +19,7 @@ set(LIBMBGB_API_HEADERS
 	include/libmbGB/mmu.h
 	include/libmbGB/gpu.h
 	include/libmbGB/input.h
+	include/libmbGB/timers.h
 	include/libmbGB/libmbgb.h)
 
 set(LIBMBGB
@@ -26,7 +29,12 @@ set(LIBMBGB
 	src/core/ops.cpp
 	src/core/gpu.cpp
 	src/core/input.cpp
+	src/core/timers.cpp
 	src/core/libmbgb.cpp)
+
+if (BUILD_EXAMPLE STREQUAL "ON")
+	add_subdirectory(example)
+endif()
 
 if (WIN32)
 	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")

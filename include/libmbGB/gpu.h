@@ -2,7 +2,6 @@
 #define GB_GPU
 
 #include "libmbgb_api.h"
-#include "cpu.h"
 #include "mmu.h"
 #include "utils.h"
 using namespace gb;
@@ -18,7 +17,6 @@ namespace gb
 	    void reset();
 	    void clearscreen();
 
-	    CPU *gcpu;
 	    MMU *gmem;
 
 	    uint8_t framebuffer[160 * 144][3];

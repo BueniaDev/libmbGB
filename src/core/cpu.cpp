@@ -1,6 +1,4 @@
 #include "../../include/libmbGB/cpu.h"
-#include "../../include/libmbGB/mmu.h"
-#include "../../include/libmbGB/utils.h"
 #include <iostream>
 using namespace std;
 using namespace gb;
@@ -134,14 +132,6 @@ namespace gb
 		halted = false;
 		return;
 	    }
-	}
-
-	void CPU::requestinterrupt(int id)
-	{
-	    uint8_t req = mem->readByte(0xFF0F);
-	    req = BitSet(req, id);
-	    req |= 0xE0;
-	    mem->writeByte(0xFF0F, req);
 	}
 
 	void CPU::executenextopcode()

@@ -3,6 +3,7 @@
 
 #include "libmbgb_api.h"
 #include "mmu.h"
+#include "utils.h"
 using namespace gb;
 
 #if defined(MSB_FIRST) || defined(__BIG_ENDIAN__) || (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
