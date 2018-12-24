@@ -86,7 +86,6 @@ namespace gb
 	    status |= 0x80;
 	    scanlinecounter -= 456;
 	}
-
     }
 
     void GPU::setlcdstatus()
