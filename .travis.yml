@@ -20,7 +20,7 @@ jobs:
         skip_cleanup: true
         tags: true
         true: ~
-        api_key: "98499ab27abcf85346f43d524e6b25e4a62d3dee"
+        api_key: "2574ba5505ea9fccd0f1f3ac91fd08061fd7752a"
       script: "echo \"Deploying to GitHub releases ...\""
       stage: "GitHub Release"
 language: cpp
