@@ -16,26 +16,17 @@ jobs:
           - libmbGB.so
           - include/*
         file_glob: true
-        password: hrfx3658
         provider: releases
         skip_cleanup: true
         tags: true
         true: ~
-        user: Buenia0
+        api_key: "98499ab27abcf85346f43d524e6b25e4a62d3dee"
       script: "echo \"Deploying to GitHub releases ...\""
       stage: "GitHub Release"
 language: cpp
 os: 
   - linux
   - osx
-before_script:
-  - composer self-update -q
-  - if [ -n "$GH_TOKEN" ]; then composer config github-oauth.github.com ${GH_TOKEN}; fi;
-  - if [ -z "$dependencies" ]; then composer install; fi;
-  - if [ "$dependencies" = "lowest" ]; then composer update --prefer-lowest -n; fi;
-  - if [ "$dependencies" = "highest" ]; then composer update -n; fi;
-  - composer show -i
-
 script: 
   - "mkdir build && cd build"
   - "cmake .. -G \"Unix Makefiles\""
