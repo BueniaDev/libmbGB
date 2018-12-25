@@ -6,23 +6,6 @@ addons:
 compiler: 
   - gcc
   - clang
-jobs: 
-  include: 
-    - 
-      deploy: 
-        file: 
-          - example
-          - libmbGB-s.a
-          - libmbGB.so
-          - include/*
-        file_glob: true
-        provider: releases
-        skip_cleanup: true
-        tags: true
-        true: ~
-        api_key: "2574ba5505ea9fccd0f1f3ac91fd08061fd7752a"
-      script: "echo \"Deploying to GitHub releases ...\""
-      stage: "GitHub Release"
 language: cpp
 os: 
   - linux
