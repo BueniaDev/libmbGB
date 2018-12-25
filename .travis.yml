@@ -1,41 +1,35 @@
-language: cpp
-
-os:
-  - linux
-  - osx
-
-compiler:
+--- 
+addons: 
+  apt: 
+    packages: 
+      - cmake
+compiler: 
   - gcc
   - clang
+jobs: 
+  include: 
+    - 
+      deploy: 
+        file: 
+          - example
+          - libmbGB-s.a
+          - libmbGB.so
+          - include/*
+        file_glob: true
+        password: hrfx3658
+        provider: releases
+        skip_cleanup: true
+        tags: true
+        true: ~
+        user: Buenia0
+      script: "echo \"Deploying to GitHub releases ...\""
+      stage: "GitHub Release"
+language: cpp
+os: 
+  - linux
+  - osx
+script: 
+  - "mkdir build && cd build"
+  - "cmake .. -G \"Unix Makefiles\""
+  - "make -j4"
 
-addons:
-  apt:
-    packages:
-      - cmake
-
-script:
-  - mkdir build && cd build
-  - cmake .. -G "Unix Makefiles"
-  - make -j4
-
-
-jobs:
-  include:
-    - script: echo "Running unit tests (1)"
-    - script: echo "Running unit tests (2)"
-    - stage: GitHub Release
-      script: echo "Deploying to GitHub releases ..."
-      deploy:
-	provider: releases
-	user: "Buenia0"
-	password: "hrfx3658"
-	file_glob: true
-	file:
-	    - "example"
-	    - "libmbGB-s.a"
-	    - "libmbGB.so"
-	    - include/*
-	skip_cleanup : true
-	on:
-	    tags: true
-  
