@@ -24,40 +24,31 @@ namespace gb
 
     void Timers::updatetimers(int cycles)
     {
-	dodividerregister(cycles);
-
-	if (!TestBit(tmem->readByte(0xFF07), 2))
-	{
-	    return;
-	}
-
-	int currentfreq = getclockfreq((tmem->readByte(0xFF07) & 0x3));
+	dividerregister += cycles;
 	timercounter += cycles;
 
+	if (dividerregister >= 256)
+	{
+	    dividerregister -= 256;
+	    tmem->memorymap[0xFF04]++;
+	}
+
+	int currentfreq = getclockfreq(tmem->memorymap[0xFF07] & 0x3);
+	
 	while (timercounter >= currentfreq)
 	{
-	    if ((uint16_t)(tmem->memorymap[0xFF05] + 1) > 255)
-	    {
-		tmem->memorymap[0xFF05] = tmem->readByte(0xFF06);
-		uint8_t req = tmem->readByte(0xFF0F);
-	    	req = BitSet(req, 2);
-	    	tmem->writeByte(0xFF0F, req);
-	    }
-
-	    tmem->memorymap[0xFF05] += 1;
-
 	    timercounter -= currentfreq;
-	}
-    }
-
-
-    void Timers::dodividerregister(int cycles)
-    {
-	dividerregister += cycles;
-	if (dividerregister >= 255)
-	{
-	    tmem->memorymap[0xFF04]++;
-	    dividerregister -= 256;
+	    if (TestBit(tmem->memorymap[0xFF07], 2))
+	    {
+		tmem->memorymap[0xFF05]++;
+		if (tmem->memorymap[0xFF05] == 0)
+		{
+		    tmem->memorymap[0xFF05] = tmem->memorymap[0xFF06];
+		    uint8_t req = tmem->readByte(0xFF0F);
+		    req = BitSet(req, 2);
+		    tmem->writeByte(0xFF0F, req);
+		}
+	    }
 	}
     }
 

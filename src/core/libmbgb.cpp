@@ -24,6 +24,8 @@ namespace gb
 	coregpu.gmem = &coremmu;
 	coretimers.tmem = &coremmu;
 	coremmu.joypad = &coreinput;
+	corecpu.timers = &coretimers;
+	corecpu.gpu = &coregpu;
 
 	cout << "DMGCore::Initialized" << endl;
     }
@@ -129,14 +131,14 @@ namespace gb
 	while (corecpu.m_cycles < maxcycles)
 	{
 	    int corecycles = corecpu.m_cycles;
+	    corecpu.dointerrupts();
 	    corecpu.executenextopcode();
 	    int cycles = corecpu.m_cycles - corecycles;
 
-	    corecpu.dointerrupts();
+	    coretimers.updatetimers(cycles);
 
 	    if (!corecpu.stopped)
-	    {
-		coretimers.updatetimers(cycles);	        
+	    {	        
 		coregpu.updategraphics(cycles);
 	    }
 	}

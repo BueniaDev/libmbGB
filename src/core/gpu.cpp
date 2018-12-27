@@ -266,6 +266,7 @@ namespace gb
 		if (yflip)
 		{
 		    line -= ysize;
+		    line += 1;
 		    line *= -1;
 		}
 
@@ -289,7 +290,7 @@ namespace gb
 		    uint16_t coloraddr = TestBit(flags, 4) ? 0xFF49 : 0xFF48;
 		    int color = getcolor(colornum, coloraddr);
 
-		    if (color == 0)
+		    if (colornum == 0)
 		    {
 			continue;
 		    }

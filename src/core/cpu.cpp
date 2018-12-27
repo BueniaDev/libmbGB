@@ -32,6 +32,9 @@ namespace gb
 	    interruptdelay = false;
 	    skipinstruction = false;
 
+	    m_bytes = 0;
+	    m_cycles = 0;
+
 	    cout << "CPU::Initialized" << endl;
 	}
 
@@ -50,6 +53,9 @@ namespace gb
 	    interruptmaster = false;
 	    interruptdelay = false;
 	    skipinstruction = false;
+
+	    m_bytes = 0;
+	    m_cycles = 0;
 
 	    cout << "CPU::Initialized" << endl;
 	}
@@ -76,7 +82,7 @@ namespace gb
 		    sp -= 2;
 		    mem->writeWord(sp, pc);
 		    pc = 0x40;
-		    m_cycles += 36;
+		    advancecycles(36);
 		}
 		
 		if (TestBit(req, 1) && TestBit(enabled, 1))
@@ -87,7 +93,7 @@ namespace gb
 		    sp -= 2;
 		    mem->writeWord(sp, pc);
 		    pc = 0x48;
-		    m_cycles += 36;
+		    advancecycles(36);
 		}
 
 		if (TestBit(req, 2) && TestBit(enabled, 2))
@@ -98,7 +104,7 @@ namespace gb
 		    sp -= 2;
 		    mem->writeWord(sp, pc);
 		    pc = 0x50;
-		    m_cycles += 36;
+		    advancecycles(36);
 		}
 
 		if (TestBit(req, 3) && TestBit(enabled, 3))
@@ -109,7 +115,7 @@ namespace gb
 		    sp -= 2;
 		    mem->writeWord(sp, pc);
 		    pc = 0x58;
-		    m_cycles += 36;
+		    advancecycles(36);
 		}
 
 		if (TestBit(req, 4) && TestBit(enabled, 4))
@@ -120,7 +126,7 @@ namespace gb
 		    sp -= 2;
 		    mem->writeWord(sp, pc);
 		    pc = 0x60;
-		    m_cycles += 36;
+		    advancecycles(36);
 		}
 
 		req |= 0xE0;
@@ -132,6 +138,12 @@ namespace gb
 		halted = false;
 		return;
 	    }
+	}
+
+	void CPU::advancecycles(int cycles)
+	{
+	    timers->updatetimers(cycles);
+	    gpu->updategraphics(cycles);
 	}
 
 	void CPU::executenextopcode()
@@ -153,7 +165,7 @@ namespace gb
 	    }
 	    else
 	    {
-		opcode = mem->readByte(pc++);
+		opcode = mem->readByte(pc++);		
 		executeopcode(opcode);
 	    }
 	}

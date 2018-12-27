@@ -3,6 +3,8 @@
 
 #include "libmbgb_api.h"
 #include "mmu.h"
+#include "gpu.h"
+#include "timers.h"
 #include "utils.h"
 using namespace gb;
 
@@ -55,6 +57,7 @@ namespace gb
 		bool stopped;
 		bool halted;
 
+		int m_bytes;
 	        int m_cycles;
 
 		bool interruptmaster;
@@ -65,6 +68,10 @@ namespace gb
 		void requestinterrupt(int id);
 
 	        MMU *mem;
+		Timers *timers;
+		GPU *gpu;
+
+		void advancecycles(int cycles);
 
 	        void executenextopcode();
 	        void executeopcode(uint8_t opcode);
