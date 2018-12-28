@@ -16,6 +16,14 @@ int current = 0;
 int counter = 0;
 bool first = true;
 
+
+void vramdump(string filename, uint16_t start, uint16_t end)
+{
+    FILE *fh = fopen(filename.c_str(), "wb");
+    fwrite(core.coremmu.memorymap + start, sizeof(uint8_t), end - start + 1, fh);
+    fclose(fh);
+}
+
 bool initSDL()
 {
     if (SDL_Init(SDL_INIT_VIDEO) < 0)
