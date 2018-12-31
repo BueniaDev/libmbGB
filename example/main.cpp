@@ -17,6 +17,7 @@ int current = 0;
 int counter = 0;
 bool first = true;
 
+<<<<<<< HEAD
 void memdump(string filename, uint16_t start, uint16_t end)
 {
     FILE *fh = fopen(filename.c_str(), "wb");
@@ -24,6 +25,8 @@ void memdump(string filename, uint16_t start, uint16_t end)
     fclose(fh);
 }
 
+=======
+>>>>>>> parent of a8a2647... Reworked GPU timings (again).
 bool initSDL()
 {
     if (SDL_Init(SDL_INIT_VIDEO) < 0)
