@@ -96,7 +96,12 @@ namespace gb
         }
         else if ((address >= 0x6000) && (address < 0x8000))
         {
-            
+            uint8_t data = (value & 0x01);
+            rommode = (data == 0) ? 0 : 1;
+            if (rommode == 0)
+            {
+                currentrambank = 0;
+            }
         }
         else if ((address >= 0xA000) && (address < 0xC000))
         {
