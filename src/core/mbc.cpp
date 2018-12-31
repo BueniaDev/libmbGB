@@ -8,12 +8,12 @@ namespace gb
 {
     uint8_t MMU::mbc1read(uint16_t address)
     {
-	if ((address >= 0x4000) && (address < 0x8000))
+        if ((address >= 0x4000) && (address < 0x8000))
         {
             uint16_t newaddr = (address - 0x4000);
             return cartmem[newaddr + (currentrombank * 0x4000)];
         }
-        else if ((address >= 0xA000) && (address <= 0xBFFF))
+        else if ((address >= 0xA000) && (address < 0xC000))
         {
             if (ramenabled)
             {
@@ -96,7 +96,7 @@ namespace gb
         }
         else if ((address >= 0x6000) && (address < 0x8000))
         {
-            cout << "MMU::Unimplemented - ROM/RAM mode changing" << endl;
+            
         }
         else if ((address >= 0xA000) && (address < 0xC000))
         {

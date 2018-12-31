@@ -22,6 +22,7 @@ namespace gb
     {
         memset(memorymap, 0, sizeof(memorymap));
         memset(cartmem, 0, sizeof(cartmem));
+        memset(rambanks, 0, sizeof(rambanks));
 	memset(bios, 0, sizeof(bios));
 
 	biosload = false;
