@@ -1,6 +1,7 @@
 #include "../include/libmbGB/libmbgb.h"
 #include <SDL2/SDL.h>
 #include <iostream>
+#include <cstdio>
 #include <string>
 using namespace gb;
 using namespace std;
@@ -16,8 +17,7 @@ int current = 0;
 int counter = 0;
 bool first = true;
 
-
-void vramdump(string filename, uint16_t start, uint16_t end)
+void memdump(string filename, uint16_t start, uint16_t end)
 {
     FILE *fh = fopen(filename.c_str(), "wb");
     fwrite(core.coremmu.memorymap + start, sizeof(uint8_t), end - start + 1, fh);
@@ -211,8 +211,8 @@ int main(int argc, char* argv[])
             time2 = current;
         }
     }
-
-    stopSDL();
     
+    stopSDL();
+
     return 0;
 }

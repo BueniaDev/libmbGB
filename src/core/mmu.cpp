@@ -1,6 +1,8 @@
 #include "../../include/libmbGB/mmu.h"
 #include <iostream>
+#include <fstream>
 #include <cstring>
+#include <string>
 using namespace gb;
 using namespace std;
 
@@ -19,6 +21,7 @@ namespace gb
     void MMU::reset()
     {
         memset(memorymap, 0, sizeof(memorymap));
+        memset(cartmem, 0, sizeof(cartmem));
 	memset(bios, 0, sizeof(bios));
 
 	biosload = false;
@@ -73,8 +76,35 @@ namespace gb
 		cout << "MMU::Exiting BIOS" << endl;
 	    }
 	}
-
-	if (address == 0xFF00)
+	
+	if (address < 0x8000)
+	{
+        switch (mbctype)
+        {
+            case 0: return memorymap[address]; break;
+            case 1: return mbc1read(address); break;
+        }
+	}
+    else if ((address >= 0xA000) && (address < 0xC000))
+    {
+        switch (mbctype)
+        {
+            case 0:
+            {
+                if (ramsize != 0)
+                {
+                    return memorymap[address];
+                }
+                else
+                {
+                    return 0xFF;
+                }
+            }
+            break;
+            case 1: return mbc1read(address); break;
+        }
+    }
+	else if (address == 0xFF00)
 	{
 	    return joypad->getjoypadstate();
 	}
@@ -97,11 +127,34 @@ namespace gb
     }
 
     void MMU::writeByte(uint16_t address, uint8_t value)
-    {
+    {	
 	if (address < 0x8000)
-	{
-	    return;
-	}
+    {
+        switch (mbctype)
+        {
+            case 0: return; break;
+            case 1: mbc1write(address, value); break;
+        }
+    }
+    else if ((address >= 0xA000) && (address < 0xC000))
+    {
+        switch (mbctype)
+        {
+            case 0:
+            {
+                if (ramsize != 0)
+                {
+                    memorymap[address] = value;
+                }
+                else
+                {
+                    return;
+                }
+            }
+            break;
+            case 1: mbc1write(address, value); break;
+        }
+    }
 	else if ((address >= 0xE000) && (address < 0xFE00))
 	{
 	    memorymap[address] = value;
@@ -132,8 +185,10 @@ namespace gb
 		memorymap[0xFE00 + i] = readByte(addr + i);
 	    }
 	}
-
-	memorymap[address] = value;
+    else
+    {
+        memorymap[address] = value;
+    }
     }
 
     uint16_t MMU::readWord(uint16_t address)
@@ -150,5 +205,132 @@ namespace gb
     int8_t MMU::readsByte(uint16_t address)
     {
 	return (int8_t)readByte(address);
+    }
+    
+    int MMU::getmbctype(uint8_t mbcval)
+    {
+        int temp = 0;
+        switch (mbcval)
+        {
+            case 0: temp = 0; cout << "Type: ROM_ONLY" << endl; break;
+            case 1: temp = 1; cout << "Type: MBC1" << endl; break;
+            case 2: temp = 1; cout << "Type: MBC1 + RAM" << endl; break;
+            case 3: temp = 1; cout << "Type: MBC1 + RAM + BATTERY" << endl; break;
+        }
+        
+        return temp;
+    }
+    
+    int MMU::getramsize(uint8_t ramval)
+    {
+        int temp = 0;
+        switch (ramval)
+        {
+            case 0: temp = 0; cout << "RAM: None" << endl; break;
+            case 1: temp = 2; cout << "RAM: 2 KB" << endl; break;
+            case 2: temp = 8; cout << "RAM: 8 KB" << endl; break;
+            case 3: temp = 32; cout << "RAM: 32 KB" << endl; break;
+        }
+        
+        return temp;
+    }
+    
+    int MMU::getrombanks(uint8_t romval)
+    {
+        int banks = 0;
+        switch (romval)
+        {
+            case 0: banks = 0; cout << "Size: 32 KB" << endl; break;
+            case 1: banks = 4; cout << "Size: 64 KB" << endl; break;
+            case 2: banks = 8; cout << "Size: 128 KB" << endl;break;
+            case 3: banks = 16; cout << "Size: 256 KB" << endl; break;
+            case 4: banks = 32; cout << "Size: 512 KB" << endl; break;
+        }
+        
+        return banks;
+    }
+    
+    int MMU::getrambanks(int rambankval)
+    {
+        int banks = 0;
+        
+        switch (rambankval)
+        {
+            case 0: banks = 0; break;
+            case 2: banks = 0; break;
+            case 8: banks = 0; break;
+            case 32: banks = 4; break;
+        }
+        
+        return banks;
+    }
+
+    bool MMU::loadROM(string filename)
+    {
+	streampos size;
+
+	cout << "Loading ROM: " << filename << endl;
+	
+	ifstream file(filename.c_str(), ios::in | ios::binary | ios::ate);
+
+	if (file.is_open())
+	{
+	    size = file.tellg();
+
+	    file.seekg(0, ios::beg);
+	    file.read((char*)&cartmem[0], size);
+	    file.close();
+	    
+        mbctype = getmbctype(cartmem[0x0147]);
+        rombanks = getrombanks(cartmem[0x0148]);
+        ramsize = getramsize(cartmem[0x0149]);
+        rambank = getrambanks(ramsize);
+
+	    if (notmbc == true)
+	    {
+		cout << "MMU::Error - MBC type not supported." << endl;
+		return false;
+	    }
+
+	    memcpy(&memorymap[0x0], &cartmem[0], 0x8000);
+	    cout << "MMU::" << filename << " succesfully loaded." << endl;
+	    return true;
+	}
+	else
+	{
+	    cout << "MMU::" << filename << " could not be opened. Check file path or permissions." << endl;
+	    return false;
+	}
+    }
+
+    bool MMU::loadBIOS(string filename)
+    {
+	streampos size;
+
+	cout << "Loading BIOS: " << filename << endl;
+	
+	ifstream file(filename.c_str(), ios::in | ios::binary | ios::ate);
+
+	if (file.is_open())
+	{
+	    size = file.tellg();
+
+	    if (size > 256)
+	    {
+		cout << "MMU::Error - BIOS is too big." << endl;
+		return false;
+	    }
+
+	    file.seekg(0, ios::beg);
+	    file.read((char*)&bios[0], size);
+	    file.close();
+	    cout << "BIOS succesfully loaded." << endl;
+	    return true;
+	}
+	else
+	{
+	    cout << "MMU::BIOS could not be opened. Check file path or permissions." << endl;
+	    return false;
+	}
     }
 }

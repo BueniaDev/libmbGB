@@ -32,64 +32,12 @@ namespace gb
 
     bool DMGCore::loadROM(string filename)
     {
-	streampos size;
-
-	cout << "Loading ROM: " << filename << endl;
-	
-	ifstream file(filename.c_str(), ios::in | ios::binary | ios::ate);
-
-	if (file.is_open())
-	{
-	    size = file.tellg();
-
-	    if (size > 0x8000)
-	    {
-		cout << "MMU::Error - " << filename << " is too big." << endl;
-		return false;
-	    }
-
-	    file.seekg(0, ios::beg);
-	    file.read((char*)&coremmu.memorymap[0], size);
-	    file.close();
-	    cout << "MMU::" << filename << " succesfully loaded." << endl;
-	    return true;
-	}
-	else
-	{
-	    cout << "MMU::" << filename << " could not be opened. Check file path or permissions." << endl;
-	    return false;
-	}
+	return coremmu.loadROM(filename);
     }
 
     bool DMGCore::loadBIOS(string filename)
     {
-	streampos size;
-
-	cout << "Loading ROM: " << filename << endl;
-	
-	ifstream file(filename.c_str(), ios::in | ios::binary | ios::ate);
-
-	if (file.is_open())
-	{
-	    size = file.tellg();
-
-	    if (size > 256)
-	    {
-		cout << "MMU::Error - BIOS is too big." << endl;
-		return false;
-	    }
-
-	    file.seekg(0, ios::beg);
-	    file.read((char*)&coremmu.bios[0], size);
-	    file.close();
-	    cout << "BIOS succesfully loaded." << endl;
-	    return true;
-	}
-	else
-	{
-	    cout << "MMU::BIOS could not be opened. Check file path or permissions." << endl;
-	    return false;
-	}
+	return coremmu.loadBIOS(filename);
     }
 
     bool DMGCore::getoptions(int argc, char* argv[])

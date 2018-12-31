@@ -177,12 +177,12 @@ namespace gb
 	    // If so, then fill the screen with white
 	    for (int i = 0; i < 160; i++)
 	    {
-		int index = (i + (scanline * 160));
-		framebuffer[index][0] = 255;
-		framebuffer[index][1] = 255;
-		framebuffer[index][2] = 255;
+            int index = (i + (scanline * 160));
+            framebuffer[index][0] = 255;
+            framebuffer[index][1] = 255;
+            framebuffer[index][2] = 255;
 	    }
-	    return;
+        return;
 	}
 
 	uint8_t scrollY = gmem->readByte(0xFF42);

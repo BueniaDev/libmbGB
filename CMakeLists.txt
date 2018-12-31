@@ -18,12 +18,14 @@ set(LIBMBGB_API_HEADERS
 	include/libmbGB/utils.h
 	include/libmbGB/mmu.h
 	include/libmbGB/gpu.h
+	include/libmbGB/cpu.h
 	include/libmbGB/input.h
 	include/libmbGB/timers.h
 	include/libmbGB/libmbgb.h)
 
 set(LIBMBGB
-	src/core/mmu.cpp
+	src/core/mmu.cpp	
+	src/core/mbc.cpp
 	src/core/utils.cpp
 	src/core/cpu.cpp
 	src/core/ops.cpp

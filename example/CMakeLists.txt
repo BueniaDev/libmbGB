@@ -8,4 +8,4 @@ set(EXAMPLE_SOURCES
 	main.cpp)
 
 add_executable(example ${EXAMPLE_SOURCES})
-target_link_libraries(example mbGB-s ${SDL2_LIBRARIES})
+target_link_libraries(example mbGB ${SDL2_LIBRARIES})

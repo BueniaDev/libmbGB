@@ -58,11 +58,17 @@ To build the library, simply run the following commands:
 `mingw32-make -j4`
 
 
+## Notes for Building
+
+Building the example requires SDL2 to be findable by CMake.
+
+
 ## Legal Disclaimers
 
 This project is licensed under the GNU GPL v3. For more information, see the included LICENSE file.
 
 (C) 2018 Buenia. This project is not affiliated in any way with Nintendo. Game Boy is a registered trademark of Nintendo Co., Ltd.
+
 
 
 
