@@ -4,6 +4,9 @@ libmbGB is a GameBoy emulation library written in C++11.
 
 A library, you ask? Yes, in fact. And because libmbGB is a dependency-free library, it means that the emulation logic and the GUI logic of an emulator made with this library are seperate. In addition, as long as the target platform has a C++11 compiler, that platform can use libmbGB.
 
+# Examples
+
+The libmbGB repo includes an example project.
 
 # Building libmbGB
 
@@ -22,7 +25,7 @@ To build the library, simply run the following commands:
 
 `mkdir build && cd build`
 
-`cmake .. -G "Unix Makefiles"`
+`cmake .. -G "Unix Makefiles -DBUILD_EXAMPLE="<ON/OFF>"`
 
 `make -j4`
 
@@ -53,7 +56,7 @@ To build the library, simply run the following commands:
 
 `mkdir build && cd build`
 
-`cmake .. -G "MSYS Makefiles"`
+`cmake .. -G "MSYS Makefiles -DBUILD_EXAMPLE="<ON/OFF>"`
 
 `mingw32-make -j4`
 
