@@ -50,15 +50,15 @@ void drawpixels()
 
     for (int i = 0; i < 160; i++)
     {
-	pixel.x = (i * 2);        
-	for (int j = 0; j < 144; j++)
+        pixel.x = (i * 2);        
+        for (int j = 0; j < 144; j++)
         {
             pixel.y = (j * 2);
-	    uint8_t red = core.coregpu.framebuffer[i + (j * 160)][0];
-            uint8_t green = core.coregpu.framebuffer[i + (j * 160)][1];
-            uint8_t blue = core.coregpu.framebuffer[i + (j * 160)][2];
+            uint8_t red = core.coregpu.framebuffer[i + (j * 160)].red;
+            uint8_t green = core.coregpu.framebuffer[i + (j * 160)].green;
+            uint8_t blue = core.coregpu.framebuffer[i + (j * 160)].blue;
             
-	    SDL_SetRenderDrawColor(render, red, green, blue, 0xFF);
+            SDL_SetRenderDrawColor(render, red, green, blue, 0xFF);
             SDL_RenderFillRect(render, &pixel);
         }
     }

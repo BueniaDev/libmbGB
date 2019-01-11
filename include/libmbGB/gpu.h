@@ -8,6 +8,13 @@ using namespace gb;
 
 namespace gb
 {
+    struct RGB
+    {
+        uint8_t red;
+        uint8_t green;
+        uint8_t blue;
+    };
+    
     class LIBMBGB_API GPU
     {
 	public:
@@ -19,7 +26,7 @@ namespace gb
 
 	    MMU *gmem;
 
-	    uint8_t framebuffer[160 * 144][3];
+	    RGB framebuffer[160 * 144];
 
 	    void updategraphics(int cycles);
 	    void setlcdstatus();

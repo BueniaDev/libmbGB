@@ -27,9 +27,9 @@ namespace gb
     {
 	for (int i = 0; i < (160 * 144); i++)
 	{
-	    framebuffer[i][0] = 255;
-	    framebuffer[i][1] = 255;
-	    framebuffer[i][2] = 255;
+	    framebuffer[i].red = 255;
+	    framebuffer[i].green = 255;
+	    framebuffer[i].blue = 255;
 	}
     }
 
@@ -178,9 +178,9 @@ namespace gb
 	    for (int i = 0; i < 160; i++)
 	    {
             int index = (i + (scanline * 160));
-            framebuffer[index][0] = 255;
-            framebuffer[index][1] = 255;
-            framebuffer[index][2] = 255;
+            framebuffer[index].red = 255;
+            framebuffer[index].green = 255;
+            framebuffer[index].blue = 255;
 	    }
         return;
 	}
@@ -267,9 +267,9 @@ namespace gb
 
 	    // Set framebuffer values
 	    int index = (pixel + (scanline * 160));
-	    framebuffer[index][0] = red;
-	    framebuffer[index][1] = green;
-	    framebuffer[index][2] = blue;
+	    framebuffer[index].red = red;
+	    framebuffer[index].green = green;
+	    framebuffer[index].blue = blue;
 	}
     }
 
@@ -371,9 +371,9 @@ namespace gb
 
 	    // Set framebuffer values
 	    int index = (pixel + (scanline * 160));
-	    framebuffer[index][0] = red;
-	    framebuffer[index][1] = green;
-	    framebuffer[index][2] = blue;
+	    framebuffer[index].red = red;
+	    framebuffer[index].green = green;
+	    framebuffer[index].blue = blue;
 	}
     }
 
@@ -418,7 +418,7 @@ namespace gb
 		{
 		    uint8_t xpixel = (xpos + pixel);
 		    int spritepixel = (xflip) ? pixel : ((pixel - 7) * -1);
-		    bool iswhite = (framebuffer[xpixel + (scanline * 160)][0] == 255);
+		    bool iswhite = (framebuffer[xpixel + (scanline * 160)].red == 255);
 		    int colornum = BitGetVal(data2, spritepixel);
 		    colornum <<= 1;
 		    colornum |= BitGetVal(data1, spritepixel);
@@ -455,9 +455,9 @@ namespace gb
 		    }
 
 		    int index = (xpixel + (scanline * 160));
-		    framebuffer[index][0] = red;
-		    framebuffer[index][1] = green;
-		    framebuffer[index][2] = blue;
+		    framebuffer[index].red = red;
+		    framebuffer[index].green = green;
+		    framebuffer[index].blue = blue;
 		}
 	    }
 	}
