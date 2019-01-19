@@ -65,6 +65,11 @@ To build the library, simply run the following commands:
 
 Building the example requires SDL2 to be findable by CMake.
 
+## Development
+
+Most of the development happens on Github. It's also where libmbGB's central repository is located.
+
+If you want to contribute to libmbGB, please take a look at the [Contributor's Guide](https://github.com/Buenia0/libmbGB/blob/masterCONTRIBUTING).md.
 
 ## Legal Disclaimers
 
