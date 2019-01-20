@@ -6,7 +6,7 @@ A library, you ask? Yes, in fact. And because libmbGB is a dependency-free libra
 
 # Examples
 
-The libmbGB repo includes an example project.
+The libmbGB repo includes 2 example projects, one of them an SDL2 renderer, the other a headless renderer.
 
 # Building libmbGB
 
@@ -63,7 +63,7 @@ To build the library, simply run the following commands:
 
 ## Notes for Building
 
-Building the example requires SDL2 to be findable by CMake.
+Building the SDL2 renderer requires SDL2 to be findable by CMake.
 
 ## Development
 
