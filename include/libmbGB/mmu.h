@@ -3,6 +3,7 @@
 
 #include "libmbgb_api.h"
 #include "input.h"
+#include "apu.h"
 #include <cstdint>
 using namespace std;
 
@@ -55,6 +56,7 @@ namespace gb
 	    void mbc1write(uint16_t address, uint8_t value);
 
 	    Input *joypad;
+        APU *audio;
     };
 }
 

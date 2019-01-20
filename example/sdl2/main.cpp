@@ -1,8 +1,9 @@
-#include "../include/libmbGB/libmbgb.h"
+#include "../../include/libmbGB/libmbgb.h"
 #include <SDL2/SDL.h>
 #include <iostream>
 #include <cstdio>
 #include <string>
+#include <cstring>
 using namespace gb;
 using namespace std;
 
@@ -10,12 +11,6 @@ SDL_Window *window;
 SDL_Renderer *render;
 
 DMGCore core;
-
-int total = 0;
-int timer = 0;
-int current = 0;
-int counter = 0;
-bool first = true;
 
 bool initSDL()
 {
@@ -40,6 +35,24 @@ bool initSDL()
         cout << "Renderer could not be created! SDL_Error: " << SDL_GetError() << endl;
         return false;
     }
+    
+    SDL_AudioSpec audiospec;
+    audiospec.freq = samplerate;
+    audiospec.format = AUDIO_F32SYS;
+    audiospec.samples = samplesize;
+    audiospec.channels = 2;
+    audiospec.callback = NULL;
+    audiospec.userdata = core.coreapu.userdata;
+    
+    SDL_AudioSpec obtainedspec;
+    
+    if (SDL_OpenAudio(&audiospec, &obtainedspec) < 0)
+    {
+        cout << "Audio could not be initalized! SDL_Error: " << SDL_GetError() << endl;
+        return false;
+    }
+    
+    SDL_PauseAudio(0);
     
     return true;
 }
@@ -66,31 +79,25 @@ void drawpixels()
     SDL_RenderPresent(render);
 }
 
+void APU::outputaudio()
+{
+    if (bufferfillamount >= samplesize)
+    {
+        bufferfillamount = 0;
+        while ((SDL_GetQueuedAudioSize(1)) > samplesize * 4)
+        {
+            SDL_Delay(1);
+        }
+        SDL_QueueAudio(1, mainbuffer, samplesize * 4);
+    }
+}
+
 void stopSDL()
 {
+    SDL_CloseAudio();
     SDL_DestroyRenderer(render);
     SDL_DestroyWindow(window);
     SDL_Quit();
-}
-
-
-void checkfps()
-{
-    if (first)
-    {
-        first = false;
-        timer = SDL_GetTicks();
-    }
-    
-    counter++;
-    current = SDL_GetTicks();
-    
-    if ((timer + 1000) < current)
-    {
-        timer = current;
-        total = counter;
-        counter = 0;
-    }
 }
 
 void handleinput(SDL_Event& event)
@@ -177,11 +184,6 @@ int main(int argc, char* argv[])
     bool quit = false;
     SDL_Event ev;
     
-    float fps = 60;
-    float interval = 1000 / fps;
-    
-    unsigned int time2 = SDL_GetTicks();
-    
     while (!quit)
     {
         while (SDL_PollEvent(&ev))
@@ -194,15 +196,8 @@ int main(int argc, char* argv[])
             }
         }
 
-        unsigned int current = SDL_GetTicks();
-        
-        if ((time2 + interval) < current)
-        {
-            checkfps();
-            core.runcore();
-            drawpixels();
-            time2 = current;
-        }
+        core.runcore();
+        drawpixels();
     }
     
     stopSDL();

@@ -25,7 +25,6 @@ namespace gb
 	    pc = 0x0100;
 	    sp = 0xFFFE;
 
-	    stopped = false;
 	    halted = false;
 
 	    interruptmaster = false;
@@ -47,7 +46,6 @@ namespace gb
 	    pc = 0x0000;
 	    sp = 0x0000;
 
-	    stopped = false;
 	    halted = false;
 
 	    interruptmaster = false;
@@ -219,8 +217,6 @@ namespace gb
 
 	void CPU::stop()
 	{
-	    stopped = true;
-	    halted = true;
 	    pc++;
 	}
 

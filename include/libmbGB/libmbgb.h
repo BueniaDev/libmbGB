@@ -4,6 +4,7 @@
 #include "mmu.h"
 #include "cpu.h"
 #include "gpu.h"
+#include "apu.h"
 #include "input.h"
 #include "timers.h"
 #include <string>
@@ -27,6 +28,7 @@ namespace gb
 	    CPU corecpu;
 	    MMU coremmu;
 	    GPU coregpu;
+        APU coreapu;
 	    Input coreinput;
 	    Timers coretimers;
     };
