@@ -74,5 +74,5 @@ elseif (APPLE)
 	endif()
 endif()
 
-add_library(mbGB SHARED ${LIBMBGB} ${LIBMBGB_API_HEADERS})
-add_library(mbGB-s STATIC ${LIBMBGB} ${LIBMBGB_API_HEADERS})
+add_library(mbGB ${LIBMBGB} ${LIBMBGB_API_HEADERS})
+add_library(libmbGB ALIAS mbGB)
