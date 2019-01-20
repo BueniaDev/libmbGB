@@ -25,7 +25,7 @@ To build the library, simply run the following commands:
 
 `mkdir build && cd build`
 
-`cmake .. -G "Unix Makefiles -DBUILD_EXAMPLE="<ON/OFF>"`
+`cmake .. -G "Unix Makefiles -DBUILD_EXAMPLE="<ON/OFF> -DBUILD_HEADLESS="<ON/OFF>"`
 
 `make -j4`
 
@@ -56,7 +56,7 @@ To build the library, simply run the following commands:
 
 `mkdir build && cd build`
 
-`cmake .. -G "MSYS Makefiles -DBUILD_EXAMPLE="<ON/OFF>"`
+`cmake .. -G "MSYS Makefiles -DBUILD_EXAMPLE="<ON/OFF> -DBUILD_HEADLESS="<ON/OFF>"`
 
 `mingw32-make -j4`
 
