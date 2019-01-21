@@ -24,6 +24,7 @@ namespace gb
 	coregpu.gmem = &coremmu;
 	coretimers.tmem = &coremmu;
 	coremmu.joypad = &coreinput;
+    coremmu.audio = &coreapu;
 	corecpu.timers = &coretimers;
 	corecpu.gpu = &coregpu;
 
@@ -82,13 +83,10 @@ namespace gb
 	    corecpu.dointerrupts();
 	    corecpu.executenextopcode();
 	    int cycles = corecpu.m_cycles - corecycles;
-
-	    coretimers.updatetimers(cycles);
-
-	    if (!corecpu.stopped)
-	    {	        
+      
+        coretimers.updatetimers(cycles);
 		coregpu.updategraphics(cycles);
+        coreapu.updateaudio(cycles);
 	    }
 	}
-    }
 }

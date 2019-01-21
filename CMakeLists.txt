@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8.11)
 project(libmbGB)
 
 option(BUILD_EXAMPLE "Enables the example renderer (requires SDL2)." OFF)
+option(BUILD_HEADLESS "Enables headless example project." OFF)
 
 if (WIN32)
 	message(STATUS "Operating system is Windows.")
@@ -19,6 +20,7 @@ set(LIBMBGB_API_HEADERS
 	include/libmbGB/mmu.h
 	include/libmbGB/gpu.h
 	include/libmbGB/cpu.h
+	include/libmbGB/apu.h
 	include/libmbGB/input.h
 	include/libmbGB/timers.h
 	include/libmbGB/libmbgb.h)
@@ -30,12 +32,17 @@ set(LIBMBGB
 	src/core/cpu.cpp
 	src/core/ops.cpp
 	src/core/gpu.cpp
+	src/core/apu.cpp
 	src/core/input.cpp
 	src/core/timers.cpp
 	src/core/libmbgb.cpp)
 
 if (BUILD_EXAMPLE STREQUAL "ON")
-	add_subdirectory(example)
+	add_subdirectory(example/sdl2)
+endif()
+
+if (BUILD_HEADLESS STREQUAL "ON")
+	add_subdirectory(example/headless)
 endif()
 
 if (WIN32)
@@ -67,5 +74,5 @@ elseif (APPLE)
 	endif()
 endif()
 
-add_library(mbGB SHARED ${LIBMBGB} ${LIBMBGB_API_HEADERS})
-add_library(mbGB-s STATIC ${LIBMBGB} ${LIBMBGB_API_HEADERS})
+add_library(mbGB ${LIBMBGB} ${LIBMBGB_API_HEADERS})
+add_library(libmbGB ALIAS mbGB)

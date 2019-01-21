@@ -19,5 +19,4 @@ string tohexstring(uint32_t val);
 string getmnemonic(uint8_t opcode, uint16_t nn, uint8_t n);
 string getextmnemonic(uint8_t opcode);
 
-
 #endif // UTIL_H

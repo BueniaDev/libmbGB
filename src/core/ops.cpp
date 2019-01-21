@@ -418,7 +418,7 @@ namespace gb
 		// Jumps
 
 		// JP nn
-		case 0xC3: pc = mem->readWord(pc); m_bytes += m_bytes += 1; m_cycles += 16; break;
+		case 0xC3: pc = mem->readWord(pc); m_bytes += 1; m_cycles += 16; break;
 
 		// JP cc, nn
 		case 0xC2:

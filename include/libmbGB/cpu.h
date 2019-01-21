@@ -54,7 +54,6 @@ namespace gb
 	        int half = 5;
     	        int carry = 4;
 
-		bool stopped;
 		bool halted;
 
 		int m_bytes;

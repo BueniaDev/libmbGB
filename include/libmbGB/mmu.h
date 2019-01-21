@@ -3,6 +3,7 @@
 
 #include "libmbgb_api.h"
 #include "input.h"
+#include "apu.h"
 #include <cstdint>
 using namespace std;
 
@@ -33,7 +34,7 @@ namespace gb
             uint16_t readWord(uint16_t address);
             void writeWord(uint16_t address, uint16_t value);
 	    int8_t readsByte(uint16_t address);
-        
+
         int getmbctype(uint8_t mbcval);
         int getramsize(uint8_t ramval);
         int getrombanks(uint8_t romval);
@@ -55,6 +56,7 @@ namespace gb
 	    void mbc1write(uint16_t address, uint8_t value);
 
 	    Input *joypad;
+        APU *audio;
     };
 }
 

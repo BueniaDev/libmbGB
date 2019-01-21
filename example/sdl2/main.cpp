@@ -1,5 +1,6 @@
-#include "../include/libmbGB/libmbgb.h"
+#include "../../include/libmbGB/libmbgb.h"
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_audio.h>
 #include <iostream>
 #include <cstdio>
 #include <string>
@@ -10,12 +11,6 @@ SDL_Window *window;
 SDL_Renderer *render;
 
 DMGCore core;
-
-int total = 0;
-int timer = 0;
-int current = 0;
-int counter = 0;
-bool first = true;
 
 bool initSDL()
 {
@@ -40,6 +35,17 @@ bool initSDL()
         cout << "Renderer could not be created! SDL_Error: " << SDL_GetError() << endl;
         return false;
     }
+    
+    SDL_AudioSpec audiospec;
+    audiospec.freq = 44100;
+    audiospec.format = AUDIO_F32SYS;
+    audiospec.channels = 2;
+    audiospec.samples = 4096;
+    audiospec.callback = NULL;
+    
+    SDL_AudioSpec obtainedspec;
+    SDL_OpenAudio(&audiospec, &obtainedspec);
+    SDL_PauseAudio(0);
     
     return true;
 }
@@ -66,31 +72,92 @@ void drawpixels()
     SDL_RenderPresent(render);
 }
 
+void APU::mixaudio()
+{
+    float bufferin0 = 0;
+    float bufferin1 = 0;
+    
+    int volume = (128 * leftvol) / 7;
+    
+    if (leftenables[0])
+    {
+        bufferin1 = squareone.getoutputvol();
+        SDL_MixAudioFormat((Uint8*)&bufferin0, (Uint8*)&bufferin1, AUDIO_F32SYS, sizeof(float), volume);
+    }
+    
+    if (leftenables[1])
+    {
+        bufferin1 = squaretwo.getoutputvol();
+        SDL_MixAudioFormat((Uint8*)&bufferin0, (Uint8*)&bufferin1, AUDIO_F32SYS, sizeof(float), volume);
+    }
+    
+    if (leftenables[2])
+    {
+        bufferin1 = wave.getoutputvol();
+        SDL_MixAudioFormat((Uint8*)&bufferin0, (Uint8*)&bufferin1, AUDIO_F32SYS, sizeof(float), volume);
+    }
+    
+    if (leftenables[3])
+    {
+        bufferin1 = noise.getoutputvol();
+        SDL_MixAudioFormat((Uint8*)&bufferin0, (Uint8*)&bufferin1, AUDIO_F32SYS, sizeof(float), volume);
+    }
+    
+    mainbuffer[bufferfillamount] = bufferin0;
+    
+    bufferin0 = 0;
+    bufferin1 = 0;
+    volume = (128 * rightvol) / 7;
+
+    if (rightenables[0])
+    {
+        bufferin1 = squareone.getoutputvol();
+        SDL_MixAudioFormat((Uint8*)&bufferin0, (Uint8*)&bufferin1, AUDIO_F32SYS, sizeof(float), volume);
+    }
+    
+    if (rightenables[1])
+    {
+        bufferin1 = squaretwo.getoutputvol();
+        SDL_MixAudioFormat((Uint8*)&bufferin0, (Uint8*)&bufferin1, AUDIO_F32SYS, sizeof(float), volume);
+    }
+    
+    if (rightenables[2])
+    {
+        bufferin1 = wave.getoutputvol();
+        SDL_MixAudioFormat((Uint8*)&bufferin0, (Uint8*)&bufferin1, AUDIO_F32SYS, sizeof(float), volume);
+    }
+    
+    if (rightenables[3])
+    {
+        bufferin1 = noise.getoutputvol();
+        SDL_MixAudioFormat((Uint8*)&bufferin0, (Uint8*)&bufferin1, AUDIO_F32SYS, sizeof(float), volume);
+    }
+    
+    mainbuffer[bufferfillamount + 1] = bufferin0;
+    bufferfillamount += 2;
+}
+
+void APU::outputaudio()
+{
+    if (bufferfillamount >= 4096)
+    {
+        bufferfillamount = 0;
+        
+        while ((SDL_GetQueuedAudioSize(1)) > 4096 * sizeof(float))
+        {
+            SDL_Delay(1);
+        }
+        
+        SDL_QueueAudio(1, mainbuffer, 4096 * sizeof(float));
+    }
+}
+
 void stopSDL()
 {
+    SDL_CloseAudio();
     SDL_DestroyRenderer(render);
     SDL_DestroyWindow(window);
     SDL_Quit();
-}
-
-
-void checkfps()
-{
-    if (first)
-    {
-        first = false;
-        timer = SDL_GetTicks();
-    }
-    
-    counter++;
-    current = SDL_GetTicks();
-    
-    if ((timer + 1000) < current)
-    {
-        timer = current;
-        total = counter;
-        counter = 0;
-    }
 }
 
 void handleinput(SDL_Event& event)
@@ -157,9 +224,9 @@ int main(int argc, char* argv[])
         biosname = argv[3];
         core.corecpu.resetBIOS();
         if (!core.loadBIOS(biosname))
-	{
-	    initialized = false;
-	}
+        {
+            initialized = false;
+        }
     }
 
     if (!initSDL())
@@ -177,11 +244,6 @@ int main(int argc, char* argv[])
     bool quit = false;
     SDL_Event ev;
     
-    float fps = 60;
-    float interval = 1000 / fps;
-    
-    unsigned int time2 = SDL_GetTicks();
-    
     while (!quit)
     {
         while (SDL_PollEvent(&ev))
@@ -194,15 +256,9 @@ int main(int argc, char* argv[])
             }
         }
 
-        unsigned int current = SDL_GetTicks();
+        core.runcore();
+        drawpixels();
         
-        if ((time2 + interval) < current)
-        {
-            checkfps();
-            core.runcore();
-            drawpixels();
-            time2 = current;
-        }
     }
     
     stopSDL();
