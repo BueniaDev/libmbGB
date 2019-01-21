@@ -9,6 +9,10 @@ using namespace std;
 char kp;
 DMGCore core;
 
+void APU::mixaudio()
+{
+
+}
 
 void APU::outputaudio()
 {

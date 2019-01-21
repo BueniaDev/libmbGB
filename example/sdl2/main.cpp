@@ -1,9 +1,9 @@
 #include "../../include/libmbGB/libmbgb.h"
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_audio.h>
 #include <iostream>
 #include <cstdio>
 #include <string>
-#include <cstring>
 using namespace gb;
 using namespace std;
 
@@ -37,21 +37,14 @@ bool initSDL()
     }
     
     SDL_AudioSpec audiospec;
-    audiospec.freq = samplerate;
+    audiospec.freq = 44100;
     audiospec.format = AUDIO_F32SYS;
-    audiospec.samples = samplesize;
     audiospec.channels = 2;
+    audiospec.samples = 4096;
     audiospec.callback = NULL;
-    audiospec.userdata = core.coreapu.userdata;
     
     SDL_AudioSpec obtainedspec;
-    
-    if (SDL_OpenAudio(&audiospec, &obtainedspec) < 0)
-    {
-        cout << "Audio could not be initalized! SDL_Error: " << SDL_GetError() << endl;
-        return false;
-    }
-    
+    SDL_OpenAudio(&audiospec, &obtainedspec);
     SDL_PauseAudio(0);
     
     return true;
@@ -79,16 +72,59 @@ void drawpixels()
     SDL_RenderPresent(render);
 }
 
+void APU::mixaudio()
+{
+    float bufferin0 = 0;
+    float bufferin1 = 0;
+    
+    int volume = (128 * leftvol) / 7;
+    
+    if (leftenables[0])
+    {
+        bufferin1 = squareone.getoutputvol();
+        SDL_MixAudioFormat((Uint8*)&bufferin0, (Uint8*)&bufferin1, AUDIO_F32SYS, sizeof(float), volume);
+    }
+    
+    if (leftenables[1])
+    {
+        bufferin1 = squaretwo.getoutputvol();
+        SDL_MixAudioFormat((Uint8*)&bufferin0, (Uint8*)&bufferin1, AUDIO_F32SYS, sizeof(float), volume);
+    }
+    
+    mainbuffer[bufferfillamount] = bufferin0;
+    
+    bufferin0 = 0;
+    bufferin1 = 0;
+    volume = (128 * rightvol) / 7;
+    
+    if (rightenables[0])
+    {
+        bufferin1 = squareone.getoutputvol();
+        SDL_MixAudioFormat((Uint8*)&bufferin0, (Uint8*)&bufferin1, AUDIO_F32SYS, sizeof(float), volume);
+    }
+    
+    if (rightenables[1])
+    {
+        bufferin1 = squaretwo.getoutputvol();
+        SDL_MixAudioFormat((Uint8*)&bufferin0, (Uint8*)&bufferin1, AUDIO_F32SYS, sizeof(float), volume);
+    }
+    
+    mainbuffer[bufferfillamount + 1] = bufferin0;
+    bufferfillamount += 2;
+}
+
 void APU::outputaudio()
 {
-    if (bufferfillamount >= samplesize)
+    if (bufferfillamount >= 4096)
     {
         bufferfillamount = 0;
-        while ((SDL_GetQueuedAudioSize(1)) > samplesize * 4)
+        
+        while ((SDL_GetQueuedAudioSize(1)) > 4096 * sizeof(float))
         {
             SDL_Delay(1);
         }
-        SDL_QueueAudio(1, mainbuffer, samplesize * 4);
+        
+        SDL_QueueAudio(1, mainbuffer, 4096 * sizeof(float));
     }
 }
 
@@ -164,9 +200,9 @@ int main(int argc, char* argv[])
         biosname = argv[3];
         core.corecpu.resetBIOS();
         if (!core.loadBIOS(biosname))
-	{
-	    initialized = false;
-	}
+        {
+            initialized = false;
+        }
     }
 
     if (!initSDL())
@@ -198,6 +234,7 @@ int main(int argc, char* argv[])
 
         core.runcore();
         drawpixels();
+        
     }
     
     stopSDL();

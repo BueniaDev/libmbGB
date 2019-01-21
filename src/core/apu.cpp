@@ -27,9 +27,7 @@ namespace gb
         squaretwo.timer = 0;
         squaretwo.timerload = 0;
         
-        userdata = this;
-        
-        cout << "APU::Initialized" << endl;
+        cout << "Input::Initialized" << endl;
     }
     
     uint8_t APU::readapu(uint16_t address)
@@ -225,7 +223,7 @@ namespace gb
                 lengthenable = TestBit(value, 6);
                 triggerbit = TestBit(value, 7);
                 
-                if (triggerbit)
+                if (TestBit(value, 7))
                 {
                     trigger();
                 }
@@ -323,7 +321,9 @@ namespace gb
     
     float APU::squarewave::getoutputvol()
     {
-        return ((float)outputvol) / 100;
+        float temp = 0;
+        temp = (float)(outputvol) / 100;
+        return temp;
     }
     
     void APU::squarewave::trigger()
@@ -380,7 +380,9 @@ namespace gb
     
     void APU::updateaudio(int cycles)
     {   
-        while (cycles-- != 0)
+        int apucycles = cycles * 1.22;
+        
+        while (apucycles-- != 0)
         {
            if (--frametimer <= 0)
            {
@@ -435,34 +437,10 @@ namespace gb
            
            if (--samplecounter <= 0)
            {
-               samplecounter = 4194304 / samplerate;
+               samplecounter = 95;
                mixaudio();
            }
-           
            outputaudio();
         }
-    }
-    
-    void APU::mixaudio()
-    {
-        float leftsample = 0;
-        float rightsample = 0;
-        float sound1 = squareone.getoutputvol();
-        
-        if (leftenables[0])
-        {
-            leftsample += sound1;
-        }
-        
-        mainbuffer[bufferfillamount] = leftsample;
-        
-        if (rightenables[0])
-        {
-            rightsample += sound1;
-        }
-        
-        mainbuffer[bufferfillamount + 1] = rightsample;
-        
-        bufferfillamount += 2;
     }
 }

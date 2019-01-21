@@ -6,8 +6,6 @@
 
 namespace gb
 {
-    #define samplesize 4096
-    #define samplerate 44100
     
     class LIBMBGB_API APU
     {
@@ -17,14 +15,8 @@ namespace gb
         
         void reset();
         void updateaudio(int cycles);
-        void mixaudio();
+        void mixaudio(); // Must be defined with your audio API of choice
         void outputaudio(); // Must be defined with your audio API of choice
-        
-        void* userdata;
-        
-        
-        float mainbuffer[samplesize] = {0};
-        int bufferfillamount = 0;
         
         int frametimer;
         int framesequencer;
@@ -37,6 +29,10 @@ namespace gb
         bool leftenables[4] = {false};
         bool rightenables[4] = {false};
         bool powercontrol = false;
+
+        
+        int bufferfillamount = 0;
+        float mainbuffer[4096] = {0};
         
         uint8_t orvalues[23] = 
         {  
