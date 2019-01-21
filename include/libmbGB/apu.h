@@ -67,7 +67,7 @@ namespace gb
             bool enabled = false;
             uint16_t timerload = 0;
             int timer = 0;
-            uint8_t lengthcounter = 0;
+            int lengthcounter = 0;
             uint8_t lengthload = 0;
             bool enveloperunning = true;
             uint8_t envelopeperiodload = 0;
@@ -91,8 +91,69 @@ namespace gb
             bool dacenabled = true;
         };
         
+        struct wavechannel
+        {
+            uint8_t readreg(uint16_t address);
+            void writereg(uint16_t address, uint8_t value);
+            void trigger();
+            void lengthclock();
+            void step();
+            bool enabled = false;
+            uint8_t volumecode = 0;
+            int lengthcounter = 0;
+            uint8_t lengthload = 0;
+            uint16_t timerload = 0;
+            int timer = 0;
+            int outputvol = 0;
+            bool getrunning();
+            float getoutputvol();
+            bool dacenabled = true;
+            uint8_t waveram[16] = {0};
+            int positioncounter = 0;
+            bool triggerbit = false;
+            bool lengthenable = false;
+        };
+        
+        struct noisechannel
+        {
+            uint8_t readreg(uint16_t address);
+            void writereg(uint16_t address, uint8_t value);
+            void trigger();
+            void lengthclock();
+            void envclock();
+            void step();
+            int lengthcounter = 0;
+            uint8_t lengthload = 0;
+            bool enabled = false;
+            bool enveloperunning = true;
+            uint8_t envelopeperiodload = 0;
+            int envelopeperiod = 0;
+            bool envelopeaddmode = false;
+            uint8_t volume = 0;
+            uint8_t volumeload = 0;
+            int outputvol = 0;
+            uint8_t clockshift = 0;
+            bool widthmode = false;
+            uint8_t divisorcode = 0;
+            bool triggerbit = false;
+            bool lengthenable = false;
+            uint16_t lfsr = 0;
+            int divisors[8] =
+            {
+                8, 16, 32, 48,
+                64, 80, 96, 112
+            };
+            
+            bool getrunning();
+            float getoutputvol();
+            bool dacenabled = true;
+            int timer = 0;
+        };
+        
         squarewave squareone;
         squarewave squaretwo;
+        wavechannel wave;
+        noisechannel noise;
     };
 }
 

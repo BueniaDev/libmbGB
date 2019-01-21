@@ -114,7 +114,7 @@ namespace gb
 	    value |= 0xE0;
 	    return value;
 	}
-	else if ((address >= 0xFF10) && (address <= 0xFF26))
+	else if ((address >= 0xFF10) && (address <= 0xFF3F))
 	{
 	    return audio->readapu(address);
 	}
@@ -172,7 +172,7 @@ namespace gb
 	{
 	    memorymap[address] = 0;
 	}
-	else if ((address >= 0xFF10) && (address <= 0xFF26))
+	else if ((address >= 0xFF10) && (address <= 0xFF3F))
 	{
 	    audio->writeapu(address, value);
 	}

@@ -42,6 +42,14 @@ namespace gb
         {
             returndata = squaretwo.readreg(address);
         }
+        else if ((address >= 0xFF1A) && (address <= 0xFF1E))
+        {
+            returndata = wave.readreg(address);
+        }
+        else if ((address >= 0xFF20) && (address <= 0xFF23))
+        {
+            returndata = noise.readreg(address);
+        }
         else if ((address >= 0xFF24) && (address <= 0xFF26))
         {
             switch (address)
@@ -69,13 +77,14 @@ namespace gb
                    returndata |= powercontrol << 7;
                    returndata |= squareone.getrunning() << 0;
                    returndata |= squaretwo.getrunning() << 1;
+                   returndata |= wave.getrunning() << 2;
                 }
                 break;
             }
         }
-        else
+        else if ((address >= 0xFF30) && (address <= 0xFF3F))
         {
-            returndata = 0xFF;
+            returndata = wave.readreg(address);
         }
         
         if (address <= 0xFF26)
@@ -95,6 +104,14 @@ namespace gb
         else if ((address >= 0xFF16) && (address <= 0xFF19))
         {
             squaretwo.writereg(address, value);
+        }
+        else if ((address >= 0xFF1A) && (address <= 0xFF1E))
+        {
+            wave.writereg(address, value);
+        }
+        else if ((address >= 0xFF20) && (address <= 0xFF23))
+        {
+            noise.writereg(address, value);
         }
         else if ((address >= 0xFF24) && (address <= 0xFF26))
         {
@@ -134,11 +151,19 @@ namespace gb
                     else if (!powercontrol)
                     {
                         framesequencer = 0;
+                        for (int i = 0; i < 16; i++)
+                        {
+                            wave.writereg(0xFF30 + i, 0);
+                        }
                         powercontrol = true;
                     }
                 }
                 break;
             }
+        }
+        else if ((address >= 0xFF30) && (address <= 0xFF3F))
+        {
+            wave.writereg(address, value);
         }
         else
         {
@@ -232,6 +257,169 @@ namespace gb
         }
     }
     
+    uint8_t APU::wavechannel::readreg(uint16_t address)
+    {
+        uint8_t returndata = 0;
+        
+        uint8_t registerval = address & 0xF;
+        
+        if ((address >= 0xFF1A) && (address <= 0xFF1E))
+        {
+            switch (registerval)
+            {
+                case 0xA:
+                {
+                    returndata = (dacenabled) << 7;
+                }
+                break;
+                case 0xB:
+                {
+                    returndata = lengthload;
+                }
+                break;
+                case 0xC:
+                {
+                    returndata = volumecode << 5;
+                }
+                break;
+                case 0xD:
+                {
+                    returndata = timerload & 0xFF;
+                }
+                break;
+                case 0xE:
+                {
+                    returndata = ((timerload >> 8) & 0x7) | (lengthenable << 6) | (triggerbit << 7);
+                }
+                break;
+            }
+        }
+        else if (address >= 0xFF30 && (address <= 0xFF3F))
+        {
+            returndata = waveram[registerval];
+        }
+        
+        return returndata;
+    }
+    
+    void APU::wavechannel::writereg(uint16_t address, uint8_t value)
+    {
+        uint8_t registerval = address & 0xF;
+        
+        if ((address >= 0xFF1A) && (address <= 0xFF1E))
+        {
+            switch (registerval)
+            {
+                case 0xA:
+                {
+                    dacenabled = TestBit(value, 7);
+                }
+                break;
+                case 0xB:
+                {
+                    lengthload = value;
+                }
+                break;
+                case 0xC:
+                {
+                    volumecode = (value >> 5) & 0x3;
+                }
+                break;
+                case 0xD:
+                {
+                    timerload = (timerload & 0x700) | value;
+                }
+                break;
+                case 0xE:
+                {
+                    timerload = (timerload & 0xFF) | ((value & 0x7) << 8);
+                    lengthenable = TestBit(value, 6);
+                    triggerbit = TestBit(value, 7);
+                    
+                    if (triggerbit)
+                    {
+                        trigger();
+                    }
+                }
+                break;
+            }
+        }
+        else if (address >= 0xFF30 && (address <= 0xFF3F))
+        {
+            waveram[registerval] = value;
+        }
+    }
+    
+    uint8_t APU::noisechannel::readreg(uint16_t address)
+    {
+        uint8_t returndata = 0;
+        
+        switch (address)
+        {
+            case 0xFF20:
+            {
+                returndata = lengthload & 0x3F;
+            }
+            break;
+            case 0xFF21:
+            {
+                returndata = (envelopeperiodload & 0x7) | (envelopeaddmode << 3) | ((volumeload & 0xF) << 4);
+            }
+            break;
+            case 0xFF22:
+            {
+                returndata = (divisorcode) | (widthmode << 3) | (clockshift << 4);
+            }
+            break;
+            case 0xFF23:
+            {
+                returndata = (lengthenable << 6) | (triggerbit << 7);
+            }
+            break;
+        }
+        
+        return returndata;
+    }
+    
+    void APU::noisechannel::writereg(uint16_t address, uint8_t value)
+    {
+        switch (address)
+        {
+            case 0xFF20:
+            {
+                lengthload = value & 0x3F;
+            }
+            break;
+            case 0xFF21:
+            {
+                dacenabled = (value & 0xF8) != 0;
+                volumeload = (value >> 4) & 0xF;
+                envelopeaddmode = TestBit(value, 3);
+                envelopeperiodload = (value & 0x7);
+                envelopeperiod = envelopeperiodload;
+                volume = volumeload;
+            }
+            break;
+            case 0xFF22:
+            {
+                divisorcode = value & 0x7;
+                widthmode = TestBit(value, 3);
+                clockshift = (value >> 4) & 0xF;
+            }
+            break;
+            case 0xFF23:
+            {
+                lengthenable = TestBit(value, 6);
+                triggerbit = TestBit(value, 7);
+                if (triggerbit)
+                {
+                    trigger();
+                }
+            }
+            break;
+        }
+    }
+    
     uint16_t APU::squarewave::sweepcalculation()
     {
         uint16_t newfreq = 0;
@@ -289,6 +477,30 @@ namespace gb
         }
     }
     
+    void APU::wavechannel::lengthclock()
+    {
+        if (lengthcounter > 0 && lengthenable)
+        {
+            lengthcounter--;
+            if (lengthcounter == 0)
+            {
+                enabled = false;
+            }
+        }
+    }
+    
+    void APU::noisechannel::lengthclock()
+    {
+        if (lengthcounter > 0 && lengthenable)
+        {
+            lengthcounter--;
+            if (lengthcounter == 0)
+            {
+                enabled = false;
+            }
+        }
+    }
+    
     void APU::squarewave::envclock()
     {
         if (--envelopeperiod <= 0)
@@ -314,12 +526,65 @@ namespace gb
         }
     }
     
+    void APU::noisechannel::envclock()
+    {
+        if (--envelopeperiod <= 0)
+        {
+            envelopeperiod = envelopeperiodload;
+            if (envelopeperiod == 0)
+            {
+                envelopeperiod = 8;
+            }
+            
+            if (enveloperunning && envelopeperiodload > 0)
+            {
+                if (envelopeaddmode && volume < 15)
+                {
+                    volume++;
+                }
+                else if (!envelopeaddmode && volume > 0)
+                {
+                    volume--;
+                }
+            }
+            
+            if (volume == 0 || volume == 15)
+            {
+                enveloperunning = false;
+            }
+        }
+    }
+    
     bool APU::squarewave::getrunning()
     {
         return lengthcounter > 0;
     }
     
+    bool APU::wavechannel::getrunning()
+    {
+        return lengthcounter > 0;
+    }
+    
+    bool APU::noisechannel::getrunning()
+    {
+        return lengthcounter > 0;
+    }
+    
     float APU::squarewave::getoutputvol()
+    {
+        float temp = 0;
+        temp = (float)(outputvol) / 100;
+        return temp;
+    }
+    
+    float APU::wavechannel::getoutputvol()
+    {
+        float temp = 0;
+        temp = (float)(outputvol) / 100;
+        return temp;
+    }
+    
+    float APU::noisechannel::getoutputvol()
     {
         float temp = 0;
         temp = (float)(outputvol) / 100;
@@ -355,6 +620,33 @@ namespace gb
         }
     }
     
+    void APU::wavechannel::trigger()
+    {
+        enabled = true;
+        if (lengthcounter == 0)
+        {
+            lengthcounter = 256;
+        }
+        timer = (2048 - timerload) * 2;
+        positioncounter = 0;
+    }
+    
+    void APU::noisechannel::trigger()
+    {
+        enabled = true;
+        
+        if (lengthcounter == 0)
+        {
+            lengthcounter = 64;
+        }
+        
+        timer = divisors[divisorcode];
+        envelopeperiod = envelopeperiodload;
+        enveloperunning = true;
+        volume = volumeload;
+        lfsr = 0x7FFF;
+    }
+    
     void APU::squarewave::step()
     {
         if (--timer <= 0)
@@ -378,6 +670,67 @@ namespace gb
         }
     }
     
+    void APU::wavechannel::step()
+    {
+        if (--timer <= 0)
+        {
+            timer = (2048 - timerload) * 2;
+            positioncounter = (positioncounter + 1) & 0x1F;
+            if (enabled && dacenabled)
+            {
+                int position = positioncounter / 2;
+                uint8_t outputbyte = waveram[position];
+                bool highbit = (positioncounter & 0x1) == 0;
+                if (highbit)
+                {
+                    outputbyte >>= 4;
+                }
+                
+                outputbyte &= 0xF;
+                
+                if (volumecode > 0)
+                {
+                    outputbyte >>= volumecode - 1;
+                }
+                else
+                {
+                    outputbyte = 0;
+                }
+                outputvol = outputbyte;
+            }
+            else
+            {
+                outputvol = 0;
+            }
+        }
+    }
+    
+    void APU::noisechannel::step()
+    {
+        if (--timer <= 0)
+        {
+            timer = divisors[divisorcode] << clockshift;
+            
+            uint8_t result = (lfsr & 0x1) ^ ((lfsr >> 1) & 0x1);
+            lfsr >>= 1;
+            lfsr |= result << 14;
+            if (widthmode)
+            {
+                lfsr &= ~0x40;
+                lfsr |= result << 6;
+            }
+            
+            if (enabled && dacenabled && (lfsr & 0x1) == 0)
+            {
+                outputvol = volume;
+            }
+            else
+            {
+                outputvol = 0;
+            }
+        }
+    }
+    
     void APU::updateaudio(int cycles)
     {   
         int apucycles = cycles * 1.22;
@@ -393,6 +746,8 @@ namespace gb
                    {
                        squareone.lengthclock();
                        squaretwo.lengthclock();
+                       wave.lengthclock();
+                       noise.lengthclock();
                    }
                    break;
                    case 1: break;
@@ -401,6 +756,8 @@ namespace gb
                        squareone.sweepclock();
                        squareone.lengthclock();
                        squaretwo.lengthclock();
+                       wave.lengthclock();
+                       noise.lengthclock();
                    }
                    break;
                    case 3: break;
@@ -408,6 +765,8 @@ namespace gb
                    {
                        squareone.lengthclock();
                        squaretwo.lengthclock();
+                       wave.lengthclock();
+                       noise.lengthclock();
                    }
                    break;
                    case 5: break;
@@ -416,12 +775,15 @@ namespace gb
                        squareone.sweepclock();
                        squareone.lengthclock();
                        squaretwo.lengthclock();
+                       wave.lengthclock();
+                       noise.lengthclock();
                    }
                    break;
                    case 7:
                    {
                        squareone.envclock();
                        squaretwo.envclock();
+                       noise.envclock();
                    }
                    break;
                }
@@ -434,6 +796,8 @@ namespace gb
            
            squareone.step();
            squaretwo.step();
+           wave.step();
+           noise.step();
            
            if (--samplecounter <= 0)
            {

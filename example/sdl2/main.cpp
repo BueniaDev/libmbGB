@@ -91,12 +91,24 @@ void APU::mixaudio()
         SDL_MixAudioFormat((Uint8*)&bufferin0, (Uint8*)&bufferin1, AUDIO_F32SYS, sizeof(float), volume);
     }
     
+    if (leftenables[2])
+    {
+        bufferin1 = wave.getoutputvol();
+        SDL_MixAudioFormat((Uint8*)&bufferin0, (Uint8*)&bufferin1, AUDIO_F32SYS, sizeof(float), volume);
+    }
+    
+    if (leftenables[3])
+    {
+        bufferin1 = noise.getoutputvol();
+        SDL_MixAudioFormat((Uint8*)&bufferin0, (Uint8*)&bufferin1, AUDIO_F32SYS, sizeof(float), volume);
+    }
+    
     mainbuffer[bufferfillamount] = bufferin0;
     
     bufferin0 = 0;
     bufferin1 = 0;
     volume = (128 * rightvol) / 7;
-    
+
     if (rightenables[0])
     {
         bufferin1 = squareone.getoutputvol();
@@ -106,6 +118,18 @@ void APU::mixaudio()
     if (rightenables[1])
     {
         bufferin1 = squaretwo.getoutputvol();
+        SDL_MixAudioFormat((Uint8*)&bufferin0, (Uint8*)&bufferin1, AUDIO_F32SYS, sizeof(float), volume);
+    }
+    
+    if (rightenables[2])
+    {
+        bufferin1 = wave.getoutputvol();
+        SDL_MixAudioFormat((Uint8*)&bufferin0, (Uint8*)&bufferin1, AUDIO_F32SYS, sizeof(float), volume);
+    }
+    
+    if (rightenables[3])
+    {
+        bufferin1 = noise.getoutputvol();
         SDL_MixAudioFormat((Uint8*)&bufferin0, (Uint8*)&bufferin1, AUDIO_F32SYS, sizeof(float), volume);
     }
     
