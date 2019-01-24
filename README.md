@@ -75,7 +75,7 @@ If you want to contribute to libmbGB, please take a look at the [Contributor's G
 
 This project is licensed under the GNU GPL v3. For more information, see the included LICENSE file.
 
-(C) 2018 Buenia. This project is not affiliated in any way with Nintendo. Game Boy is a registered trademark of Nintendo Co., Ltd.
+(C) 2019 Buenia. This project is not affiliated in any way with Nintendo. Game Boy is a registered trademark of Nintendo Co., Ltd.
 
 
 

@@ -3,8 +3,12 @@
 #include <fstream>
 #include <cstring>
 #include <vector>
+#include <sys/types.h>
+#include <sys/stat.h>
 using namespace gb;
 using namespace std;
+
+struct stat info;
 
 namespace gb
 {
@@ -53,6 +57,8 @@ namespace gb
 	    cout << endl;
 	    return false;
 	}
+    
+    romname = argv[1];
 
 	for (int i = 2; i < argc; i++)
 	{
@@ -66,27 +72,72 @@ namespace gb
 		else
 		{
 		    coremmu.biosload = true;
+            biosname = argv[i + 1];
 		}
 	    }
 	}
 
 	return true;
     }
+    
+    void DMGCore::loadstate(string id)
+    {
+        paused = true;
+        
+        string memstate = romname + id + ".mbmem";
+        string cpustate = romname + id + ".mbcpu";
+        
+        if (!coremmu.loadmmu(memstate))
+        {
+            return;
+        }
+        
+        if (!corecpu.loadcpu(cpustate))
+        {
+            return;
+        }
+        
+        cout << "Loaded state of " << romname << " from files " << memstate << " and " << cpustate << endl;
+        
+        paused = false;
+        coreapu.reset();
+    }
+    
+    void DMGCore::savestate(string id)
+    {
+        string memstate = romname + id + ".mbmem";
+        string cpustate = romname + id + ".mbcpu";
+        
+        if (!coremmu.savemmu(memstate))
+        {
+            return;
+        }
+        
+        if (!corecpu.savecpu(cpustate))
+        {
+            return;
+        }
+        
+        cout << "Saved state of " << romname << " to files " << memstate << " and " << cpustate << endl;
+    }
 
     void DMGCore::runcore()
     {
-	corecpu.m_cycles = 0;
-	int maxcycles = 69905;
-	while (corecpu.m_cycles < maxcycles)
-	{
-	    int corecycles = corecpu.m_cycles;
-	    corecpu.dointerrupts();
-	    corecpu.executenextopcode();
-	    int cycles = corecpu.m_cycles - corecycles;
+        if (!paused)
+        {
+            corecpu.m_cycles = 0;
+            int maxcycles = 69905;
+            while (corecpu.m_cycles < maxcycles)
+            {
+                int corecycles = corecpu.m_cycles;
+                corecpu.dointerrupts();
+                corecpu.executenextopcode();
+                int cycles = corecpu.m_cycles - corecycles;
       
-        coretimers.updatetimers(cycles);
-		coregpu.updategraphics(cycles);
-        coreapu.updateaudio(cycles);
-	    }
+                coretimers.updatetimers(cycles);
+                coregpu.updategraphics(cycles);
+                coreapu.updateaudio(cycles);
+            }
+        }
 	}
 }

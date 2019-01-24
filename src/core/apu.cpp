@@ -23,11 +23,22 @@ namespace gb
         
         squareone.timer = 0;
         squareone.timerload = 0;
+        squareone.volume = 0;
+        squareone.volumeload = 0;
         
         squaretwo.timer = 0;
         squaretwo.timerload = 0;
+        squaretwo.volume = 0;
+        squaretwo.volumeload = 0;
         
-        cout << "Input::Initialized" << endl;
+        wave.timer = 0;
+        wave.timerload = 0;
+        wave.volumecode = 0;
+        
+        noise.volume = 0;
+        noise.volumeload = 0;
+        
+        cout << "APU::Initialized" << endl;
     }
     
     uint8_t APU::readapu(uint16_t address)

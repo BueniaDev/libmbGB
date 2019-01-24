@@ -2,6 +2,8 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_audio.h>
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <cstdio>
 #include <string>
 using namespace gb;
@@ -12,6 +14,8 @@ SDL_Renderer *render;
 
 DMGCore core;
 
+int stateid = 0;
+
 bool initSDL()
 {
     if (SDL_Init(SDL_INIT_VIDEO) < 0)
@@ -20,7 +24,7 @@ bool initSDL()
         return false;
     }
     
-    window = SDL_CreateWindow("mbGB", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 320, 288, SDL_WINDOW_SHOWN);
+    window = SDL_CreateWindow("mbGB-SDL2", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 320, 288, SDL_WINDOW_SHOWN);
     
     if (window == NULL)
     {
@@ -74,6 +78,11 @@ void drawpixels()
 
 void APU::mixaudio()
 {
+    if (core.paused)
+    {
+        return;
+    }
+    
     float bufferin0 = 0;
     float bufferin1 = 0;
     
@@ -139,6 +148,11 @@ void APU::mixaudio()
 
 void APU::outputaudio()
 {
+    if (core.paused)
+    {
+        return;
+    }
+    
     if (bufferfillamount >= 4096)
     {
         bufferfillamount = 0;
@@ -160,6 +174,32 @@ void stopSDL()
     SDL_Quit();
 }
 
+void pause()
+{
+    core.paused = true;
+    SDL_PauseAudio(1);
+}
+
+void resume()
+{
+    core.paused = false;
+    drawpixels();
+    SDL_PauseAudio(0);
+}
+
+void changestate(int id)
+{
+    stateid = id;
+    cout << "Save slot changed to slot " << stateid << endl;
+}
+
+string inttostring(int val)
+{
+    stringstream ss;
+    ss << val;
+    return ss.str();
+}
+
 void handleinput(SDL_Event& event)
 {
     if (event.type == SDL_KEYDOWN)
@@ -175,6 +215,14 @@ void handleinput(SDL_Event& event)
             case SDLK_SPACE: key = 5; break;
             case SDLK_a: key = 6; break;
             case SDLK_b: key = 7; break;
+            case SDLK_p: pause(); break;
+            case SDLK_r: resume(); break;
+            case SDLK_s: pause(); core.savestate(inttostring(stateid)); resume(); break;
+            case SDLK_l: pause(); core.loadstate(inttostring(stateid)); resume(); break;
+            case SDLK_0: changestate(0); break;
+            case SDLK_1: changestate(1); break;
+            case SDLK_2: changestate(2); break;
+            case SDLK_3: changestate(3); break;
         }
         if (key != -1)
         {
@@ -211,19 +259,15 @@ int main(int argc, char* argv[])
 
     bool initialized = true;
     
-    string romname = argv[1];
-    string biosname;
-    
-    if (!core.loadROM(romname))
+    if (!core.loadROM(core.romname))
     {
 	initialized = false;
     }
     
     if (core.coremmu.biosload == true)
     {
-        biosname = argv[3];
         core.corecpu.resetBIOS();
-        if (!core.loadBIOS(biosname))
+        if (!core.loadBIOS(core.biosname))
         {
             initialized = false;
         }
@@ -255,12 +299,21 @@ int main(int argc, char* argv[])
                 quit = true;
             }
         }
-
+        
+        if (core.paused)
+        {
+            SDL_PauseAudio(1);
+        }
+        else
+        {
+            SDL_PauseAudio(0);
+        }
+        
         core.runcore();
         drawpixels();
         
     }
-    
+
     stopSDL();
 
     return 0;

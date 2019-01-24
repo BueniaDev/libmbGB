@@ -4,6 +4,7 @@
 #include "libmbgb_api.h"
 #include "input.h"
 #include "apu.h"
+#include "utils.h"
 #include <cstdint>
 using namespace std;
 
@@ -23,8 +24,12 @@ namespace gb
         uint8_t currentrambank = 0;
         uint8_t higherrombankbits = 0;
         uint8_t specialrombanks[4] = {0x00, 0x20, 0x40, 0x60};
+        uint8_t specialmbc3banks[4] = {0x00};
 
 	    bool biosload;
+        
+            bool loadmmu(string filename);
+            bool savemmu(string filename);
 
             void reset();
 	    void resetmem();
@@ -54,6 +59,12 @@ namespace gb
 
 	    uint8_t mbc1read(uint16_t address);
 	    void mbc1write(uint16_t address, uint8_t value);
+        uint8_t mbc2read(uint16_t address);
+        void mbc2write(uint16_t address, uint8_t value);
+        uint8_t mbc3read(uint16_t address);
+        void mbc3write(uint16_t address, uint8_t value);
+        uint8_t mbc5read(uint16_t address);
+        void mbc5write(uint16_t address, uint8_t value);
 
 	    Input *joypad;
         APU *audio;

@@ -54,6 +54,7 @@ namespace gb
 	        int half = 5;
     	        int carry = 4;
 
+        bool paused;
 		bool halted;
 
 		int m_bytes;
@@ -62,6 +63,9 @@ namespace gb
 		bool interruptmaster;
 		bool interruptdelay;
 		bool skipinstruction;
+        
+        bool loadcpu(string filename);
+        bool savecpu(string filename);
 
 		void dointerrupts();
 		void requestinterrupt(int id);

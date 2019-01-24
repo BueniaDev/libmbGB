@@ -17,6 +17,44 @@ namespace gb
     {
         cout << "MMU::Shutting down..." << endl;
     }
+    
+    bool MMU::loadmmu(string filename)
+    {
+        fstream file(filename.c_str(), ios::in | ios::binary);
+        
+        if (!file.is_open())
+        {
+            cout << "Error opening memory state" << endl;
+            return false;
+        }
+        
+        file.read((char*)&memorymap[0], 0x10000);
+        file.read((char*)&cartmem[0], 0x200000);
+        file.close();
+        return true;
+    }
+    
+    bool MMU::savemmu(string filename)
+    {
+        if (fexists(filename))
+        {
+            cout << "File already exists" << endl;
+            return false;
+        }
+        
+        fstream file(filename.c_str(), ios::out | ios::binary);
+        
+        if (!file.is_open())
+        {
+            cout << "Error opening save state" << endl;
+            return false;
+        }
+        
+        file.write((const char*)&memorymap, 0x10000);
+        file.write((const char*)&cartmem, 0x200000);
+        file.close();
+        return true;
+    }
 
     void MMU::reset()
     {
@@ -83,6 +121,9 @@ namespace gb
         {
             case 0: return memorymap[address]; break;
             case 1: return mbc1read(address); break;
+            case 2: return mbc2read(address); break;
+            case 3: return mbc3read(address); break;
+            case 5: return mbc5read(address); break;
         }
 	}
     else if ((address >= 0xA000) && (address < 0xC000))
@@ -102,6 +143,9 @@ namespace gb
             }
             break;
             case 1: return mbc1read(address); break;
+            case 2: return mbc2read(address); break;
+            case 3: return mbc3read(address); break;
+            case 5: return mbc5read(address); break;
         }
     }
 	else if (address == 0xFF00)
@@ -134,6 +178,9 @@ namespace gb
         {
             case 0: return; break;
             case 1: mbc1write(address, value); break;
+            case 2: mbc2write(address, value); break;
+            case 3: mbc3write(address, value); break;
+            case 5: mbc5write(address, value); break;
         }
     }
     else if ((address >= 0xA000) && (address < 0xC000))
@@ -153,6 +200,9 @@ namespace gb
             }
             break;
             case 1: mbc1write(address, value); break;
+            case 2: mbc2write(address, value); break;
+            case 3: mbc3write(address, value); break;
+            case 5: mbc5write(address, value); break;
         }
     }
 	else if ((address >= 0xE000) && (address < 0xFE00))
@@ -220,6 +270,16 @@ namespace gb
             case 1: temp = 1; cout << "Type: MBC1" << endl; break;
             case 2: temp = 1; cout << "Type: MBC1 + RAM" << endl; break;
             case 3: temp = 1; cout << "Type: MBC1 + RAM + BATTERY" << endl; break;
+            case 5: temp = 2; cout << "Type: MBC2" << endl; break;
+            case 6: temp = 2; cout << "Type: MBC2 + BATTERY" << endl; break;
+            case 8: temp = 0; cout << "Type: ROM + RAM" << endl; break;
+            case 9: temp = 0; cout << "Type: ROM + RAM + BATTERY" << endl; break;
+            case 17: temp = 3; cout << "Type: MBC3" << endl; break;
+            case 18: temp = 3; cout << "Type: MBC3 + RAM" << endl; break;
+            case 19: temp = 3; cout << "Type: MBC3 + RAM + BATTERY" << endl; break;
+            case 25: temp = 5; cout << "Type: MBC5" << endl; break;
+            case 26: temp = 5; cout << "Type: MBC5 + RAM" << endl; break;
+            case 27: temp = 5; cout << "Type: MBC5 + RAM + BATTERY" << endl; break;
         }
         
         return temp;
@@ -241,6 +301,8 @@ namespace gb
     
     int MMU::getrombanks(uint8_t romval)
     {
+        bool ismbc1 = ((cartmem[0x0147] >= 1) && (cartmem[0x0147] <= 3)) ? true : false;
+        
         int banks = 0;
         switch (romval)
         {
@@ -249,6 +311,12 @@ namespace gb
             case 2: banks = 8; cout << "Size: 128 KB" << endl;break;
             case 3: banks = 16; cout << "Size: 256 KB" << endl; break;
             case 4: banks = 32; cout << "Size: 512 KB" << endl; break;
+            case 5: banks = ismbc1 ? 63 : 64; cout << "Size: 1 MB" << endl; break;
+            case 6: banks = ismbc1 ? 125: 128; cout << "Size: 2 MB" << endl; break;
+            case 7: banks = 256; cout << "Size: 4 MB" << endl; break;
+            case 82: banks = 72; cout << "Size: 1.1 MB" << endl; break;
+            case 83: banks = 80; cout << "Size: 1.2 MB" << endl; break;
+            case 84: banks = 96; cout << "Size: 1.5 MB" << endl; break;
         }
         
         return banks;
