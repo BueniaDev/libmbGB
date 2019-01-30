@@ -6,7 +6,7 @@ A library, you ask? Yes, in fact. And because libmbGB is a dependency-free libra
 
 # Examples
 
-The libmbGB repo includes an example project.
+The libmbGB repo includes 2 example projects, one of them an SDL2 renderer, the other a headless renderer.
 
 # Building libmbGB
 
@@ -25,7 +25,7 @@ To build the library, simply run the following commands:
 
 `mkdir build && cd build`
 
-`cmake .. -G "Unix Makefiles -DBUILD_EXAMPLE="<ON/OFF>"`
+`cmake .. -G "Unix Makefiles -DBUILD_EXAMPLE="<ON/OFF> -DBUILD_HEADLESS="<ON/OFF>"`
 
 `make -j4`
 
@@ -56,14 +56,14 @@ To build the library, simply run the following commands:
 
 `mkdir build && cd build`
 
-`cmake .. -G "MSYS Makefiles -DBUILD_EXAMPLE="<ON/OFF>"`
+`cmake .. -G "MSYS Makefiles -DBUILD_EXAMPLE="<ON/OFF> -DBUILD_HEADLESS="<ON/OFF>"`
 
 `mingw32-make -j4`
 
 
 ## Notes for Building
 
-Building the example requires SDL2 to be findable by CMake.
+Building the SDL2 renderer requires SDL2 to be findable by CMake.
 
 ## Development
 
@@ -75,7 +75,7 @@ If you want to contribute to libmbGB, please take a look at the [Contributor's G
 
 This project is licensed under the GNU GPL v3. For more information, see the included LICENSE file.
 
-(C) 2018 Buenia. This project is not affiliated in any way with Nintendo. Game Boy is a registered trademark of Nintendo Co., Ltd.
+(C) 2019 Buenia. This project is not affiliated in any way with Nintendo. Game Boy is a registered trademark of Nintendo Co., Ltd.
 
 
 

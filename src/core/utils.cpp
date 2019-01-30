@@ -1,5 +1,6 @@
 #include "../../include/libmbGB/utils.h"
 #include <sstream>
+#include <algorithm>
 using namespace std;
 
 bool TestBit(uint8_t reg, int bit)
@@ -27,6 +28,12 @@ uint8_t BitSetTo(uint8_t reg, int bit, bool set)
     return set ? (reg | (1 << bit)) : (reg & ~(1 << bit));
 }
 
+bool fexists(string filename)
+{
+    ifstream file(filename.c_str());
+    return (bool)file;
+}
+
 string tohexstring(uint32_t val)
 {
     stringstream temp;
@@ -51,6 +58,18 @@ string tohexstring(uint32_t val)
         temp << "0x" << hex << uppercase << val; 
     }
     return temp.str();
+}
+
+string regtostring(string regname, string reg)
+{
+    stringstream temp;
+    temp << regname << "=" << reg << endl;
+    return temp.str();
+}
+
+string booltostring(bool val)
+{
+    return val ? "true" : "false";
 }
 
 string getmnemonic(uint8_t opcode, uint16_t nn, uint8_t n)
