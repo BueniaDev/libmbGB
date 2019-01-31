@@ -55,7 +55,10 @@ bool initSDL()
 
 void APU::mixaudio()
 {
-    float bufferin = 0;
+    float bufferin0 = 0;
+    float bufferin1 = 0;
+    
+    int volume = (128 * leftvol) / 7;
     
     float sound1 = squareone.getoutputvol();
     float sound2 = squaretwo.getoutputvol();
@@ -64,57 +67,60 @@ void APU::mixaudio()
     
     if (leftenables[0])
     {
-        bufferin += sound1;
+        bufferin1 = sound1;
+        SDL_MixAudioFormat((Uint8*)&bufferin0, (Uint8*)&bufferin1, AUDIO_F32SYS, sizeof(float), volume);
     }
     
     if (leftenables[1])
     {
-        bufferin += sound2;
+        bufferin1 = sound2;
+        SDL_MixAudioFormat((Uint8*)&bufferin0, (Uint8*)&bufferin1, AUDIO_F32SYS, sizeof(float), volume);
     }
     
     if (leftenables[2])
     {
-        bufferin += sound3;
+        bufferin1 = sound3;
+        SDL_MixAudioFormat((Uint8*)&bufferin0, (Uint8*)&bufferin1, AUDIO_F32SYS, sizeof(float), volume);
     }
     
     if (leftenables[3])
     {
-        bufferin += sound4;
+        bufferin1 = sound4;
+        SDL_MixAudioFormat((Uint8*)&bufferin0, (Uint8*)&bufferin1, AUDIO_F32SYS, sizeof(float), volume);
     }
     
-    bufferin *= leftvol / 1.4f;
+    mainbuffer[bufferfillamount] = bufferin0;
     
-    bufferin /= 4.0f;
+    bufferin0 = 0;
+    bufferin1 = 0;
     
-    mainbuffer[bufferfillamount] = bufferin;
-    
-    bufferin = 0;
+    volume = (128 * rightvol) / 7;
     
     if (rightenables[0])
     {
-        bufferin += sound1;
+        bufferin1 = sound1;
+        SDL_MixAudioFormat((Uint8*)&bufferin0, (Uint8*)&bufferin1, AUDIO_F32SYS, sizeof(float), volume);
     }
     
     if (rightenables[1])
     {
-        bufferin += sound2;
+        bufferin1 = sound2;
+        SDL_MixAudioFormat((Uint8*)&bufferin0, (Uint8*)&bufferin1, AUDIO_F32SYS, sizeof(float), volume);
     }
     
     if (rightenables[2])
     {
-        bufferin += sound3;
+        bufferin1 = sound3;
+        SDL_MixAudioFormat((Uint8*)&bufferin0, (Uint8*)&bufferin1, AUDIO_F32SYS, sizeof(float), volume);
     }
     
     if (rightenables[3])
     {
-        bufferin += sound4;
+        bufferin1 = sound4;
+        SDL_MixAudioFormat((Uint8*)&bufferin0, (Uint8*)&bufferin1, AUDIO_F32SYS, sizeof(float), volume);
     }
     
-    bufferin *= rightvol / 1.4f;
-    
-    bufferin /= 4.0f;
-    
-    mainbuffer[bufferfillamount + 1] = bufferin;
+    mainbuffer[bufferfillamount + 1] = bufferin0;
     
     bufferfillamount += 2;
 }
