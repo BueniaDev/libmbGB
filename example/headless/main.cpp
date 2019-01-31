@@ -1,4 +1,6 @@
 #include "../../include/libmbGB/libmbgb.h"
+#define NULL_AUDIO
+#include "../../audio-backends/null/backend.h"
 #include <iostream>
 #include <cstdio>
 #include <string>
@@ -8,16 +10,6 @@ using namespace std;
 
 char kp;
 DMGCore core;
-
-void APU::mixaudio()
-{
-    
-}
-
-void APU::outputaudio()
-{
-    
-}
 
 int main(int argc, char* argv[])
 {

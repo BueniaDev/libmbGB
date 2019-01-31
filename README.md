@@ -2,7 +2,7 @@
 
 libmbGB is a GameBoy emulation library written in C++11.
 
-A library, you ask? Yes, in fact. And because libmbGB is a dependency-free library, it means that the emulation logic and the GUI logic of an emulator made with this library are seperate. In addition, as long as the target platform has a C++11 compiler, that platform can use libmbGB.
+A library, you ask? Yes, in fact. And because libmbGB is a dependency-free library (apart from seperate audio backends), it means that the emulation logic and the video logic of an emulator made with this library are seperate. In addition, as long as the target platform has a C++11 compiler, that platform can use libmbGB.
 
 # Examples
 
@@ -10,7 +10,7 @@ The libmbGB repo includes 2 example projects, one of them an SDL2 renderer, the 
 
 # Building libmbGB
 
-libmbGB does not rely on any additional libraries as dependencies. However, it does require a C++11 compiler and CMake. 
+libmbGB does not rely on any additional libraries as hard dependencies. However, it does require a C++11 compiler and CMake, as well as SDL2 for the optional SDL2 audio backend.
 
 ## Building on OSX & Linux:
 
@@ -25,7 +25,7 @@ To build the library, simply run the following commands:
 
 `mkdir build && cd build`
 
-`cmake .. -G "Unix Makefiles -DBUILD_EXAMPLE="<ON/OFF> -DBUILD_HEADLESS="<ON/OFF>"`
+`cmake .. -G "Unix Makefiles -DBUILD_EXAMPLE="<ON/OFF> -DBUILD_HEADLESS="<ON/OFF>" -DENABLE_AUDIO="<ON/OFF>"`
 
 `make -j4`
 
@@ -56,14 +56,18 @@ To build the library, simply run the following commands:
 
 `mkdir build && cd build`
 
-`cmake .. -G "MSYS Makefiles -DBUILD_EXAMPLE="<ON/OFF> -DBUILD_HEADLESS="<ON/OFF>"`
+`cmake .. -G "MSYS Makefiles -DBUILD_EXAMPLE="<ON/OFF> -DBUILD_HEADLESS="<ON/OFF>" -DENABLE_AUDIO="<ON/OFF>"`
 
-`mingw32-make -j4`
+`make -j4`
 
 
 ## Notes for Building
 
-Building the SDL2 renderer requires SDL2 to be findable by CMake.
+libmbGB has 2 audio backends seperate from the main code, an SDL2 backend, and a null backend. 
+
+In addition, building the SDL2 renderer and SDL2 audio backend both require SDL2 to be findable by CMake.
+
+In order to build the SDL2 audio backend, pass the `-DENABLE_AUDIO="ON"` and the `-DSDL2_AUDIO="ON"` flags to CMake.
 
 ## Development
 

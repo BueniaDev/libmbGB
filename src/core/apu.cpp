@@ -804,14 +804,12 @@ namespace gb
            wave.step();
            noise.step();
            
-           #ifdef UNIX_AUDIO
            if (--samplecounter <= 0)
            {
                samplecounter = 95;
                mixaudio();
            }
            outputaudio();
-           #endif // UNIX_AUDIO
         }
     }
 }
