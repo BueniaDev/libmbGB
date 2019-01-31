@@ -1,10 +1,8 @@
 cmake_minimum_required(VERSION 2.8.11)
 project(libmbGB)
 
-if (NOT WIN32)
-	option(BUILD_EXAMPLE "Enables the example renderer (requires SDL2)." OFF)
-	option(BUILD_HEADLESS "Enables headless example project." OFF)
-endif()
+option(BUILD_EXAMPLE "Enables the example renderer (requires SDL2)." OFF)
+option(BUILD_HEADLESS "Enables headless example project." OFF)
 
 if (WIN32)
 	message(STATUS "Operating system is Windows.")
