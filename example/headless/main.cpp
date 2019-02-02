@@ -1,6 +1,6 @@
 #include "../../include/libmbGB/libmbgb.h"
 #define NULL_AUDIO
-#include "../../audio-backends/null/backend.h"
+#include "../../audio-backends/null/nullbackend.h"
 #include <iostream>
 #include <cstdio>
 #include <string>

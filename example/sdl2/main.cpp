@@ -1,7 +1,12 @@
 #include "../../include/libmbGB/libmbgb.h"
 #include <SDL2/SDL.h>
 #define SDL2_AUDIO
-#include "../../audio-backends/sdl2/backend.h"
+#ifdef NULL_AUDIO
+	#include "../../audio-backends/null/nullbackend.h"
+#endif // NULL_AUDIO
+#ifdef SDL2_AUDIO
+	#include "../../audio-backends/sdl2/sdl2backend.h"
+#endif // SDL2_AUDIO
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -34,7 +39,7 @@ bool initSDL()
         return false;
     }
     
-    render = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
+    render = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
     
     if (render == NULL)
     {
@@ -42,7 +47,9 @@ bool initSDL()
         return false;
     }
     
-    initsdl2audio();
+    #ifdef SDL2_AUDIO
+	initsdl2audio();
+    #endif // SDL2_AUDIO
     
     return true;
 }
@@ -71,7 +78,9 @@ void drawpixels()
 
 void stopSDL()
 {
-    deinitsdl2audio();
+    #ifdef SDL2_AUDIO
+	deinitsdl2audio();
+    #endif // SDL2_AUDIO
     SDL_DestroyRenderer(render);
     SDL_DestroyWindow(window);
     SDL_Quit();
@@ -82,7 +91,7 @@ void pause()
     core.paused = true;
     #ifdef SDL2_AUDIO
 	SDL_PauseAudio(1);
-    #endif
+    #endif // SDL2_AUDIO
 }
 
 void resume()

@@ -812,4 +812,70 @@ namespace gb
            outputaudio();
         }
     }
+
+    void APU::mixaudio()
+    {
+        float bufferin = 0;
+    
+        float sound1 = squareone.getoutputvol();
+        float sound2 = squaretwo.getoutputvol();
+        float sound3 = wave.getoutputvol();
+        float sound4 = noise.getoutputvol();
+    
+        if (leftenables[0])
+        {
+            bufferin += sound1;
+        }
+    
+        if (leftenables[1])
+        {
+            bufferin += sound2;
+        }
+    
+        if (leftenables[2])
+        {
+            bufferin += sound3;
+        }
+    
+        if (leftenables[3])
+        {
+            bufferin += sound4;
+        }
+    
+        bufferin *= leftvol / 1.4f;
+    
+        bufferin /= 4.0f;
+    
+        mainbuffer[bufferfillamount] = bufferin;
+    
+        bufferin = 0;
+    
+        if (rightenables[0])
+        {
+            bufferin += sound1;
+        }
+    
+        if (rightenables[1])
+        {
+            bufferin += sound2;
+        }
+    
+        if (rightenables[2])
+        {
+            bufferin += sound3;
+        }
+    
+        if (rightenables[3])
+        {
+            bufferin += sound4;
+        }
+    
+        bufferin *= rightvol / 1.4f;
+    
+        bufferin /= 4.0f;
+    
+        mainbuffer[bufferfillamount + 1] = bufferin;
+    
+        bufferfillamount += 2;
+    }
 }

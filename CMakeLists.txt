@@ -32,8 +32,8 @@ set(LIBMBGB_API_HEADERS
 	include/libmbGB/input.h
 	include/libmbGB/timers.h
 	include/libmbGB/libmbgb.h
-	audio-backends/null/backend.h
-	audio-backends/sdl2/backend.h)
+	audio-backends/null/nullbackend.h
+	audio-backends/sdl2/sdl2backend.h)
 
 set(LIBMBGB
 	src/core/mmu.cpp	
@@ -46,8 +46,8 @@ set(LIBMBGB
 	src/core/input.cpp
 	src/core/timers.cpp
 	src/core/libmbgb.cpp
-	audio-backends/null/backend.cpp
-	audio-backends/sdl2/backend.cpp)
+	audio-backends/null/nullbackend.cpp
+	audio-backends/sdl2/sdl2backend.cpp)
 
 if (BUILD_EXAMPLE STREQUAL "ON")
 	add_subdirectory(example/sdl2)
@@ -60,7 +60,7 @@ endif()
 if (WIN32)
 	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 		if ((ENABLE_AUDIO STREQUAL "ON") AND (SDL2_AUDIO STREQUAL "ON"))	
-			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11 -Wno-format-security -DSDL2_AUDIO")			
+			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11 -Wno-format-security -DLIBMBGB_EXPORTS -DSDL2_AUDIO")			
 			message(STATUS "SDL2 audio backend selected.")
 		else()
 			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11 -Wno-format-security -DNULL_AUDIO")
@@ -116,7 +116,11 @@ if ((ENABLE_AUDIO STREQUAL "ON") AND (SDL2_AUDIO STREQUAL "ON"))
 	include_directories(${SDL2_INCLUDE_DIRS})
 endif()
 
-add_library(mbGB ${LIBMBGB} ${LIBMBGB_API_HEADERS})
+if (WIN32)
+	add_library(mbGB SHARED ${LIBMBGB} ${LIBMBGB_API_HEADERS})
+else()
+	add_library(mbGB ${LIBMBGB} ${LIBMBGB_API_HEADERS})
+endif()
 add_library(libmbGB ALIAS mbGB)
 
 if ((ENABLE_AUDIO STREQUAL "ON") AND (SDL2_AUDIO STREQUAL "ON"))

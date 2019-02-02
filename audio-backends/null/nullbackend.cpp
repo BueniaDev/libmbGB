@@ -1,6 +1,6 @@
 #ifdef NULL_AUDIO
 
-#include "backend.h"
+#include "nullbackend.h"
 using namespace gb;
 
 namespace gb
@@ -15,14 +15,12 @@ namespace gb
 
     }
 
-    void APU::mixaudio()
-    {
-
-    }
-
     void APU::outputaudio()
     {
-
+        if (bufferfillamount >= 4096)
+        {
+	bufferfillamount = 0;
+        }
     }
 }
 

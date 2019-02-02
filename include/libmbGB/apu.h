@@ -15,10 +15,8 @@ namespace gb
         
         void reset();
         void updateaudio(int cycles);
-        #ifdef UNIX_AUDIO
-        void mixaudio(); // Must be defined with your audio API of choice
-        void outputaudio(); // Must be defined with your audio API of choie
-        #endif // UNIX_AUDIO
+        void mixaudio();
+        void outputaudio();
         
         int frametimer;
         int framesequencer;
