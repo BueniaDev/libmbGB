@@ -1,4 +1,4 @@
-#ifdef NULL_AUDIO
+#ifdef OPENAL_AUDIO
 
 #include "nullbackend.h"
 using namespace gb;
@@ -24,4 +24,4 @@ namespace gb
     }
 }
 
-#endif // NULL_AUDIO
+#endif // OPENAL_AUDIO

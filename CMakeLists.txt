@@ -33,7 +33,8 @@ set(LIBMBGB_API_HEADERS
 	include/libmbGB/timers.h
 	include/libmbGB/libmbgb.h
 	audio-backends/null/nullbackend.h
-	audio-backends/sdl2/sdl2backend.h)
+	audio-backends/sdl2/sdl2backend.h
+	audio-backends/openal/openalbackend.h)
 
 set(LIBMBGB
 	src/core/mmu.cpp	

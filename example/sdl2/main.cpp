@@ -227,7 +227,11 @@ int main(int argc, char* argv[])
         }
 	#endif // SDL2_AUDIO
         
-        core.runcore();
+        while (!core.coregpu.newvblank)
+        {
+            core.runcore();
+        }
+        core.coregpu.newvblank = false;
         drawpixels();
         
     }

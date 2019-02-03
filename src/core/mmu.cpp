@@ -99,6 +99,16 @@ namespace gb
 	    return;
 	}
     }
+    
+    uint8_t MMU::readDirectly(uint16_t address)
+    {
+        return memorymap[address];
+    }
+    
+    void MMU::writeDirectly(uint16_t address, uint8_t value)
+    {
+        memorymap[address] = value;
+    }
 
     uint8_t MMU::readByte(uint16_t address)
     {
@@ -167,7 +177,7 @@ namespace gb
 	    return 0xFF;
 	}
 
-	return memorymap[address];
+	return readDirectly(address);
     }
 
     void MMU::writeByte(uint16_t address, uint8_t value)
@@ -241,7 +251,7 @@ namespace gb
 	}
     else
     {
-        memorymap[address] = value;
+        writeDirectly(address, value);
     }
     }
 

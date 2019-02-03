@@ -34,6 +34,8 @@ namespace gb
             void reset();
 	    void resetmem();
 
+            uint8_t readDirectly(uint16_t address);
+            void writeDirectly(uint16_t address, uint8_t value);
             uint8_t readByte(uint16_t address);
             void writeByte(uint16_t address, uint8_t value);
             uint16_t readWord(uint16_t address);

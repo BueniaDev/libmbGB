@@ -1,4 +1,4 @@
-#ifdef NULL_AUDIO
+#ifdef OPENAL_AUDIO
 
 #include "../../include/libmbGB/apu.h"
 #include "../../include/libmbGB/libmbgb_api.h"
@@ -10,4 +10,4 @@ namespace gb
     void LIBMBGB_API deinitaudio();
 }
 
-#endif // NULL_AUDIO
+#endif // OPENAL_AUDIO
