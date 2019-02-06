@@ -1,7 +1,7 @@
 #ifndef LIBMBGB_API_H
 #define LIBMBGB_API_H
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(LIBMBGB_STATIC)
     #ifdef LIBMBGB_EXPORTS
         #define LIBMBGB_API __declspec(dllexport)
     #else

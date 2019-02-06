@@ -11,7 +11,8 @@ os:
   - linux
   - osx
 script: 
-  - "mkdir build && cd build"
-  - "cmake .. -G \"Unix Makefiles\""
-  - "make -j4"
+  - mkdir build && cd build
+  - cmake .. -G "Unix Makefiles" -DBUILD_HEADLESS="ON"
+  - make -j4
+
 

@@ -1,21 +1,27 @@
-#include "../include/libmbGB/libmbgb.h"
+#include "../../include/libmbGB/libmbgb.h"
 #include <SDL2/SDL.h>
+#define SDL2_AUDIO
+#ifdef NULL_AUDIO
+	#include "../../audio-backends/null/nullbackend.h"
+#endif // NULL_AUDIO
+#ifdef SDL2_AUDIO
+	#include "../../audio-backends/sdl2/sdl2backend.h"
+#endif // SDL2_AUDIO
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <cstdio>
 #include <string>
 using namespace gb;
 using namespace std;
+
 
 SDL_Window *window;
 SDL_Renderer *render;
 
 DMGCore core;
 
-int total = 0;
-int timer = 0;
-int current = 0;
-int counter = 0;
-bool first = true;
+int stateid = 0;
 
 bool initSDL()
 {
@@ -25,7 +31,7 @@ bool initSDL()
         return false;
     }
     
-    window = SDL_CreateWindow("mbGB", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 320, 288, SDL_WINDOW_SHOWN);
+    window = SDL_CreateWindow("mbGB-SDL2", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 320, 288, SDL_WINDOW_SHOWN);
     
     if (window == NULL)
     {
@@ -33,13 +39,17 @@ bool initSDL()
         return false;
     }
     
-    render = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
+    render = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
     
     if (render == NULL)
     {
         cout << "Renderer could not be created! SDL_Error: " << SDL_GetError() << endl;
         return false;
     }
+    
+    #ifdef SDL2_AUDIO
+	initsdl2audio();
+    #endif // SDL2_AUDIO
     
     return true;
 }
@@ -68,29 +78,42 @@ void drawpixels()
 
 void stopSDL()
 {
+    #ifdef SDL2_AUDIO
+	deinitsdl2audio();
+    #endif // SDL2_AUDIO
     SDL_DestroyRenderer(render);
     SDL_DestroyWindow(window);
     SDL_Quit();
 }
 
-
-void checkfps()
+void pause()
 {
-    if (first)
-    {
-        first = false;
-        timer = SDL_GetTicks();
-    }
-    
-    counter++;
-    current = SDL_GetTicks();
-    
-    if ((timer + 1000) < current)
-    {
-        timer = current;
-        total = counter;
-        counter = 0;
-    }
+    core.paused = true;
+    #ifdef SDL2_AUDIO
+	SDL_PauseAudio(1);
+    #endif // SDL2_AUDIO
+}
+
+void resume()
+{
+    core.paused = false;
+    drawpixels();
+    #ifdef SDL2_AUDIO
+	SDL_PauseAudio(0);
+    #endif
+}
+
+void changestate(int id)
+{
+    stateid = id;
+    cout << "Save slot changed to slot " << stateid << endl;
+}
+
+string inttostring(int val)
+{
+    stringstream ss;
+    ss << val;
+    return ss.str();
 }
 
 void handleinput(SDL_Event& event)
@@ -108,6 +131,14 @@ void handleinput(SDL_Event& event)
             case SDLK_SPACE: key = 5; break;
             case SDLK_a: key = 6; break;
             case SDLK_b: key = 7; break;
+            case SDLK_p: pause(); break;
+            case SDLK_r: resume(); break;
+            case SDLK_s: pause(); core.savestate(inttostring(stateid)); resume(); break;
+            case SDLK_l: pause(); core.loadstate(inttostring(stateid)); resume(); break;
+            case SDLK_0: changestate(0); break;
+            case SDLK_1: changestate(1); break;
+            case SDLK_2: changestate(2); break;
+            case SDLK_3: changestate(3); break;
         }
         if (key != -1)
         {
@@ -144,22 +175,18 @@ int main(int argc, char* argv[])
 
     bool initialized = true;
     
-    string romname = argv[1];
-    string biosname;
-    
-    if (!core.loadROM(romname))
+    if (!core.loadROM(core.romname))
     {
 	initialized = false;
     }
     
     if (core.coremmu.biosload == true)
     {
-        biosname = argv[3];
         core.corecpu.resetBIOS();
-        if (!core.loadBIOS(biosname))
-	{
-	    initialized = false;
-	}
+        if (!core.loadBIOS(core.biosname))
+        {
+            initialized = false;
+        }
     }
 
     if (!initSDL())
@@ -177,11 +204,6 @@ int main(int argc, char* argv[])
     bool quit = false;
     SDL_Event ev;
     
-    float fps = 60;
-    float interval = 1000 / fps;
-    
-    unsigned int time2 = SDL_GetTicks();
-    
     while (!quit)
     {
         while (SDL_PollEvent(&ev))
@@ -193,18 +215,27 @@ int main(int argc, char* argv[])
                 quit = true;
             }
         }
-
-        unsigned int current = SDL_GetTicks();
         
-        if ((time2 + interval) < current)
+	#ifdef SDL2_AUDIO
+        if (core.paused)
         {
-            checkfps();
-            core.runcore();
-            drawpixels();
-            time2 = current;
+            SDL_PauseAudio(1);
         }
+        else
+        {
+            SDL_PauseAudio(0);
+        }
+	#endif // SDL2_AUDIO
+        
+        while (!core.coregpu.newvblank)
+        {
+            core.runcore();
+        }
+        core.coregpu.newvblank = false;
+        drawpixels();
+        
     }
-    
+
     stopSDL();
 
     return 0;

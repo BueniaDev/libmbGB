@@ -1,5 +1,6 @@
 #include "../../include/libmbGB/cpu.h"
 #include <iostream>
+#include <fstream>
 using namespace std;
 using namespace gb;
 
@@ -15,6 +16,70 @@ namespace gb
 	    cout << "CPU::Shutting down..." << endl;
 	}
 
+    bool CPU::loadcpu(string filename)
+    {
+        fstream file(filename.c_str(), ios::in | ios::binary);
+        
+        if (!file.is_open())
+        {
+            cout << "Error opening save state" << endl;
+            return false;
+        }
+        
+        file.read((char*)&af.hi, sizeof(af.hi));
+        file.read((char*)&af.lo, sizeof(af.lo));
+        file.read((char*)&bc.hi, sizeof(bc.hi));
+        file.read((char*)&bc.lo, sizeof(bc.lo));
+        file.read((char*)&de.hi, sizeof(de.hi));
+        file.read((char*)&de.lo, sizeof(de.lo));
+        file.read((char*)&hl.hi, sizeof(hl.hi));
+        file.read((char*)&hl.lo, sizeof(hl.lo));
+        file.read((char*)&pc, sizeof(pc));
+        file.read((char*)&sp, sizeof(sp));
+        file.read((char*)&m_cycles, sizeof(m_cycles));
+        file.read((char*)&halted, sizeof(halted));
+        file.read((char*)&interruptmaster, sizeof(interruptmaster));
+        file.read((char*)&interruptdelay, sizeof(interruptdelay));
+        file.read((char*)&skipinstruction, sizeof(skipinstruction));
+        file.close();
+        return true;
+    }
+
+    bool CPU::savecpu(string filename)
+    {
+        if (fexists(filename))
+        {
+            cout << "File already exists" << endl;
+            return false;
+        }
+        
+        fstream file(filename.c_str(), ios::out | ios::binary);
+        
+        if (!file.is_open())
+        {
+            cout << "Error opening cpu state" << endl;
+            return false;
+        }
+        
+        file.write((const char*)&af.hi, sizeof(af.hi));
+        file.write((const char*)&af.lo, sizeof(af.lo));
+        file.write((const char*)&bc.hi, sizeof(bc.hi));
+        file.write((const char*)&bc.lo, sizeof(bc.lo));
+        file.write((const char*)&de.hi, sizeof(de.hi));
+        file.write((const char*)&de.lo, sizeof(de.lo));
+        file.write((const char*)&hl.hi, sizeof(hl.hi));
+        file.write((const char*)&hl.lo, sizeof(hl.lo));
+        file.write((const char*)&pc, sizeof(pc));
+        file.write((const char*)&sp, sizeof(sp));
+        file.write((const char*)&m_cycles, sizeof(m_cycles));
+        file.write((const char*)&halted, sizeof(halted));
+        file.write((const char*)&interruptmaster, sizeof(interruptmaster));
+        file.write((const char*)&interruptdelay, sizeof(interruptdelay));
+        file.write((const char*)&skipinstruction, sizeof(skipinstruction));
+
+        file.close();
+        return true;
+    }
 
 	void CPU::reset()
 	{
@@ -25,8 +90,8 @@ namespace gb
 	    pc = 0x0100;
 	    sp = 0xFFFE;
 
-	    stopped = false;
 	    halted = false;
+        paused = false;
 
 	    interruptmaster = false;
 	    interruptdelay = false;
@@ -47,8 +112,8 @@ namespace gb
 	    pc = 0x0000;
 	    sp = 0x0000;
 
-	    stopped = false;
 	    halted = false;
+        paused = false;
 
 	    interruptmaster = false;
 	    interruptdelay = false;
@@ -148,7 +213,7 @@ namespace gb
 
 	void CPU::executenextopcode()
 	{
-	    uint8_t opcode = mem->readByte(pc);	    
+        uint8_t opcode = mem->readByte(pc);	    
 
 	    if (halted)
 	    {
@@ -219,8 +284,6 @@ namespace gb
 
 	void CPU::stop()
 	{
-	    stopped = true;
-	    halted = true;
 	    pc++;
 	}
 
