@@ -17,7 +17,8 @@ namespace gb
 
     void GPU::reset()
     {
-	scanlinecounter = 0;	
+	scanlinecounter = 0;
+    windowlinecounter = 0;
 	clearscreen();
 
 	cout << "GPU::Initialized" << endl;
@@ -35,130 +36,150 @@ namespace gb
 
     void GPU::updategraphics(int cycles)
     {
-	setlcdstatus();
-	
-	if (!TestBit(gmem->memorymap[0xFF40], 7))
-	{
-	    return;
-	}
-
-	scanlinecounter += cycles;
-
-	uint8_t status = gmem->readByte(0xFF41);
-
-	if (scanlinecounter >= 456)
-	{
-	    uint8_t scanline = gmem->memorymap[0xFF44];
-
-	    if (scanline == 144)
-	    {
-		uint8_t req = gmem->readByte(0xFF0F);
-		req = BitSet(req, 0);
-		gmem->writeByte(0xFF0F, req);
-	    }
-	    else if (scanline == 154)
-	    {
-		gmem->memorymap[0xFF44] = 0xFF;
-	    }
-	    else if (scanline < 144)
-	    {
-		drawscanline();
-	    }
-
-	    gmem->memorymap[0xFF44] += 1;
-
-	    if (scanline == gmem->readByte(0xFF45))
-	    {
-		status = BitSet(status, 2);
-	    }
-	    else
-	    {
-		status = BitReset(status, 2);
-	    }
-
-	    if (TestBit(status, 2) && TestBit(status, 6))
-	    {
-		uint8_t req = gmem->readByte(0xFF0F);
-		req = BitSet(req, 1);
-		gmem->writeByte(0xFF0F, req);
-	    }
-	
-	    status |= 0x80;
-	    scanlinecounter -= 456;
-	}
-
-	gmem->writeByte(0xFF41, status);
+        uint8_t stat = gmem->memorymap[0xFF41];
+        uint8_t mode = stat & 0x3;
+        
+        scanlinecounter += cycles;
+        
+        if (!TestBit(gmem->memorymap[0xFF40], 7))
+        {
+            scanlinecounter = 0;
+            gmem->memorymap[0xFF44] = 0;
+            windowlinecounter = 0;
+            mode = 0;
+            stat &= 0xFC;
+            return;
+        }
+        
+        switch (mode)
+        {
+            case 0:
+            {
+                if (scanlinecounter >= 204)
+                {
+                    scanlinecounter = 0;
+                    gmem->memorymap[0xFF44]++;
+                    
+                    checklyc();
+                    
+                    if (gmem->memorymap[0xFF44] == 144)
+                    {
+                        mode = 1;
+                        if (TestBit(stat, 4))
+                        {
+                            uint8_t req = gmem->readByte(0xFF0F);
+                            req = BitSet(req, 1);
+                            gmem->writeByte(0xFF0F, req);
+                        }
+                        
+                        
+                        uint8_t req = gmem->readByte(0xFF0F);
+                        req = BitSet(req, 0);
+                        gmem->writeByte(0xFF0F, req);
+                        
+                        newvblank = true;
+                    }
+                    else
+                    {
+                        mode = 2;
+                        if (TestBit(stat, 5))
+                        {
+                            uint8_t req = gmem->readByte(0xFF0F);
+                            req = BitSet(req, 1);
+                            gmem->writeByte(0xFF0F, req);
+                        }
+                    }
+                }
+            }
+            break;
+            case 1:
+            {
+                if (scanlinecounter >= 456)
+                {
+                    scanlinecounter = 0;
+                    gmem->memorymap[0xFF44] += 1;
+                    
+                    checklyc();
+                    
+                    if (gmem->memorymap[0xFF44] == 153)
+                    {
+                        gmem->memorymap[0xFF44] = 0;
+                        windowlinecounter = 0;
+                        checklyc();
+                    }
+                    else if (gmem->memorymap[0xFF44] == 1)
+                    {
+                        mode = 2;
+                        if (TestBit(stat, 5))
+                        {
+                            uint8_t req = gmem->readByte(0xFF0F);
+                            req = BitSet(req, 1);
+                            gmem->writeByte(0xFF0F, req);
+                        }
+                        gmem->memorymap[0xFF44] = 0;
+                    }
+                }
+            }
+            break;
+            case 2:
+            {
+                if (scanlinecounter >= 80)
+                {
+                    scanlinecounter = 0;
+                    mode = 3;
+                }
+            }
+            break;
+            case 3:
+            {
+                if (scanlinecounter >= 172)
+                {
+                    scanlinecounter = 0;
+                    mode = 0;
+                    
+                    if (TestBit(stat, 3))
+                    {
+                        uint8_t req = gmem->readByte(0xFF0F);
+                        req = BitSet(req, 1);
+                        gmem->writeByte(0xFF0F, req);
+                    }
+                    
+                    drawscanline();
+                }
+            }
+            break;
+            default: break;
+        }
+        
+        stat &= 0xFC;
+        stat |= mode;
+        
+        gmem->writeDirectly(0xFF41, stat);
     }
-
-    void GPU::setlcdstatus()
+    
+    void GPU::checklyc()
     {
-	uint8_t status = gmem->readByte(0xFF41);
-	uint8_t mode = 0;
-
-	if (!TestBit(gmem->memorymap[0xFF40], 7))
-	{
-	    mode = 1;
-	    status = BitSet(status, 0);
-	    status = BitReset(status, 1);
-	    status |= 0x80;
-	    status &= 0xF8;
-	    gmem->writeByte(0xFF41, status);
-	    gmem->memorymap[0xFF44] = 0;
-	    scanlinecounter = 0;
-	    return;
-	}
-
-	uint8_t scanline = gmem->memorymap[0xFF44];
-	uint8_t currentmode = (status & 0x3);
-
-	bool reqint = false;
-
-	if (scanline >= 144)
-	{
-	    mode = 1;
-	    status = BitSet(status, 0);
-	    status = BitReset(status, 1);
-	    status |= 0x80;
-	    reqint = TestBit(status, 4);
-	}
-	else
-	{
-	    int mode2bounds = (456 - 80);
-	    int mode3bounds = (mode2bounds - 172);
-	    if ((scanlinecounter >= mode2bounds) && (scanlinecounter <= 456))
-	    {
-		mode = 2;
-		status = BitReset(status, 0);
-		status = BitSet(status, 1);
-		status |= 0x80;
-		reqint = TestBit(status, 5);
-	    }
-	    else if ((scanlinecounter >= mode3bounds) && (scanlinecounter < mode2bounds))
-	    {
-		mode = 3;
-		status = BitSet(status, 0);
-		status = BitSet(status, 1);
-		status |= 0x80;
-	    }
-	    else
-	    {
-		mode = 0;
-		status = BitReset(status, 0);
-		status = BitReset(status, 1);
-		status |= 0x80;
-		reqint = TestBit(status, 3);
-	    }
-	}
-
-	if (reqint && (mode != currentmode))
-	{
-	    uint8_t req = gmem->readByte(0xFF0F);
-	    req = BitSet(req, 1);
-	    gmem->writeByte(0xFF0F, req);
-	}
-
-	gmem->writeByte(0xFF41, status);
+        uint8_t stat = gmem->readDirectly(0xFF41);
+        
+        if (gmem->memorymap[0xFF44] == gmem->memorymap[0xFF45])
+        {
+            stat |= 0x4;
+        }
+        else
+        {
+            stat &= 0xFB;
+        }
+        
+        if (TestBit(stat, 6) && TestBit(stat, 2))
+        {
+            uint8_t req = gmem->readByte(0xFF0F);
+            req = BitSet(req, 1);
+            gmem->writeByte(0xFF0F, req);
+        }
+        
+        gmem->writeDirectly(0xFF41, stat);
     }
+
 
     void GPU::drawscanline()
     {
