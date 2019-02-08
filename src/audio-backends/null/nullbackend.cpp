@@ -1,6 +1,6 @@
 #ifdef NULL_AUDIO
 
-#include "nullbackend.h"
+#include "../../../include/audio-backends/null/nullbackend.h"
 using namespace gb;
 
 namespace gb
@@ -19,7 +19,7 @@ namespace gb
     {
         if (bufferfillamount >= 4096)
         {
-	bufferfillamount = 0;
+	    bufferfillamount = 0;
         }
     }
 }

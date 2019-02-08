@@ -10,6 +10,6 @@ As such, coding style is very important when making commits.
 ### General rules
 
 * Make sure to fork the official repoistory before making any commits.
-* Do not, under any circumstances, introduce new dependencies or platform-specific code into the core library.
+* Don't introduce new dependencies or platform-specific code into the core library (unless the code is part of the audio backend code, which resides in the include/audio-backend and src/audio-backend folders).
 * Use namespaces often.
 * Once you are done making any commits, submit the forked repository as a pull request.

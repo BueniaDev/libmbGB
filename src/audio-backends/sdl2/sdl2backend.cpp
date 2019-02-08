@@ -1,6 +1,6 @@
 #ifdef SDL2_AUDIO
 
-#include "sdl2backend.h"
+#include "../../../include/audio-backends/sdl2/sdl2backend.h"
 using namespace gb;
 
 namespace gb

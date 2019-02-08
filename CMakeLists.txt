@@ -32,8 +32,8 @@ set(LIBMBGB_API_HEADERS
 	include/libmbGB/input.h
 	include/libmbGB/timers.h
 	include/libmbGB/libmbgb.h
-	audio-backends/null/nullbackend.h
-	audio-backends/sdl2/sdl2backend.h)
+	include/audio-backends/null/nullbackend.h
+	include/audio-backends/sdl2/sdl2backend.h)
 
 set(LIBMBGB
 	src/core/mmu.cpp	
@@ -46,8 +46,8 @@ set(LIBMBGB
 	src/core/input.cpp
 	src/core/timers.cpp
 	src/core/libmbgb.cpp
-	audio-backends/null/nullbackend.cpp
-	audio-backends/sdl2/sdl2backend.cpp)
+	src/audio-backends/null/nullbackend.cpp
+	src/audio-backends/sdl2/sdl2backend.cpp)
 
 if (BUILD_EXAMPLE STREQUAL "ON")
 	add_subdirectory(example/sdl2)

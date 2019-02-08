@@ -1,7 +1,7 @@
 #ifdef SDL2_AUDIO
 
-#include "../../include/libmbGB/apu.h"
-#include "../../include/libmbGB/libmbgb_api.h"
+#include "../../libmbGB/apu.h"
+#include "../../libmbGB/libmbgb_api.h"
 #include <SDL2/SDL.h>
 using namespace gb;
 

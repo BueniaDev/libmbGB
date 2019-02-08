@@ -2,10 +2,10 @@
 #include <SDL2/SDL.h>
 #define SDL2_AUDIO
 #ifdef NULL_AUDIO
-	#include "../../audio-backends/null/nullbackend.h"
+	#include "../../include/audio-backends/null/nullbackend.h"
 #endif // NULL_AUDIO
 #ifdef SDL2_AUDIO
-	#include "../../audio-backends/sdl2/sdl2backend.h"
+	#include "../../include/audio-backends/sdl2/sdl2backend.h"
 #endif // SDL2_AUDIO
 #include <iostream>
 #include <fstream>
@@ -227,12 +227,15 @@ int main(int argc, char* argv[])
         }
 	#endif // SDL2_AUDIO
         
-        while (!core.coregpu.newvblank)
+        if (!core.paused)
         {
-            core.runcore();
+            while (!core.coregpu.newvblank)
+            {
+                core.runcore();
+            }
+            core.coregpu.newvblank = false;
+            drawpixels();
         }
-        core.coregpu.newvblank = false;
-        drawpixels();
         
     }
 

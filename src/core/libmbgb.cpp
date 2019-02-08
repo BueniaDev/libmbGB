@@ -123,21 +123,18 @@ namespace gb
 
     void DMGCore::runcore()
     {
-        if (!paused)
+        corecpu.m_cycles = 0;
+        int maxcycles = 69905;
+        while (corecpu.m_cycles < maxcycles)
         {
-            corecpu.m_cycles = 0;
-            int maxcycles = 69905;
-            while (corecpu.m_cycles < maxcycles)
-            {
-                int corecycles = corecpu.m_cycles;
-                corecpu.dointerrupts();
-                corecpu.executenextopcode();
-                int cycles = corecpu.m_cycles - corecycles;
-      
-                coretimers.updatetimers(cycles);
-                coregpu.updategraphics(cycles);
-                coreapu.updateaudio(cycles);
-            }
+            int corecycles = corecpu.m_cycles;
+            corecpu.dointerrupts();
+            corecpu.executenextopcode();
+            int cycles = corecpu.m_cycles - corecycles;
+    
+            coretimers.updatetimers(cycles);
+            coregpu.updategraphics(cycles);
+            coreapu.updateaudio(cycles);
         }
 	}
 }

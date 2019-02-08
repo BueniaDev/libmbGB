@@ -1,7 +1,7 @@
 #ifdef NULL_AUDIO
 
-#include "../../include/libmbGB/apu.h"
-#include "../../include/libmbGB/libmbgb_api.h"
+#include "../../libmbGB/apu.h"
+#include "../../libmbGB/libmbgb_api.h"
 using namespace gb;
 
 namespace gb
