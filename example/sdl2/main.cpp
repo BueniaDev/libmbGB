@@ -31,7 +31,7 @@ bool initSDL()
         return false;
     }
     
-    window = SDL_CreateWindow("mbGB-SDL2", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 320, 288, SDL_WINDOW_SHOWN);
+    window = SDL_CreateWindow("mbGB-SDL2", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 480, 432, SDL_WINDOW_SHOWN);
     
     if (window == NULL)
     {
@@ -56,14 +56,14 @@ bool initSDL()
 
 void drawpixels()
 {
-    SDL_Rect pixel = {0, 0, 2, 2};
+    SDL_Rect pixel = {0, 0, 3, 3};
 
     for (int i = 0; i < 160; i++)
     {
-        pixel.x = (i * 2);        
+        pixel.x = (i * 3);        
         for (int j = 0; j < 144; j++)
         {
-            pixel.y = (j * 2);
+            pixel.y = (j * 3);
             uint8_t red = core.coregpu.framebuffer[i + (j * 160)].red;
             uint8_t green = core.coregpu.framebuffer[i + (j * 160)].green;
             uint8_t blue = core.coregpu.framebuffer[i + (j * 160)].blue;
@@ -227,15 +227,8 @@ int main(int argc, char* argv[])
         }
 	#endif // SDL2_AUDIO
         
-        if (!core.paused)
-        {
-            while (!core.coregpu.newvblank)
-            {
-                core.runcore();
-            }
-            core.coregpu.newvblank = false;
-            drawpixels();
-        }
+        core.runcore();
+        drawpixels();
         
     }
 

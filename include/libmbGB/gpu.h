@@ -29,7 +29,6 @@ namespace gb
 	    RGB framebuffer[160 * 144];
 
 	    void updategraphics(int cycles);
-        void checklyc();
 	    void setlcdstatus();
 	    
 	    void drawscanline();
@@ -39,9 +38,6 @@ namespace gb
 	    int getcolor(int id, uint16_t palette);
 
 	    int scanlinecounter;
-        int windowlinecounter;
-        uint8_t mode = 0;
-        bool newvblank = false;
     };
 }
 
