@@ -15,6 +15,10 @@
 using namespace gb;
 using namespace std;
 
+const int screenwidth = 160;
+const int screenheight = 144;
+const int scale = 3;
+
 
 SDL_Window *window;
 SDL_Renderer *render;
@@ -31,7 +35,7 @@ bool initSDL()
         return false;
     }
     
-    window = SDL_CreateWindow("mbGB-SDL2", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 480, 432, SDL_WINDOW_SHOWN);
+    window = SDL_CreateWindow("mbGB-SDL2", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, (screenwidth * scale), (screenheight * scale), SDL_WINDOW_SHOWN);
     
     if (window == NULL)
     {
@@ -56,17 +60,17 @@ bool initSDL()
 
 void drawpixels()
 {
-    SDL_Rect pixel = {0, 0, 3, 3};
+    SDL_Rect pixel = {0, 0, scale, scale};
 
-    for (int i = 0; i < 160; i++)
+    for (int i = 0; i < screenwidth; i++)
     {
-        pixel.x = (i * 3);        
-        for (int j = 0; j < 144; j++)
+        pixel.x = (i * scale);        
+        for (int j = 0; j < screenheight; j++)
         {
-            pixel.y = (j * 3);
-            uint8_t red = core.coregpu.framebuffer[i + (j * 160)].red;
-            uint8_t green = core.coregpu.framebuffer[i + (j * 160)].green;
-            uint8_t blue = core.coregpu.framebuffer[i + (j * 160)].blue;
+            pixel.y = (j * scale);
+            uint8_t red = core.coregpu.framebuffer[i + (j * screenwidth)].red;
+            uint8_t green = core.coregpu.framebuffer[i + (j * screenwidth)].green;
+            uint8_t blue = core.coregpu.framebuffer[i + (j * screenwidth)].blue;
             
             SDL_SetRenderDrawColor(render, red, green, blue, 0xFF);
             SDL_RenderFillRect(render, &pixel);
@@ -200,12 +204,18 @@ int main(int argc, char* argv[])
         return 1;
     }
 
+    const Uint32 fps = 60;
+    const Uint32 minframetime = 1000 / fps;
     
     bool quit = false;
     SDL_Event ev;
+    Uint32 starttime;
+    Uint32 lasttime = SDL_GetTicks();
     
     while (!quit)
     {
+        starttime = SDL_GetTicks();
+        
         while (SDL_PollEvent(&ev))
         {
             handleinput(ev);
@@ -227,9 +237,22 @@ int main(int argc, char* argv[])
         }
 	#endif // SDL2_AUDIO
         
-        core.runcore();
-        drawpixels();
+        if (!core.paused)
+        {
+            while (!core.coregpu.newvblank)
+            {
+                core.runcore();
+            }
+            core.coregpu.newvblank = false;
+            drawpixels();
+        }
         
+        if (SDL_GetTicks() - starttime < minframetime)
+        {
+            SDL_Delay(minframetime - (SDL_GetTicks() - starttime));
+        }
+        
+        lasttime = starttime;
     }
 
     stopSDL();
