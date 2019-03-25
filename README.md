@@ -1,4 +1,4 @@
-<img src="https://github.com/Buenia0/libmbGB/blob/apu-refactor/res/libmbgblogo.png" alt="drawing" width="200"/>
+<img src="https://github.com/Buenia0/libmbGB/blob/develop/res/libmbgblogo.png" alt="drawing" width="200"/>
 
 [![Build Status](https://travis-ci.org/Buenia0/libmbGB.svg?branch=master)](https://travis-ci.org/Buenia0/libmbGB)
 
