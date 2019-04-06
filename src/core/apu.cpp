@@ -38,6 +38,8 @@ namespace gb
         noise.volume = 0;
         noise.volumeload = 0;
         
+        powercontrol = true;
+        
         cout << "APU::Initialized" << endl;
     }
     
@@ -85,10 +87,15 @@ namespace gb
                 break;
                 case 0xFF26:
                 {
-                   returndata |= powercontrol << 7;
-                   returndata |= squareone.getrunning() << 0;
-                   returndata |= squaretwo.getrunning() << 1;
-                   returndata |= wave.getrunning() << 2;
+                   if (powercontrol)
+                   {
+                       returndata = (powercontrol << 7);
+                   }
+                   
+                   returndata |= ((squareone.getrunning()) << 0);
+                   returndata |= ((squaretwo.getrunning()) << 1);
+                   returndata |= ((wave.getrunning()) << 2);
+                   returndata |= ((noise.getrunning()) << 3);
                 }
                 break;
             }
@@ -96,6 +103,10 @@ namespace gb
         else if ((address >= 0xFF30) && (address <= 0xFF3F))
         {
             returndata = wave.readreg(address);
+        }
+        else
+        {
+            returndata = 0xFF;
         }
         
         if (address <= 0xFF26)
@@ -108,19 +119,19 @@ namespace gb
     
     void APU::writeapu(uint16_t address, uint8_t value)
     {
-        if ((address >= 0xFF10) && (address <= 0xFF14))
+        if ((address >= 0xFF10) && (address <= 0xFF14) && powercontrol)
         {
             squareone.writereg(address, value);
         }
-        else if ((address >= 0xFF16) && (address <= 0xFF19))
+        else if ((address >= 0xFF16) && (address <= 0xFF19) && powercontrol)
         {
             squaretwo.writereg(address, value);
         }
-        else if ((address >= 0xFF1A) && (address <= 0xFF1E))
+        else if ((address >= 0xFF1A) && (address <= 0xFF1E) && powercontrol)
         {
             wave.writereg(address, value);
         }
-        else if ((address >= 0xFF20) && (address <= 0xFF23))
+        else if ((address >= 0xFF20) && (address <= 0xFF23) && powercontrol)
         {
             noise.writereg(address, value);
         }
@@ -130,6 +141,11 @@ namespace gb
             {
                 case 0xFF24:
                 {
+                    if (!powercontrol)
+                    {
+                        return;
+                    }
+                    
                     rightvol = value & 0x7;
                     vinrightenable = TestBit(value, 3);
                     leftvol = (value >> 4) & 0x7;
@@ -138,6 +154,11 @@ namespace gb
                 break;
                 case 0xFF25:
                 {
+                    if (!powercontrol)
+                    {
+                        return;
+                    }
+                    
                     for (int i = 0; i < 4; i++)
                     {
                         rightenables[i] = TestBit((value >> i), 0);
@@ -153,19 +174,18 @@ namespace gb
                 {
                     if (!TestBit(value, 7))
                     {
-                        for (int i = 0xFF10; i <= 0xFF25; i++)
+                        for (int i = 0xFF10; i < 0xFF26; i++)
                         {
                             writeapu(i, 0);
                         }
                         powercontrol = false;
+                        squareone.enabled = false;
+                        squaretwo.enabled = false;
+                        wave.enabled = false;
+                        noise.enabled = false;
                     }
-                    else if (!powercontrol)
+                    else
                     {
-                        framesequencer = 0;
-                        for (int i = 0; i < 16; i++)
-                        {
-                            wave.writereg(0xFF30 + i, 0);
-                        }
                         powercontrol = true;
                     }
                 }
@@ -230,11 +250,13 @@ namespace gb
                 sweepshift = value & 0x7;
                 sweepnegate = TestBit(value, 3);
                 sweepperiodload = (value >> 4) & 0x7;
+                sweepperiod = sweepperiodload;
             }
             break;
             case 0x1:
             {
                 lengthload = value & 0x3F;
+                lengthcounter = 64 - (lengthload & 0x3F);
                 duty = (value >> 6) & 0x3;
             }
             break;
@@ -251,6 +273,8 @@ namespace gb
             case 0x3:
             {
                 timerload = (timerload & 0x700) | value;
+                
+                timer = ((2048 - timerload) << 2);
             }
             break;
             case 0x4:
@@ -263,6 +287,8 @@ namespace gb
                 {
                     trigger();
                 }
+                
+                timer = ((2048 - timerload) << 2);
             }
             break;
         }
@@ -307,7 +333,7 @@ namespace gb
         }
         else if (address >= 0xFF30 && (address <= 0xFF3F))
         {
-            returndata = waveram[registerval];
+            returndata = waveram[address - 0xFF30];
         }
         
         return returndata;
@@ -357,7 +383,7 @@ namespace gb
         }
         else if (address >= 0xFF30 && (address <= 0xFF3F))
         {
-            waveram[registerval] = value;
+            waveram[address - 0xFF30] = value;
         }
     }
     
@@ -518,6 +544,11 @@ namespace gb
         {
             envelopeperiod = envelopeperiodload;
             
+            if (envelopeperiod == 0)
+            {
+                envelopeperiod = 8;
+            }
+            
             if (enveloperunning && envelopeperiodload > 0)
             {
                 if (envelopeaddmode && volume < 15)
@@ -568,17 +599,17 @@ namespace gb
     
     bool APU::squarewave::getrunning()
     {
-        return lengthcounter > 0;
+        return enabled;
     }
     
     bool APU::wavechannel::getrunning()
     {
-        return lengthcounter > 0;
+        return enabled;
     }
     
     bool APU::noisechannel::getrunning()
     {
-        return lengthcounter > 0;
+        return enabled;
     }
     
     float APU::squarewave::getoutputvol()
@@ -604,7 +635,7 @@ namespace gb
             lengthcounter = 64;
         }
         
-        timer = (2048 - timerload) * 4;
+        timer = ((2048 - timerload) << 2);
         
         enveloperunning = true;
         envelopeperiod = envelopeperiodload;
@@ -656,7 +687,7 @@ namespace gb
     {
         if (--timer <= 0)
         {
-            timer = (2048 - timerload) * 4;
+            timer = ((2048 - timerload) << 2);
             sequencepointer = (sequencepointer + 1) & 0x7;
         }
         
@@ -680,7 +711,7 @@ namespace gb
         if (--timer <= 0)
         {
             timer = (2048 - timerload) * 2;
-            positioncounter = (positioncounter + 1) & 0x1F;
+            positioncounter = (positioncounter + 1) % 32;
             if (enabled && dacenabled)
             {
                 int position = positioncounter / 2;
@@ -738,7 +769,7 @@ namespace gb
     
     void APU::updateaudio(int cycles)
     {   
-        int apucycles = cycles * 1.22;
+        int apucycles = cycles * 1.2;
         
         while (apucycles-- != 0)
         {
@@ -821,7 +852,7 @@ namespace gb
         float sound2 = squaretwo.getoutputvol();
         float sound3 = wave.getoutputvol();
         float sound4 = noise.getoutputvol();
-    
+        
         if (leftenables[0])
         {
             bufferin += sound1;

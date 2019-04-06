@@ -20,6 +20,10 @@ namespace gb
     
     bool MMU::loadmmu(string filename)
     {
+        memset(memorymap, 0, sizeof(memorymap));
+        memset(cartmem, 0, sizeof(cartmem));
+        memset(rambanks, 0, sizeof(rambanks));
+        
         fstream file(filename.c_str(), ios::in | ios::binary);
         
         if (!file.is_open())
@@ -30,18 +34,13 @@ namespace gb
         
         file.read((char*)&memorymap[0], 0x10000);
         file.read((char*)&cartmem[0], 0x200000);
+        file.read((char*)&rambanks[0], 0x8000);
         file.close();
         return true;
     }
     
     bool MMU::savemmu(string filename)
     {
-        if (fexists(filename))
-        {
-            cout << "File already exists" << endl;
-            return false;
-        }
-        
         fstream file(filename.c_str(), ios::out | ios::binary);
         
         if (!file.is_open())
@@ -50,8 +49,9 @@ namespace gb
             return false;
         }
         
-        file.write((const char*)&memorymap, 0x10000);
-        file.write((const char*)&cartmem, 0x200000);
+        file.write((char*)&memorymap[0], 0x10000);
+        file.write((char*)&cartmem[0], 0x200000);
+        file.write((char*)&rambanks[0], 0x8000);
         file.close();
         return true;
     }
@@ -61,10 +61,10 @@ namespace gb
         memset(memorymap, 0, sizeof(memorymap));
         memset(cartmem, 0, sizeof(cartmem));
         memset(rambanks, 0, sizeof(rambanks));
-	memset(bios, 0, sizeof(bios));
+        memset(bios, 0, sizeof(bios));
 
-	biosload = false;
-	resetmem();
+        biosload = false;
+        resetmem();
 
         cout << "MMU::Initialized" << endl;
     }

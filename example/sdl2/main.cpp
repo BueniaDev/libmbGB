@@ -226,7 +226,7 @@ int main(int argc, char* argv[])
             }
         }
         
-	#ifdef SDL2_AUDIO
+        #ifdef SDL2_AUDIO
         if (core.paused)
         {
             SDL_PauseAudio(1);
@@ -235,7 +235,7 @@ int main(int argc, char* argv[])
         {
             SDL_PauseAudio(0);
         }
-	#endif // SDL2_AUDIO
+        #endif // SDL2_AUDIO
         
         if (!core.paused)
         {

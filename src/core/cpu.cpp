@@ -18,6 +18,15 @@ namespace gb
 
     bool CPU::loadcpu(string filename)
     {
+        af.reg = 0x0000;
+	    bc.reg = 0x0000;
+	    de.reg = 0x0000;
+	    hl.reg = 0x0000;
+	    pc = 0x0000;
+	    sp = 0x0000;
+        
+	    m_cycles = 0;
+        
         fstream file(filename.c_str(), ios::in | ios::binary);
         
         if (!file.is_open())
@@ -47,12 +56,6 @@ namespace gb
 
     bool CPU::savecpu(string filename)
     {
-        if (fexists(filename))
-        {
-            cout << "File already exists" << endl;
-            return false;
-        }
-        
         fstream file(filename.c_str(), ios::out | ios::binary);
         
         if (!file.is_open())
@@ -61,21 +64,21 @@ namespace gb
             return false;
         }
         
-        file.write((const char*)&af.hi, sizeof(af.hi));
-        file.write((const char*)&af.lo, sizeof(af.lo));
-        file.write((const char*)&bc.hi, sizeof(bc.hi));
-        file.write((const char*)&bc.lo, sizeof(bc.lo));
-        file.write((const char*)&de.hi, sizeof(de.hi));
-        file.write((const char*)&de.lo, sizeof(de.lo));
-        file.write((const char*)&hl.hi, sizeof(hl.hi));
-        file.write((const char*)&hl.lo, sizeof(hl.lo));
-        file.write((const char*)&pc, sizeof(pc));
-        file.write((const char*)&sp, sizeof(sp));
-        file.write((const char*)&m_cycles, sizeof(m_cycles));
-        file.write((const char*)&halted, sizeof(halted));
-        file.write((const char*)&interruptmaster, sizeof(interruptmaster));
-        file.write((const char*)&interruptdelay, sizeof(interruptdelay));
-        file.write((const char*)&skipinstruction, sizeof(skipinstruction));
+        file.write((char*)&af.hi, sizeof(af.hi));
+        file.write((char*)&af.lo, sizeof(af.lo));
+        file.write((char*)&bc.hi, sizeof(bc.hi));
+        file.write((char*)&bc.lo, sizeof(bc.lo));
+        file.write((char*)&de.hi, sizeof(de.hi));
+        file.write((char*)&de.lo, sizeof(de.lo));
+        file.write((char*)&hl.hi, sizeof(hl.hi));
+        file.write((char*)&hl.lo, sizeof(hl.lo));
+        file.write((char*)&pc, sizeof(pc));
+        file.write((char*)&sp, sizeof(sp));
+        file.write((char*)&m_cycles, sizeof(m_cycles));
+        file.write((char*)&halted, sizeof(halted));
+        file.write((char*)&interruptmaster, sizeof(interruptmaster));
+        file.write((char*)&interruptdelay, sizeof(interruptdelay));
+        file.write((char*)&skipinstruction, sizeof(skipinstruction));
 
         file.close();
         return true;

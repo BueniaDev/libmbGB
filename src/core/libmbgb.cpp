@@ -105,6 +105,8 @@ namespace gb
     
     void DMGCore::savestate(string id)
     {
+        paused = true;
+        
         string memstate = romname + id + ".mbmem";
         string cpustate = romname + id + ".mbcpu";
         
@@ -119,6 +121,7 @@ namespace gb
         }
         
         cout << "Saved state of " << romname << " to files " << memstate << " and " << cpustate << endl;
+        paused = false;
     }
 
     void DMGCore::runcore()
