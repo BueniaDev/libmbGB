@@ -1,88 +1,90 @@
-# libmbGB [![Build Status](https://travis-ci.org/Buenia0/libmbGB.svg?branch=master)](https://travis-ci.org/Buenia0/libmbGB)
+<img src="https://github.com/Buenia0/libmbGB/blob/develop/res/libmbgblogo.png" alt="drawing" width="200"/>
 
-libmbGB is a GameBoy emulation library written in C++11.
+[![Build Status](https://travis-ci.org/Buenia0/libmbGB.svg?branch=master)](https://travis-ci.org/Buenia0/libmbGB)
 
-A library, you ask? Yes, in fact. And because libmbGB is a dependency-free library (apart from seperate audio backends), it means that the emulation logic and the video logic of an emulator made with this library are seperate. In addition, as long as the target platform has a C++11 compiler, that platform can use libmbGB.
+Gameboy emulation library, sorta
 
-# Examples
+The goal here is to do things right and fast (like melonDS). But, also, you know, to have a fun challenge... :)
 
-The libmbGB repo includes 2 example projects, one of them an SDL2 renderer, the other a headless renderer.
+## Building Instructions
 
-# Building libmbGB
+## Mac and Linux:
 
-libmbGB does not rely on any additional libraries as hard dependencies. However, it does require a C++11 compiler and CMake, as well as SDL2 for the optional SDL2 audio backend.
+1. Install dependencies (optional step for example SDL2 renderer and SDL2 audio backend):
 
-## Building on OSX & Linux:
+On Linux:
 
-First, fetch the source:
+`sudo apt install libsdl2-dev`
+
+On Mac:
+
+`brew install sdl2`
+
+2. Fetch the source:
 
 `git clone --recursive https://github.com/Buenia0/libmbGB.git`
 
 `cd libmbGB`
 
-
-To build the library, simply run the following commands:
+3. Compile:
 
 `mkdir build && cd build`
 
-`cmake .. -G "Unix Makefiles -DBUILD_EXAMPLE="<ON/OFF> -DBUILD_HEADLESS="<ON/OFF>" -DENABLE_AUDIO="<ON/OFF>"`
+`cmake .. -G "Unix Makefiles" -DBUILD_EXAMPLE="<ON/OFF>" -DBUILD_HEADLESS="<ON/OFF> -DENABLE_AUDIO="<ON/OFF>" -DSDL2_AUDIO="<ON/OFF>"`
 
 `make -j4`
 
+## Windows:
 
-## Building on Windows:
+Requires MSYS2, which can be installed from their [website.] (http://www.msys2.org/)
 
-To build libmbGB on Windows, MSYS2 is recomended. Follow the installation steps found on their [website.](http://www.msys2.org/)
-Make sure you're running the 32-bit version (mingw32.exe) for 32-bit builds or the 64-bit version (mingw64.exe) for 64-bit builds and then run this additional command to install the needed dependencies:
+1. Install dependencies:
 
 For 32-bit builds:
 
-`pacman -S mingw-w64-i686-toolchain mingw-w64-i686-cmake git`
-
+`pacman -S mingw-w64-i686-toolchain mingw-w64-i686-cmake "mingw-w64-i686-SDL2" git`
 
 For 64-bit builds:
 
-`pacman -S mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake git`
+`pacman -S mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake "mingw-w64-x86_64-SDL2" git `
 
-
-Then fetch the source:
+2. Fetch the source:
 
 `git clone --recursive https://github.com/Buenia0/libmbGB.git`
 
 `cd libmbGB`
 
-
-To build the library, simply run the following commands:
+3. Compile:
 
 `mkdir build && cd build`
 
-`cmake .. -G "MSYS Makefiles -DBUILD_EXAMPLE="<ON/OFF> -DBUILD_HEADLESS="<ON/OFF>" -DENABLE_AUDIO="<ON/OFF>"`
+`cmake .. -G "MSYS Makefiles" -DBUILD_EXAMPLE="<ON/OFF>" -DBUILD_HEADLESS="<ON/OFF>" -DENABLE_AUDIO="<ON/OFF>" -DSDL2_AUDIO="<ON/OFF>"`
 
-`make -j4`
+`mingw32-make -j4`
+
+# Plans
+
+## Near-term
+
+GameBoy Color support
+
+## Medium-term
+
+GameBoy Advance support
+
+## Long-term
+
+Nintendo DS support
 
 
-## Notes for Building
+# License
 
-libmbGB has 2 audio backends seperate from the main code, an SDL2 backend, and a null backend. 
+<img src="https://www.gnu.org/graphics/gplv3-127x51.png" alt="drawing" width="150"/>
 
-In addition, building the SDL2 renderer and SDL2 audio backend both require SDL2 to be findable by CMake.
+libmbGB is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
-In order to build the SDL2 audio backend, pass the `-DENABLE_AUDIO="ON"` and the `-DSDL2_AUDIO="ON"` flags to CMake.
-
-## Development
-
-Most of the development happens on Github. It's also where libmbGB's central repository is located.
-
-If you want to contribute to libmbGB, please take a look at the [Contributor's Guide](https://github.com/Buenia0/libmbGB/blob/master/CONTRIBUTING.md).
-
-## Legal Disclaimers
-
-This project is licensed under the GNU GPL v3. For more information, see the included LICENSE file.
+# Copyright
 
 (C) 2019 Buenia. This project is not affiliated in any way with Nintendo. Game Boy is a registered trademark of Nintendo Co., Ltd.
 
-
-
-
-
-
+For information regarding libmbGB's stance on copyright infringement, see the DISCLAIMER.md file in this repository.

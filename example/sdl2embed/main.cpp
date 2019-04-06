@@ -1,12 +1,5 @@
-#include "../../include/libmbGB/libmbgb.h"
+#include "embed/include/libmbGB/libmbgb.h"
 #include <SDL2/SDL.h>
-#define SDL2_AUDIO
-#ifdef NULL_AUDIO
-	#include "../../include/audio-backends/null/nullbackend.h"
-#endif // NULL_AUDIO
-#ifdef SDL2_AUDIO
-	// #include "../../include/audio-backends/sdl2/sdl2backend.h"
-#endif // SDL2_AUDIO
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -19,13 +12,25 @@ const int screenwidth = 160;
 const int screenheight = 144;
 const int scale = 3;
 
-
 SDL_Window *window;
 SDL_Renderer *render;
 
 DMGCore core;
 
 int stateid = 0;
+
+void APU::outputaudio()
+{
+    if (bufferfillamount >= 4096)
+    {
+        bufferfillamount = 0;
+        while ((SDL_GetQueuedAudioSize(1)) > 4096 * sizeof(float))
+        {
+            SDL_Delay(1);
+        }
+        SDL_QueueAudio(1, mainbuffer, 4096 * sizeof(float));
+    }
+}
 
 bool initSDL()
 {
@@ -51,9 +56,16 @@ bool initSDL()
         return false;
     }
     
-    #ifdef SDL2_AUDIO
-	initsdl2audio();
-    #endif // SDL2_AUDIO
+    SDL_AudioSpec audiospec;
+    audiospec.format = AUDIO_F32SYS;
+    audiospec.freq = 44100;
+    audiospec.samples = 4096;
+    audiospec.channels = 2;
+    audiospec.callback = NULL;
+    
+    SDL_AudioSpec obtainedspec;
+    SDL_OpenAudio(&audiospec, &obtainedspec);
+    SDL_PauseAudio(0);
     
     return true;
 }
@@ -82,9 +94,7 @@ void drawpixels()
 
 void stopSDL()
 {
-    #ifdef SDL2_AUDIO
-	deinitsdl2audio();
-    #endif // SDL2_AUDIO
+    SDL_CloseAudio();
     SDL_DestroyRenderer(render);
     SDL_DestroyWindow(window);
     SDL_Quit();
@@ -93,18 +103,14 @@ void stopSDL()
 void pause()
 {
     core.paused = true;
-    #ifdef SDL2_AUDIO
 	SDL_PauseAudio(1);
-    #endif // SDL2_AUDIO
 }
 
 void resume()
 {
     core.paused = false;
     drawpixels();
-    #ifdef SDL2_AUDIO
 	SDL_PauseAudio(0);
-    #endif
 }
 
 void changestate(int id)
@@ -226,7 +232,6 @@ int main(int argc, char* argv[])
             }
         }
         
-        #ifdef SDL2_AUDIO
         if (core.paused)
         {
             SDL_PauseAudio(1);
@@ -235,7 +240,6 @@ int main(int argc, char* argv[])
         {
             SDL_PauseAudio(0);
         }
-        #endif // SDL2_AUDIO
         
         if (!core.paused)
         {
