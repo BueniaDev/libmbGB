@@ -10,7 +10,7 @@ The goal here is to do things right and fast (like melonDS). But, also, you know
 
 ## Mac and Linux:
 
-1. Install dependencies (optional step for example SDL2 renderer and SDL2 audio backend):
+1. Install dependencies (optional step for example SDL2 renderers and optional SDL2 audio backend):
 
 On Linux:
 
@@ -30,7 +30,15 @@ On Mac:
 
 `mkdir build && cd build`
 
-`cmake .. -G "Unix Makefiles" -DBUILD_EXAMPLE="<ON/OFF>" -DBUILD_HEADLESS="<ON/OFF> -DENABLE_AUDIO="<ON/OFF>" -DSDL2_AUDIO="<ON/OFF>"`
+For the embeddable build:
+
+`cmake .. -G "Unix Makefiles" -DBUILD_EMBED_EXAMPLE="ON"`
+
+`make -j4`
+
+For all other builds:
+
+`cmake .. -G "Unix Makefiles" -DBUILD_EXAMPLE="<ON/OFF>" -DBUILD_HEADLESS="<ON/OFF>" -DENABLE_AUDIO="<ON/OFF>" -DSDL2_AUDIO="<ON/OFF>"`
 
 `make -j4`
 
@@ -48,6 +56,8 @@ For 64-bit builds:
 
 `pacman -S mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake "mingw-w64-x86_64-SDL2" git `
 
+The packages in quotation marks are for the example SDL2 renderers and optional SDL2 audio backend.
+
 2. Fetch the source:
 
 `git clone --recursive https://github.com/Buenia0/libmbGB.git`
@@ -57,6 +67,14 @@ For 64-bit builds:
 3. Compile:
 
 `mkdir build && cd build`
+
+For the embeddable build:
+
+`cmake .. -G "MSYS Makefiles" -DBUILD_EMBED_EXAMPLE="ON"`
+
+`mingw32-make -j4`
+
+For all other builds:
 
 `cmake .. -G "MSYS Makefiles" -DBUILD_EXAMPLE="<ON/OFF>" -DBUILD_HEADLESS="<ON/OFF>" -DENABLE_AUDIO="<ON/OFF>" -DSDL2_AUDIO="<ON/OFF>"`
 
