@@ -84,15 +84,15 @@ For all other builds:
 
 ## Near-term
 
-GameBoy Color support
+Various bugfixes
 
 ## Medium-term
 
-GameBoy Advance support
+GameBoy Color support
 
 ## Long-term
 
-Nintendo DS support
+Link Cable support
 
 
 # License
