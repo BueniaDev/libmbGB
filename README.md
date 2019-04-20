@@ -10,7 +10,7 @@ The goal here is to do things right and fast (like melonDS). But, also, you know
 
 ## Mac and Linux:
 
-1. Install dependencies (optional step for example SDL2 renderers and optional SDL2 audio backend):
+1. Install dependencies (optional step for example SDL2 renderers):
 
 On Linux:
 
@@ -30,15 +30,7 @@ On Mac:
 
 `mkdir build && cd build`
 
-For the embeddable build:
-
-`cmake .. -G "Unix Makefiles" -DBUILD_EMBED_EXAMPLE="ON"`
-
-`make -j4`
-
-For all other builds:
-
-`cmake .. -G "Unix Makefiles" -DBUILD_EXAMPLE="<ON/OFF>" -DBUILD_HEADLESS="<ON/OFF>" -DENABLE_AUDIO="<ON/OFF>" -DSDL2_AUDIO="<ON/OFF>"`
+`cmake .. -G "Unix Makefiles" -DBUILD_EXAMPLE="<ON/OFF>" -DBUILD_HEADLESS="<ON/OFF>"`
 
 `make -j4`
 
@@ -56,7 +48,7 @@ For 64-bit builds:
 
 `pacman -S mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake "mingw-w64-x86_64-SDL2" git `
 
-The packages in quotation marks are for the example SDL2 renderers and optional SDL2 audio backend.
+The packages in quotation marks are for the example SDL2 renderers.
 
 2. Fetch the source:
 
@@ -68,17 +60,9 @@ The packages in quotation marks are for the example SDL2 renderers and optional 
 
 `mkdir build && cd build`
 
-For the embeddable build:
+`cmake .. -G "MSYS Makefiles" -DBUILD_EXAMPLE="<ON/OFF>" -DBUILD_HEADLESS="<ON/OFF>"`
 
-`cmake .. -G "MSYS Makefiles" -DBUILD_EMBED_EXAMPLE="ON"`
-
-`mingw32-make -j4`
-
-For all other builds:
-
-`cmake .. -G "MSYS Makefiles" -DBUILD_EXAMPLE="<ON/OFF>" -DBUILD_HEADLESS="<ON/OFF>" -DENABLE_AUDIO="<ON/OFF>" -DSDL2_AUDIO="<ON/OFF>"`
-
-`mingw32-make -j4`
+`make -j4`
 
 # Plans
 

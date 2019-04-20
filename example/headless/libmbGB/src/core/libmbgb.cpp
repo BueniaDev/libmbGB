@@ -137,7 +137,7 @@ namespace gb
     
             coretimers.updatetimers(cycles);
             coregpu.updategraphics(cycles);
-            coreapu.updateaudio(cycles);
+            coreapu.updateaudio(cycles * 1.22);
         }
 	}
 }

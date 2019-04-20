@@ -256,7 +256,6 @@ namespace gb
             case 0x1:
             {
                 lengthload = value & 0x3F;
-                lengthcounter = 64 - (lengthload & 0x3F);
                 duty = (value >> 6) & 0x3;
             }
             break;
@@ -273,8 +272,6 @@ namespace gb
             case 0x3:
             {
                 timerload = (timerload & 0x700) | value;
-                
-                timer = ((2048 - timerload) << 2);
             }
             break;
             case 0x4:
@@ -287,8 +284,6 @@ namespace gb
                 {
                     trigger();
                 }
-                
-                timer = ((2048 - timerload) << 2);
             }
             break;
         }
@@ -635,7 +630,7 @@ namespace gb
             lengthcounter = 64;
         }
         
-        timer = ((2048 - timerload) << 2);
+        timer = ((2048 - timerload) * 4);
         
         enveloperunning = true;
         envelopeperiod = envelopeperiodload;
@@ -768,10 +763,8 @@ namespace gb
     }
     
     void APU::updateaudio(int cycles)
-    {   
-        int apucycles = cycles * 1.2;
-        
-        while (apucycles-- != 0)
+    {
+        while (cycles-- != 0)
         {
            if (--frametimer <= 0)
            {
