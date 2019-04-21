@@ -1,6 +1,4 @@
-#include "../../include/libmbGB/libmbgb.h"
-#define NULL_AUDIO
-#include "../../include/audio-backends/null/nullbackend.h"
+#include "libmbGB/include/libmbGB/libmbgb.h"
 #include <iostream>
 #include <cstdio>
 #include <string>
@@ -10,6 +8,14 @@ using namespace std;
 
 char kp;
 DMGCore core;
+
+void APU::outputaudio()
+{
+    if (bufferfillamount >= 4096)
+    {
+	bufferfillamount = 0;
+    }
+}
 
 int main(int argc, char* argv[])
 {
