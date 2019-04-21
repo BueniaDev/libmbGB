@@ -751,7 +751,7 @@ namespace gb
 		// Extended ops
 		case 0xCB: executecbopcode(); break;
 
-		default: cout << "Unrecognized opcode at 0x" << hex << (int) opcode << endl;
+		default: cout << "Unrecognized opcode at 0x" << hex << (int) opcode << endl; printvalues(); exit(1); break;
 	    }
 	}
 
@@ -1264,7 +1264,7 @@ namespace gb
 		}
 		break;
 
-		default: cout << "Unrecognized extended opcode at 0xcb" << hex << (int) opcode << endl;
+		default: cout << "Unrecognized extended opcode at 0xcb" << hex << (int) opcode << endl; printvalues(); exit(1); break;
 	    }
 	}
 }

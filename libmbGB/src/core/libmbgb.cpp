@@ -58,7 +58,7 @@ namespace gb
 	    return false;
 	}
     
-    romname = argv[1];
+        romname = argv[1];
 
 	for (int i = 2; i < argc; i++)
 	{
@@ -72,7 +72,7 @@ namespace gb
 		else
 		{
 		    coremmu.biosload = true;
-            biosname = argv[i + 1];
+            	    biosname = argv[i + 1];
 		}
 	    }
 	}
@@ -89,12 +89,12 @@ namespace gb
         
         if (!coremmu.loadmmu(memstate))
         {
-            return;
+            exit(1);
         }
         
         if (!corecpu.loadcpu(cpustate))
         {
-            return;
+            exit(1);
         }
         
         cout << "Loaded state of " << romname << " from files " << memstate << " and " << cpustate << endl;
@@ -112,12 +112,12 @@ namespace gb
         
         if (!coremmu.savemmu(memstate))
         {
-            return;
+            exit(1);
         }
         
         if (!corecpu.savecpu(cpustate))
         {
-            return;
+            exit(1);
         }
         
         cout << "Saved state of " << romname << " to files " << memstate << " and " << cpustate << endl;
@@ -128,16 +128,19 @@ namespace gb
     {
         corecpu.m_cycles = 0;
         int maxcycles = 69905;
-        while (corecpu.m_cycles < maxcycles)
-        {
-            int corecycles = corecpu.m_cycles;
-            corecpu.dointerrupts();
-            corecpu.executenextopcode();
-            int cycles = corecpu.m_cycles - corecycles;
+	if (!paused)
+	{        
+	    while (corecpu.m_cycles < maxcycles)
+            {
+                int corecycles = corecpu.m_cycles;
+                corecpu.dointerrupts();
+                corecpu.executenextopcode();
+                int cycles = corecpu.m_cycles - corecycles;
     
-            coretimers.updatetimers(cycles);
-            coregpu.updategraphics(cycles);
-            coreapu.updateaudio(cycles * 1.22);
-        }
+                coretimers.updatetimers(cycles);
+                coregpu.updategraphics(cycles);
+                coreapu.updateaudio(cycles * 1.22);
+            }
 	}
+    }
 }

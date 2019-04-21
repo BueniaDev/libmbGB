@@ -18,15 +18,8 @@ namespace gb
 
     bool CPU::loadcpu(string filename)
     {
-        af.reg = 0x0000;
-	    bc.reg = 0x0000;
-	    de.reg = 0x0000;
-	    hl.reg = 0x0000;
-	    pc = 0x0000;
-	    sp = 0x0000;
-        
-	    m_cycles = 0;
-        
+        resetBIOS();
+	
         fstream file(filename.c_str(), ios::in | ios::binary);
         
         if (!file.is_open())
@@ -47,6 +40,7 @@ namespace gb
         file.read((char*)&sp, sizeof(sp));
         file.read((char*)&m_cycles, sizeof(m_cycles));
         file.read((char*)&halted, sizeof(halted));
+        file.read((char*)&paused, sizeof(paused));
         file.read((char*)&interruptmaster, sizeof(interruptmaster));
         file.read((char*)&interruptdelay, sizeof(interruptdelay));
         file.read((char*)&skipinstruction, sizeof(skipinstruction));
@@ -76,6 +70,7 @@ namespace gb
         file.write((char*)&sp, sizeof(sp));
         file.write((char*)&m_cycles, sizeof(m_cycles));
         file.write((char*)&halted, sizeof(halted));
+        file.write((char*)&paused, sizeof(paused));
         file.write((char*)&interruptmaster, sizeof(interruptmaster));
         file.write((char*)&interruptdelay, sizeof(interruptdelay));
         file.write((char*)&skipinstruction, sizeof(skipinstruction));
@@ -94,7 +89,7 @@ namespace gb
 	    sp = 0xFFFE;
 
 	    halted = false;
-        paused = false;
+            paused = false;
 
 	    interruptmaster = false;
 	    interruptdelay = false;
@@ -116,7 +111,7 @@ namespace gb
 	    sp = 0x0000;
 
 	    halted = false;
-        paused = false;
+            paused = false;
 
 	    interruptmaster = false;
 	    interruptdelay = false;
@@ -775,5 +770,15 @@ namespace gb
             {
                 pc += regone;
             }
+	}
+
+	void CPU::printvalues()
+	{
+	    cout << "AF: 0x" << hex << (int)(af.reg) << endl;
+	    cout << "BC: 0x" << hex << (int)(bc.reg) << endl;
+	    cout << "DE: 0x" << hex << (int)(de.reg) << endl;
+	    cout << "HL: 0x" << hex << (int)(hl.reg) << endl;
+	    cout << "PC: 0x" << hex << (int)(pc) << endl;
+	    cout << "SP: 0x" << hex << (int)(sp) << endl;
 	}
 }
