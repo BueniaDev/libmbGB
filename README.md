@@ -6,6 +6,22 @@ Gameboy emulation library, sorta
 
 The goal here is to do things right and fast (like melonDS). But, also, you know, to have a fun challenge... :)
 
+## Screenshots
+
+<p align="center">
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/kdl.png" alt="kdl"/>
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/tetris.png" alt="kdl"/>
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/sml.png" alt="kdl"/>
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/poker.png" alt="kdl"/>
+</p>
+
+<p align="center">
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/mm.png" alt="kdl"/>
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/poker2.png" alt="kdl"/>
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/tetris2.png" alt="kdl"/>
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/smlgc.png" alt="kdl"/>
+</p>
+
 ## Building Instructions
 
 ## Mac and Linux:

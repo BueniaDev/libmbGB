@@ -902,4 +902,18 @@ namespace gb
     
         bufferfillamount += 2;
     }
+
+    void APU::outputaudio()
+    {
+	if (bufferfillamount >= 4096)
+	{
+	    bufferfillamount = 0;
+	    audiocallback();
+	}
+    }
+
+    void APU::setaudiocallback(apuoutput cb)
+    {
+	audiocallback = cb;
+    }
 }

@@ -6,7 +6,8 @@
 
 namespace gb
 {
-    
+    typedef void (*apuoutput)();
+
     class LIBMBGB_API APU
     {
     public:
@@ -16,7 +17,9 @@ namespace gb
         void reset();
         void updateaudio(int cycles);
         void mixaudio();
-        void outputaudio();
+	void outputaudio();
+	void setaudiocallback(apuoutput cb);
+        apuoutput audiocallback;
         
         int frametimer;
         int framesequencer;
