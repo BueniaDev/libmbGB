@@ -1,4 +1,4 @@
-#include "libmbGB/include/libmbGB/libmbgb.h"
+#include "../../libmbGB/include/libmbGB/libmbgb.h"
 #include <iostream>
 #include <cstdio>
 #include <string>
@@ -9,16 +9,15 @@ using namespace std;
 char kp;
 DMGCore core;
 
-void APU::outputaudio()
+void headcallback()
 {
-    if (bufferfillamount >= 4096)
-    {
-	bufferfillamount = 0;
-    }
+
 }
 
 int main(int argc, char* argv[])
 {
+    core.coreapu.setaudiocallback((apuoutput)(headcallback));
+
     if (!core.getoptions(argc, argv))
     {
         return 1;

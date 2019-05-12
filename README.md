@@ -6,11 +6,31 @@ Gameboy emulation library, sorta
 
 The goal here is to do things right and fast (like melonDS). But, also, you know, to have a fun challenge... :)
 
+## Screenshots (will fix later)
+
+<p align="center">
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/kdl.png" alt="kdl" width="200"/>
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/tetris.png" alt="tetris" width="200"/>
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/sml.png" alt="sml" width="200"/>
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/poker.png" alt="poker" width="200"/>
+</p>
+
+<p align="center">
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/mm.png" alt="mm" width="200"/>
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/poker2.png" alt="poker2" width="200"/>
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/tetris2.png" alt="tetris2" width="200"/>
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/smlgc.png" alt="smlgc" width="200"/>
+</p>
+
+## Current project status
+
+At this point, libmbGB is able to run many commercial Game Boy titles well and (if the SDL2 renderer is built) with sound. Savestates may be a little buggy, e.g: minor freezes, some "Unrecognized opcode" errors, etc. However, I'm trying to fix those bugs and to improve the overall accuracy of libmbGB, so don't lose hope yet... ;)
+
 ## Building Instructions
 
 ## Mac and Linux:
 
-1. Install dependencies (optional step for example SDL2 renderers):
+1. Install dependencies (optional step for example SDL2 renderer):
 
 On Linux:
 
@@ -36,7 +56,7 @@ On Mac:
 
 ## Windows:
 
-Requires MSYS2, which can be installed from their [website.] (http://www.msys2.org/)
+Requires MSYS2, which can be installed from their [website.](http://www.msys2.org/)
 
 1. Install dependencies:
 
@@ -48,7 +68,7 @@ For 64-bit builds:
 
 `pacman -S mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake "mingw-w64-x86_64-SDL2" git `
 
-The packages in quotation marks are for the example SDL2 renderers.
+The packages in quotation marks are for the example SDL2 renderer.
 
 2. Fetch the source:
 
@@ -68,6 +88,7 @@ The packages in quotation marks are for the example SDL2 renderers.
 
 ## Near-term
 
+Link Cable support
 Various bugfixes
 
 ## Medium-term
@@ -76,8 +97,7 @@ GameBoy Color support
 
 ## Long-term
 
-Link Cable support
-
+Support for GameBoy addons
 
 # License
 

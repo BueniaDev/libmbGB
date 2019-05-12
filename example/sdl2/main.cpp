@@ -1,4 +1,4 @@
-#include "libmbGB/include/libmbGB/libmbgb.h"
+#include "../../libmbGB/include/libmbGB/libmbgb.h"
 #include <SDL2/SDL.h>
 #include <iostream>
 #include <fstream>
@@ -19,22 +19,18 @@ DMGCore core;
 
 int stateid = 0;
 
-void APU::outputaudio()
+void sdlcallback()
 {
-    if (bufferfillamount >= 4096)
+    while ((SDL_GetQueuedAudioSize(1)) > 4096 * sizeof(float))
     {
-        bufferfillamount = 0;
-        while ((SDL_GetQueuedAudioSize(1)) > 4096 * sizeof(float))
-        {
-            SDL_Delay(1);
-        }
-        SDL_QueueAudio(1, mainbuffer, 4096 * sizeof(float));
+        SDL_Delay(1);
     }
+    SDL_QueueAudio(1, core.coreapu.mainbuffer, 4096 * sizeof(float));
 }
 
 bool initSDL()
 {
-    if (SDL_Init(SDL_INIT_VIDEO) < 0)
+    if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
     {
         cout << "SDL could not be initalized! SDL_Error: " << SDL_GetError() << endl;
         return false;
@@ -48,7 +44,7 @@ bool initSDL()
         return false;
     }
     
-    render = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    render = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     
     if (render == NULL)
     {
@@ -103,14 +99,14 @@ void stopSDL()
 void pause()
 {
     core.paused = true;
-	SDL_PauseAudio(1);
+    SDL_PauseAudio(1);
 }
 
 void resume()
 {
     core.paused = false;
     drawpixels();
-	SDL_PauseAudio(0);
+    SDL_PauseAudio(0);
 }
 
 void changestate(int id)
@@ -178,6 +174,8 @@ void handleinput(SDL_Event& event)
 
 int main(int argc, char* argv[])
 {
+    core.coreapu.setaudiocallback((apuoutput)(sdlcallback));   
+
     if (!core.getoptions(argc, argv))
     {
         return 1;
@@ -209,19 +207,12 @@ int main(int argc, char* argv[])
         cout << "Unable to start mbGB." << endl;
         return 1;
     }
-
-    const Uint32 fps = 60;
-    const Uint32 minframetime = 1000 / fps;
     
     bool quit = false;
     SDL_Event ev;
-    Uint32 starttime;
-    Uint32 lasttime = SDL_GetTicks();
     
     while (!quit)
-    {
-        starttime = SDL_GetTicks();
-        
+    {   
         while (SDL_PollEvent(&ev))
         {
             handleinput(ev);
@@ -250,13 +241,6 @@ int main(int argc, char* argv[])
             core.coregpu.newvblank = false;
             drawpixels();
         }
-        
-        if (SDL_GetTicks() - starttime < minframetime)
-        {
-            SDL_Delay(minframetime - (SDL_GetTicks() - starttime));
-        }
-        
-        lasttime = starttime;
     }
 
     stopSDL();
