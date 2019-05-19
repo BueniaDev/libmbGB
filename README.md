@@ -92,7 +92,7 @@ Various bugfixes
 
 ## Medium-term
 
-GameBoy Color support
+Improving existing GameBoy Color support
 
 ## Long-term
 

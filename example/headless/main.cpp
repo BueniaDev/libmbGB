@@ -3,20 +3,21 @@
 #include <cstdio>
 #include <string>
 #include <cstring>
+#include <functional>
 using namespace gb;
 using namespace std;
 
 char kp;
 DMGCore core;
 
-void headcallback()
+void headcallback(float *array)
 {
 
 }
 
 int main(int argc, char* argv[])
 {
-    core.coreapu.setaudiocallback((apuoutput)(headcallback));
+    core.coreapu.setaudiocallback(bind(headcallback, placeholders::_1));
 
     if (!core.getoptions(argc, argv))
     {

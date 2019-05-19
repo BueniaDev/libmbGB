@@ -5,6 +5,7 @@
 #include <sstream>
 #include <cstdio>
 #include <string>
+#include <functional>
 using namespace gb;
 using namespace std;
 
@@ -19,13 +20,13 @@ DMGCore core;
 
 int stateid = 0;
 
-void sdlcallback()
+void sdlcallback(float *array)
 {
     while ((SDL_GetQueuedAudioSize(1)) > 4096 * sizeof(float))
     {
         SDL_Delay(1);
     }
-    SDL_QueueAudio(1, core.coreapu.mainbuffer, 4096 * sizeof(float));
+    SDL_QueueAudio(1, array, 4096 * sizeof(float));
 }
 
 bool initSDL()
@@ -174,7 +175,7 @@ void handleinput(SDL_Event& event)
 
 int main(int argc, char* argv[])
 {
-    core.coreapu.setaudiocallback((apuoutput)(sdlcallback));   
+    core.coreapu.setaudiocallback(bind(sdlcallback, placeholders::_1));   
 
     if (!core.getoptions(argc, argv))
     {
@@ -182,19 +183,23 @@ int main(int argc, char* argv[])
     }
 
     bool initialized = true;
-    
+
     if (!core.loadROM(core.romname))
     {
 	initialized = false;
     }
-    
+
     if (core.coremmu.biosload == true)
-    {
-        core.corecpu.resetBIOS();
-        if (!core.loadBIOS(core.biosname))
+    {	
+	core.corecpu.resetBIOS();	
+	if (!core.loadBIOS(core.biosname))
         {
             initialized = false;
         }
+    }
+    else
+    {
+        core.resetcpu();
     }
 
     if (!initSDL())

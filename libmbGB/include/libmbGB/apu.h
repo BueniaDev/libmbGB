@@ -3,10 +3,12 @@
 
 #include "libmbgb_api.h"
 #include "utils.h"
+#include <functional>
+using namespace std;
 
 namespace gb
 {
-    typedef void (*apuoutput)();
+    using apuoutput = function<void(float *)>;
 
     class LIBMBGB_API APU
     {

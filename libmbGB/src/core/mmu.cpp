@@ -10,7 +10,7 @@ namespace gb
 {
     MMU::MMU()
     {
-        reset();
+	reset();
     }
 
     MMU::~MMU()
@@ -98,6 +98,12 @@ namespace gb
 	{
 	    return;
 	}
+
+	if (isgbcenabled)
+	{
+	    memorymap[0xFF68] = 0xC0;
+	    memorymap[0xFF69] = 0x88;
+	}
     }
     
     uint8_t MMU::readDirectly(uint16_t address)
@@ -110,18 +116,44 @@ namespace gb
         memorymap[address] = value;
     }
 
+    uint8_t MMU::readVram(uint16_t address)
+    {
+	uint16_t offset = (vrambank1 * 0x2000);	
+	return vram[(address - 0x8000) + offset];
+    }
+
+    void MMU::writeVram(uint16_t address, uint8_t value)
+    {	
+	uint16_t offset = (vrambank1 * 0x2000);	
+	vram[(address - 0x8000) + offset] = value;
+    }
+
+    uint8_t MMU::readWram(uint16_t address)
+    {
+	return wram[wrambank][address - 0xD000];
+    }
+
+    void MMU::writeWram(uint16_t address, uint8_t value)
+    {
+	wram[wrambank][address - 0xD000] = value;
+    }
+
     uint8_t MMU::readByte(uint16_t address)
     {
 	if (biosload == true)
 	{        
-	    if (address < 0x0100)
+	    if ((biossize == 0x900) && (address > 0x100) && (address < 0x200))
+	    {
+		return memorymap[address];
+	    }
+	    else if (address == 0x100)
+	    {
+		biosload = false;
+		cout << "MMU::Exiting BIOS..." << endl;
+	    }
+	    else if (address < biossize)
 	    {
 		return bios[address];
-	    }
-	    else if (address == 0x0100)
-	    {
-		biosload = false;		
-		cout << "MMU::Exiting BIOS" << endl;
 	    }
 	}
 	
@@ -135,6 +167,10 @@ namespace gb
             case 3: return mbc3read(address); break;
             case 5: return mbc5read(address); break;
         }
+	}
+	else if ((address >= 0x8000) && (address < 0xA000))
+	{
+	    return readVram(address);
 	}
     else if ((address >= 0xA000) && (address < 0xC000))
     {
@@ -158,6 +194,14 @@ namespace gb
             case 5: return mbc5read(address); break;
         }
     }
+    else if ((address >= 0xC000) && (address < 0xD000))
+    {
+	return wram[0][address - 0xC000];
+    }
+	else if ((address >= 0xD000) && (address < 0xE000))
+	{
+	    return readWram(address);
+	}
 	else if (address == 0xFF00)
 	{
 	    return joypad->getjoypadstate();
@@ -172,10 +216,39 @@ namespace gb
 	{
 	    return audio->readapu(address);
 	}
+	else if ((address >= 0xFE00) && (address < 0xFEA0))
+	{
+	    return memorymap[address];
+	}
 	else if ((address >= 0xFEA0) && (address <= 0xFEFF))
 	{
 	    return 0xFF;
 	}
+	else if (address == 0xFF4F)
+	{
+	    return vrambank1;
+	}
+	else if (address == 0xFF68)
+	{
+	    return gbcbgpalleteindex;
+	}
+	else if (address == 0xFF69)
+	{
+	    return gbcbgpallete[gbcbgpalleteindex];
+	}
+	else if (address == 0xFF6A)
+	{
+	    return gbcobjpalleteindex;
+	}
+	else if (address == 0xFF6B)
+	{
+	    return gbcobjpallete[gbcobjpalleteindex];
+	}
+	else if (address == 0xFF70)
+	{
+	    return (isgbcenabled) ? (uint8_t)(wrambank) : 0xFF;
+	}
+
 
 	return readDirectly(address);
     }
@@ -193,6 +266,10 @@ namespace gb
             case 5: mbc5write(address, value); break;
         }
     }
+	else if ((address >= 0x8000) && (address < 0xA000))
+	{
+	    writeVram(address, value);
+	}
     else if ((address >= 0xA000) && (address < 0xC000))
     {
         switch (mbctype)
@@ -215,10 +292,22 @@ namespace gb
             case 5: mbc5write(address, value); break;
         }
     }
+    else if ((address >= 0xC000) && (address < 0xD000))
+    {
+	wram[0][address - 0xC000] = value;
+    }
+	else if ((address >= 0xD000) && (address < 0xE000))
+	{
+	    writeWram(address, value);
+	}
 	else if ((address >= 0xE000) && (address < 0xFE00))
 	{
 	    memorymap[address] = value;
-	    writeByte(address - 0x2000, value);
+	    writeByte((address - 0x2000), value);
+	}
+	else if ((address >= 0xFE00) && (address < 0xFEA0))
+	{
+	    memorymap[address] = value;
 	}
 	else if ((address >= 0xFEA0) && (address <= 0xFEFF))
 	{
@@ -248,6 +337,129 @@ namespace gb
 	    {
 		memorymap[0xFE00 + i] = readByte(addr + i);
 	    }
+	}
+	else if ((address == 0xFF4D && isgbcenabled))
+	{
+	    value &= 0x1;
+
+	    if (value == 1)
+	    {
+		memorymap[address] |= 0x01;
+	    }
+	    else
+	    {
+		memorymap[address] &= ~0x01;
+	    }
+	}
+	else if (address == 0xFF4F)
+	{
+	    vrambank1 = (isgbcenabled) ? BitGetVal(value, 0) : 0;
+	    memorymap[address] = (!isgbcenabled) ? 0xFF : (value & 0x1);
+	}
+	else if (address == 0xFF51)
+	{
+	    if (!isgbcenabled)
+	    {
+		return;
+	    }
+
+	    hdmasource = (hdmasource & 0xFF) | (value << 8);
+	}
+	else if (address == 0xFF52)
+	{
+	    if (!isgbcenabled)
+	    {
+		return;
+	    }
+
+	    hdmasource = (hdmasource & 0xFF00) | (value & 0xF0);
+	}
+	else if (address == 0xFF53)
+	{
+	    if (!isgbcenabled)
+	    {
+		return;
+	    }
+
+	    hdmadest = (hdmadest & 0xFF) | (((value & 0x1F) | 0x80) << 8);
+	}
+	else if (address == 0xFF54)
+	{
+	    if (!isgbcenabled)
+	    {
+		return;
+	    }
+
+	    hdmadest = (hdmadest & 0xFF00) | (value & 0xF0);
+	}
+	else if (address == 0xFF55)
+	{
+	    if (!isgbcenabled)
+	    {
+		return;
+	    }
+
+	    hdmalength = (value & 0x7F);
+
+	    if (!TestBit(value, 7) && !hdmaactive)
+	    {
+		for (int i = 0; i <= (hdmalength); i++)
+		{
+		    hdmatransfer();
+		}
+
+		hdmalength = 0xFF;
+		hdmaactive = false;
+	    }
+	    else if (!TestBit(value, 7) && hdmaactive)
+	    {
+		hdmaactive = false;
+	    }
+	    else
+	    {
+		hdmaactive = true;
+	    }
+	}
+	else if (address == 0xFF68)
+	{
+	    gbcbgpalleteindex = (value & 0x3F);
+	    gbcbgpallinc = TestBit(value, 7);
+	}
+	else if (address == 0xFF69)
+	{
+	    gbcbgpallete[gbcbgpalleteindex] = value;
+
+	    if (gbcbgpallinc)
+	    {
+		gbcbgpalleteindex = ((gbcbgpalleteindex + 1) & 0x3F);
+	    }
+	}
+	else if (address == 0xFF6A)
+	{
+	    gbcobjpalleteindex = (value & 0x3F);
+	    gbcobjpallinc = TestBit(value, 7);
+	}
+	else if (address == 0xFF6B)
+	{
+	    gbcobjpallete[gbcobjpalleteindex] = value;
+
+	    if (gbcobjpallinc)
+	    {
+		gbcobjpalleteindex = ((gbcobjpalleteindex + 1) & 0x3F);
+	    }
+	}
+	else if (address == 0xFF70)
+	{
+	    if (!isgbcenabled)
+	    {
+		return;
+	    }
+
+	    wrambank = ((value & 0x07) != 0) ? (value & 0x07) : 1;
+	}
+	else if (address == 0xFFFF)
+	{
+	    memorymap[address] = value;
 	}
     else
     {
@@ -284,7 +496,8 @@ namespace gb
             case 6: temp = 2; cout << "Type: MBC2 + BATTERY" << endl; break;
             case 8: temp = 0; cout << "Type: ROM + RAM" << endl; break;
             case 9: temp = 0; cout << "Type: ROM + RAM + BATTERY" << endl; break;
-            case 17: temp = 3; cout << "Type: MBC3" << endl; break;
+            case 16: temp = 3; rtc = true; cout << "Type: MBC3 + TIMER + RAM + BATTERY" << endl; break;
+	    case 17: temp = 3; cout << "Type: MBC3" << endl; break;
             case 18: temp = 3; cout << "Type: MBC3 + RAM" << endl; break;
             case 19: temp = 3; cout << "Type: MBC3 + RAM + BATTERY" << endl; break;
             case 25: temp = 5; cout << "Type: MBC5" << endl; break;
@@ -347,6 +560,17 @@ namespace gb
         return banks;
     }
 
+    void MMU::hdmatransfer()
+    {
+	for (int i = 0; i < 0x10; i++)
+	{
+	    writeByte(hdmadest, readByte(hdmasource));
+
+	    hdmadest += 1;
+	    hdmasource += 1;
+	}
+    }
+
     bool MMU::loadROM(string filename)
     {
 	streampos size;
@@ -367,6 +591,39 @@ namespace gb
         rombanks = getrombanks(cartmem[0x0148]);
         ramsize = getramsize(cartmem[0x0149]);
         rambank = getrambanks(ramsize);
+	uint8_t cgbflag = cartmem[0x0143];
+
+
+	if (((gbtype == 0) || (gbtype == 2)) && !ismanual)
+	{
+	    if (cgbflag == 0x00)
+	    {
+		gbtype = 1;
+	    }
+	    else if (cgbflag == 0x80)
+	    {
+		gbtype = 2;
+	    }
+	    else if (cgbflag == 0xC0)
+	    {
+		gbtype = 2;
+	    }
+	    else
+	    {
+		gbtype = 1;
+	    }
+	}
+
+	if (gbtype == 1)
+	{
+	    isgbcenabled = false;
+	}
+	else
+	{
+	    isgbcenabled = true;
+	}
+
+	cout << "GBC Enabled? " << ((isgbcenabled) ? "Yes" : "No") << endl;
 
 	    if (notmbc == true)
 	    {
@@ -397,16 +654,33 @@ namespace gb
 	{
 	    size = file.tellg();
 
-	    if (size > 256)
+	    if (size == 0x100)
 	    {
-		cout << "MMU::Error - BIOS is too big." << endl;
+		gbtype = 1;
+	    }
+	    else if (size == 0x900)
+	    {
+		gbtype = 0;
+		isgbcbios = true;
+	    }
+	    else
+	    {
+		cout << "MMU::BIOS has an incorrect size of " << size << " bytes." << endl;
 		return false;
 	    }
+
+	    if (isgbcbios)
+	    {
+		isgbcenabled = true;
+	    }
+
+	    biossize = size;
 
 	    file.seekg(0, ios::beg);
 	    file.read((char*)&bios[0], size);
 	    file.close();
 	    cout << "BIOS succesfully loaded." << endl;
+	    biosload = true;
 	    return true;
 	}
 	else

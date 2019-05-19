@@ -1,5 +1,6 @@
 #include "../../include/libmbGB/gpu.h"
 #include <iostream>
+#include <math.h>
 using namespace gb;
 using namespace std;
 
@@ -38,8 +39,12 @@ namespace gb
     {
         uint8_t stat = gmem->memorymap[0xFF41];
         uint8_t mode = stat & 0x3;
-        
-        scanlinecounter += cycles;
+
+	int shift = (gmem->doublespeed) ? 1 : 0;
+
+	cycles >>= shift;
+	
+        scanlinecounter += floorf(cycles);	
         
         if (!TestBit(gmem->memorymap[0xFF40], 7))
         {
@@ -58,8 +63,8 @@ namespace gb
             {
                 if (scanlinecounter >= 204)
                 {
-                    scanlinecounter = 0;
-                    gmem->memorymap[0xFF44]++;
+                    scanlinecounter -= 204;
+                    gmem->memorymap[0xFF44] += 1;
                     
                     checklyc();
                     
@@ -97,7 +102,7 @@ namespace gb
             {
                 if (scanlinecounter >= 456)
                 {
-                    scanlinecounter = 0;
+                    scanlinecounter -= 456;
                     gmem->memorymap[0xFF44]++;
                     
                     checklyc();
@@ -135,8 +140,10 @@ namespace gb
             {
                 if (scanlinecounter >= 172)
                 {
-                    scanlinecounter = 0;
+                    scanlinecounter -= 172;
                     mode = 0;
+
+                    drawscanline();
                     
                     if (TestBit(stat, 3))
                     {
@@ -144,8 +151,16 @@ namespace gb
                         req = BitSet(req, 1);
                         gmem->writeByte(0xFF0F, req);
                     }
-                    
-                    drawscanline();
+
+		    if (gmem->gbtype == 2 && gmem->hdmaactive)
+		    {
+			if ((gmem->hdmalength & 0x7F) == 0)
+			{
+			    gmem->hdmaactive = false;
+			}
+			gmem->hdmatransfer();
+			gmem->hdmalength -= 1;
+		    }
                 }
             }
             break;
@@ -181,7 +196,6 @@ namespace gb
         gmem->writeDirectly(0xFF41, stat);
     }
 
-
     void GPU::drawscanline()
     {
 	uint8_t control = gmem->memorymap[0xFF40];
@@ -197,14 +211,18 @@ namespace gb
 	    uint8_t scanline = gmem->memorymap[0xFF44];
 
 	    // If so, then fill the screen with white
-	    for (int i = 0; i < 160; i++)
+	    if (gmem->gbtype == 1)
 	    {
-            int index = (i + (scanline * 160));
-            framebuffer[index].red = 255;
-            framebuffer[index].green = 255;
-            framebuffer[index].blue = 255;
+	    	for (int i = 0; i < 160; i++)
+	        {
+                    int index = (i + (scanline * 160));
+                    framebuffer[index].red = 255;
+                    framebuffer[index].green = 255;
+                    framebuffer[index].blue = 255;
+	        }
 	    }
-        return;
+
+	    return;
 	}
 
 	uint8_t scrollY = gmem->readByte(0xFF42);
@@ -221,6 +239,7 @@ namespace gb
 	// Which of the current tile's 8 vertical pixels is the scanline on?
 	uint16_t tilerow = (((uint8_t)(ypos / 8)) * 32);
 
+
 	// Start drawing the 160 horizontal pixels for this scanline
 	for (int pixel = 0; pixel < 160; pixel++)
 	{
@@ -233,13 +252,21 @@ namespace gb
 	    // Get the tile identity numbers
 	    uint16_t tileaddr = tilemap + tilerow + tilecol;
 
+	    uint8_t mapattrib = 0;
+
 	    if (unsig) // Is the value signed or unsigned?
 	    {
-		tilenum = (uint8_t)gmem->readByte(tileaddr); // Unsigned
+		tilenum = (int16_t)gmem->vram[tileaddr - 0x8000]; // Unsigned
 	    }
 	    else
 	    {
-		tilenum = (int8_t)gmem->readByte(tileaddr); // Signed
+		tilenum = (int16_t)(int8_t)(gmem->vram[tileaddr - 0x8000]); // Signed
+	    }
+
+	
+	    if (gmem->isgbcenabled)
+	    {
+		mapattrib = gmem->vram[tileaddr - 0x6000];
 	    }
 
 	    uint16_t tileloc = tiledata;
@@ -247,21 +274,38 @@ namespace gb
 	    // Determine where the tile identifier is in memory
 	    if (unsig)
 	    {
-		tileloc += (tilenum * 16); // Unsigned
+		tileloc += (uint16_t)(tilenum * 16); // Unsigned
 	    }
 	    else
 	    {
-		tileloc += ((tilenum + 128) * 16); // Signed
+		tileloc += (uint32_t)(int32_t)(((tilenum + 128) * 16)); // Signed
 	    }
 
 	    // Find the correct vertical line we're on of this tile
+
+	    uint16_t banknum = 0x8000;
+
 	    uint8_t line = (ypos % 8);
+
+	    if (gmem->isgbcenabled)
+	    {
+		banknum = TestBit(mapattrib, 3) ? 0x6000 : 0x8000;
+
+		line = TestBit(mapattrib, 6) ? (7 - (ypos % 8)) : (ypos % 8);
+	    }
+
 	    line *= 2; // Each vertical line takes up 2 bytes
-	    uint8_t data1 = gmem->readByte(tileloc + line);
-	    uint8_t data2 = gmem->readByte(tileloc + line + 1);
+	    uint8_t data1 = gmem->vram[(tileloc + line) - banknum];
+	    uint8_t data2 = gmem->vram[(tileloc + line + 1) - banknum];
+
+	    if (gmem->isgbcenabled)
+	    {
+		xpos = TestBit(mapattrib, 5) ? (7 - xpos) : (xpos);
+	    }
 
 	    // Get color bit
-	    int colorbit = xpos % 8;
+
+	    int colorbit = (xpos % 8);
 	    colorbit -= 7;
 	    colorbit *= -1;
 
@@ -270,22 +314,46 @@ namespace gb
 	    colornum <<= 1;
 	    colornum |= BitGetVal(data1, colorbit);
 
-	    // Get actual color from palette
-	    int color = getcolor(colornum, 0xFF47);
 	    int red = 0;
 	    int green = 0;
 	    int blue = 0;
 
-	    // Setup RGB values
-	    switch (color)
+	    if (!gmem->isgbcenabled)
 	    {
-		case 0: red = 0xFF; green = 0xFF; blue = 0xFF; break;
-		case 1: red = 0xCC; green = 0xCC; blue = 0xCC; break;
-		case 2: red = 0x77; green = 0x77; blue = 0x77; break;
-		case 3: red = 0x00; green = 0x00; blue = 0x00; break;
+	    	// Get actual color from palette
+	    	int color = getdmgcolor(colornum, 0xFF47);
+
+	    	// Setup RGB values
+	    	switch (color)
+	    	{
+		    case 0: red = 0xFF; green = 0xFF; blue = 0xFF; break;
+		    case 1: red = 0xCC; green = 0xCC; blue = 0xCC; break;
+		    case 2: red = 0x77; green = 0x77; blue = 0x77; break;
+		    case 3: red = 0x00; green = 0x00; blue = 0x00; break;
+	    	}
+	    }
+	    else
+	    {
+		int color = getgbccolor((mapattrib & 0x7), colornum);
+
+	        bgscancolor[pixel] = color;
+
+	    	red = ((color & 0x1F) << 3);
+		red |= (red >> 5);
+		green = (((color >> 5) & 0x1F) << 3);
+		green |= (green >> 5);
+		blue = (((color >> 10) & 0x1F) << 3);
+		blue |= (blue >> 5);
 	    }
 
 	    uint8_t scanline = gmem->memorymap[0xFF44];
+
+	    if ((scanline < 0) || (scanline > 144))
+	    {
+		continue;
+	    }
+
+	    bgscanline[pixel] = colornum;
 
 	    // Set framebuffer values
 	    int index = (pixel + (scanline * 160));
@@ -337,13 +405,21 @@ namespace gb
 	    // Get the tile identity numbers
 	    uint16_t tileaddr = tilemap + tilerow + tilecol;
 
+	    uint8_t mapattrib = 0;
+
 	    if (unsig) // Is the value signed or unsigned?
 	    {
-		tilenum = (uint8_t)gmem->readByte(tileaddr); // Unsigned
+		tilenum = (int16_t)gmem->vram[tileaddr - 0x8000]; // Unsigned
 	    }
 	    else
 	    {
-		tilenum = (int8_t)gmem->readByte(tileaddr); // Signed
+		tilenum = (int16_t)(int8_t)(gmem->vram[tileaddr - 0x8000]); // Signed
+	    }
+
+	
+	    if (gmem->isgbcenabled)
+	    {
+		mapattrib = gmem->vram[tileaddr - 0x6000];
 	    }
 
 	    uint16_t tileloc = tiledata;
@@ -351,21 +427,37 @@ namespace gb
 	    // Determine where the tile identifier is in memory
 	    if (unsig)
 	    {
-		tileloc += (tilenum * 16); // Unsigned
+		tileloc += (uint16_t)(tilenum * 16); // Unsigned
 	    }
 	    else
 	    {
-		tileloc += ((tilenum + 128) * 16); // Signed
+		tileloc += (uint32_t)(int32_t)(((tilenum + 128) * 16)); // Signed
 	    }
 
 	    // Find the correct vertical line we're on of this tile
+
+	    uint16_t banknum = 0x8000;
+
 	    uint8_t line = (ypos % 8);
+
+	    if (gmem->isgbcenabled)
+	    {
+		banknum = TestBit(mapattrib, 3) ? 0x6000 : 0x8000;
+
+		line = TestBit(mapattrib, 6) ? ((7 - ypos) % 8) : (ypos % 8);
+	    }
+
 	    line *= 2; // Each vertical line takes up 2 bytes
-	    uint8_t data1 = gmem->readByte(tileloc + line);
-	    uint8_t data2 = gmem->readByte(tileloc + line + 1);
+	    uint8_t data1 = gmem->vram[(tileloc + line) - banknum];
+	    uint8_t data2 = gmem->vram[(tileloc + line + 1) - banknum];
+
+	    if (gmem->isgbcenabled)
+	    {
+		xpos = TestBit(mapattrib, 5) ? (7 - xpos) : (xpos);
+	    }
 
 	    // Get color bit
-	    int colorbit = xpos % 8;
+	    int colorbit = (xpos % 8);
 	    colorbit -= 7;
 	    colorbit *= -1;
 
@@ -374,22 +466,42 @@ namespace gb
 	    colornum <<= 1;
 	    colornum |= BitGetVal(data1, colorbit);
 
-	    // Get actual color from palette
-	    int color = getcolor(colornum, 0xFF47);
 	    int red = 0;
 	    int green = 0;
 	    int blue = 0;
 
-	    // Setup RGB values
-	    switch (color)
+	    if (!gmem->isgbcenabled)
 	    {
-		case 0: red = 0xFF; green = 0xFF; blue = 0xFF; break;
-		case 1: red = 0xCC; green = 0xCC; blue = 0xCC; break;
-		case 2: red = 0x77; green = 0x77; blue = 0x77; break;
-		case 3: red = 0x00; green = 0x00; blue = 0x00; break;
+	    	// Get actual color from palette
+	    	int color = getdmgcolor(colornum, 0xFF47);
+
+	    	// Setup RGB values
+	    	switch (color)
+	    	{
+		    case 0: red = 0xFF; green = 0xFF; blue = 0xFF; break;
+		    case 1: red = 0xCC; green = 0xCC; blue = 0xCC; break;
+		    case 2: red = 0x77; green = 0x77; blue = 0x77; break;
+		    case 3: red = 0x00; green = 0x00; blue = 0x00; break;
+	    	}
+	    }
+	    else
+	    {
+		int color = getgbccolor((mapattrib & 0x7), colornum);
+
+	    	red = ((color & 0x1F) << 3);
+		red |= (red >> 5);
+		green = (((color >> 5) & 0x1F) << 3);
+		green |= (green >> 5);
+		blue = (((color >> 10) & 0x1F) << 3);
+		blue |= (blue >> 5);
 	    }
 
 	    uint8_t scanline = gmem->memorymap[0xFF44];
+
+	    if ((scanline < 0) || (scanline > 144))
+	    {
+		continue;
+	    }
 
 	    // Set framebuffer values
 	    int index = (pixel + (scanline * 160));
@@ -407,27 +519,51 @@ namespace gb
 	}
 
 	uint16_t spritedata = 0x8000;
-	uint16_t spriteattribdata = 0xFE00;
 	int ysize = TestBit(lcdcontrol, 2) ? 16 : 8;
-	uint8_t spritelimit = 40;
+	int spritelimit = 40;
 
 	uint8_t scanline = gmem->memorymap[0xFF44];
 
 	for (int i = (spritelimit - 1); i >= 0; i--)
 	{
 	    uint8_t index = (i * 4);
-	    uint8_t ypos = gmem->readByte(spriteattribdata + index) - 16;
-	    uint8_t xpos = gmem->readByte(spriteattribdata + index + 1) - 8;
-	    uint8_t patternnum = gmem->readByte(spriteattribdata + index + 2);
-	    uint8_t flags = gmem->readByte(spriteattribdata + index + 3);
+	    uint8_t ypos = gmem->readByte(0xFE00 + index) - 16;
+	    uint8_t xpos = gmem->readByte(0xFE00 + index + 1) - 8;
+	    uint8_t patternnum = gmem->readByte(0xFE00 + index + 2);
+	    uint8_t flags = gmem->readByte(0xFE00 + index + 3);
 
 	    bool priority = TestBit(flags, 7);
 	    bool yflip = TestBit(flags, 6);
 	    bool xflip = TestBit(flags, 5);
 
-	    uint8_t line = (yflip) ? ((((scanline - ypos - ysize) + 1) * -1) * 2) : ((scanline - ypos) * 2);
-	    uint8_t data1 = gmem->readByte(spritedata + (patternnum * 16) + line);
-	    uint8_t data2 = gmem->readByte(spritedata + (patternnum * 16) + line + 1);
+	    int bank = 0;
+
+	    if (gmem->isgbcenabled)
+	    {
+		bank = ((flags & 0x08) >> 3);
+	    }
+
+	    uint8_t line = (yflip) ? ((((scanline - ypos - ysize) + 1) * -1)) : ((scanline - ypos));
+
+
+	    if (TestBit(lcdcontrol, 2))
+	    {
+		if (line < 8)
+		{
+		    patternnum &= 0xFE;
+		}
+		else
+		{
+		    patternnum |= 0x01;
+		}
+
+		line = (line & 0x7);
+	    }
+
+	    uint8_t data1 = gmem->vram[spritedata + (patternnum * 16) + (line * 2) + (bank * 0x2000) - 0x8000];
+	    uint8_t data2 = gmem->vram[spritedata + (patternnum * 16) + (line * 2 + 1) + (bank * 0x2000) - 0x8000];
+
+	    // cout << hex << (int)((spritedata + (patternnum * 16) + (line * 2))) << endl;
 
 	    if (xpos == 0 && ypos == 0)
 	    {
@@ -440,25 +576,39 @@ namespace gb
 		{
 		    uint8_t xpixel = (xpos + pixel);
 		    int spritepixel = (xflip) ? pixel : ((pixel - 7) * -1);
-		    bool iswhite = (framebuffer[xpixel + (scanline * 160)].red == 255);
+		    bool iswhite = (bgscanline[xpixel] == 0);
 		    int colornum = BitGetVal(data2, spritepixel);
 		    colornum <<= 1;
 		    colornum |= BitGetVal(data1, spritepixel);
 		    uint16_t coloraddr = TestBit(flags, 4) ? 0xFF49 : 0xFF48;
 
-		    int color = getcolor(colornum, coloraddr);
-
 		    int red = 0;
 		    int green = 0;
 		    int blue = 0;
 
-	    	    // Setup RGB values
-		    switch (color)
+		    if (gmem->gbtype == 1)
 		    {
-			case 0: red = 0xFF; green = 0xFF; blue = 0xFF; break;
-			case 1: red = 0xCC; green = 0xCC; blue = 0xCC; break;
-			case 2: red = 0x77; green = 0x77; blue = 0x77; break;
-			case 3: red = 0x00; green = 0x00; blue = 0x00; break;
+			int color = getdmgcolor(colornum, coloraddr);
+			
+	    	    	// Setup RGB values
+		    	switch (color)
+		    	{
+			    case 0: red = 0xFF; green = 0xFF; blue = 0xFF; break;
+			    case 1: red = 0xCC; green = 0xCC; blue = 0xCC; break;
+			    case 2: red = 0x77; green = 0x77; blue = 0x77; break;
+			    case 3: red = 0x00; green = 0x00; blue = 0x00; break;
+		    	}
+	 	    }
+		    else
+		    {
+			int color = getgbcobjcolor((flags & 0x7), colornum);
+
+	    		red = ((color & 0x1F) << 3);
+			red |= (red >> 5);
+			green = (((color >> 5) & 0x1F) << 3);
+			green |= (green >> 5);
+			blue = (((color >> 10) & 0x1F) << 3);
+			blue |= (blue >> 5);
 		    }
 
 		    if (xpixel >= 160)
@@ -471,7 +621,7 @@ namespace gb
 			continue;
 		    }
 
-		    if (priority == true && !iswhite)
+		    if ((priority == true && !iswhite))
 		    {
 			continue;
 		    }
@@ -485,7 +635,7 @@ namespace gb
 	}
     }
 
-    int GPU::getcolor(int id, uint16_t palette)
+    int GPU::getdmgcolor(int id, uint16_t palette)
     {
 	uint8_t data = gmem->readByte(palette);
 	int hi = 2 * id + 1;
@@ -493,5 +643,17 @@ namespace gb
 	int bit1 = (data >> hi) & 1;
 	int bit0 = (data >> lo) & 1;
 	return (bit1 << 1) | bit0;
+    }
+
+    int GPU::getgbccolor(int id, int color)
+    {
+	uint8_t idx = ((id * 8) + (color * 2));
+	return gmem->gbcbgpallete[idx] | (gmem->gbcbgpallete[idx + 1] << 8);
+    }
+
+    int GPU::getgbcobjcolor(int id, int color)
+    {
+	uint8_t idx = ((id * 8) + (color * 2));
+	return gmem->gbcobjpallete[idx] | (gmem->gbcobjpallete[idx + 1] << 8);
     }
 }

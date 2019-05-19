@@ -19,7 +19,8 @@ namespace gb
 	    DMGCore();
 	    ~DMGCore();
 
-	    void reset();
+	    void init();
+	    void resetcpu();
         void loadstate(string id);
         void savestate(string id);
 	    bool loadROM(string filename);

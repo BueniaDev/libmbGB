@@ -24,7 +24,6 @@ namespace gb
 
     void Timers::updatetimers(int cycles)
     {
-
 	dividerregister += cycles;
 	timercounter += cycles;
 

@@ -5,6 +5,7 @@
 #include <vector>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <math.h>
 using namespace gb;
 using namespace std;
 
@@ -14,7 +15,7 @@ namespace gb
 {
     DMGCore::DMGCore()
     {
-	reset();
+	init();
     }
 
     DMGCore::~DMGCore()
@@ -22,7 +23,7 @@ namespace gb
 	cout << "DMGCore::Shutting down..." << endl;
     }
 
-    void DMGCore::reset()
+    void DMGCore::init()
     {
 	corecpu.mem = &coremmu;
 	coregpu.gmem = &coremmu;
@@ -31,8 +32,18 @@ namespace gb
     coremmu.audio = &coreapu;
 	corecpu.timers = &coretimers;
 	corecpu.gpu = &coregpu;
+    }
 
-	cout << "DMGCore::Initialized" << endl;
+    void DMGCore::resetcpu()
+    {
+	if (coremmu.isgbcenabled)
+	{
+	    corecpu.reset(true);
+	}
+	else
+	{
+	    corecpu.reset(false);
+	}
     }
 
     bool DMGCore::loadROM(string filename)
@@ -54,10 +65,12 @@ namespace gb
 	    cout << "Options:" << endl;
 	    cout << endl;
 	    cout << "-b [FILE], --bios [FILE] \t\t Loads and uses a BIOS file" << endl;
+	    cout << "--sys-dmg \t\t Plays ROMs in DMG mode." << endl;
+	    cout << "--sys-gbc \t\t Plays ROMs in GBC mode (WIP)." << endl;
 	    cout << endl;
 	    return false;
 	}
-    
+
         romname = argv[1];
 
 	for (int i = 2; i < argc; i++)
@@ -74,6 +87,18 @@ namespace gb
 		    coremmu.biosload = true;
             	    biosname = argv[i + 1];
 		}
+	    }
+
+	    if ((strncmp(argv[i], "--sys-dmg", 9) == 0))
+	    {
+		coremmu.ismanual = true;
+		coremmu.gbtype = 1;
+	    }
+
+	    if ((strncmp(argv[i], "--sys-gbc", 9) == 0))
+	    {
+		coremmu.ismanual = true;
+		coremmu.gbtype = 2;
 	    }
 	}
 
@@ -129,17 +154,26 @@ namespace gb
         corecpu.m_cycles = 0;
         int maxcycles = 69905;
 	if (!paused)
-	{        
+	{
 	    while (corecpu.m_cycles < maxcycles)
             {
                 int corecycles = corecpu.m_cycles;
                 corecpu.dointerrupts();
                 corecpu.executenextopcode();
                 int cycles = corecpu.m_cycles - corecycles;
-    
-                coretimers.updatetimers(cycles);
-                coregpu.updategraphics(cycles);
-                coreapu.updateaudio(cycles * 1.22);
+
+		if (coremmu.doublespeed)
+		{
+		    coregpu.updategraphics(cycles);
+		    coreapu.updateaudio((cycles * 1.22) / 2);
+		}
+		else
+		{
+		    coregpu.updategraphics(cycles);
+		    coreapu.updateaudio((cycles * 1.22));
+		}
+
+		coretimers.updatetimers(cycles);
             }
 	}
     }
