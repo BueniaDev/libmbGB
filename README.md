@@ -6,7 +6,7 @@ Gameboy emulation library, sorta
 
 The goal here is to do things right and fast (like melonDS). But, also, you know, to have a fun challenge... :)
 
-## Screenshots
+## Screenshots (will fix later)
 
 <p align="center">
   <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/kdl.png" alt="kdl" width="200"/>
@@ -88,6 +88,7 @@ The packages in quotation marks are for the example SDL2 renderer.
 
 ## Near-term
 
+Link Cable support
 Various bugfixes
 
 ## Medium-term
@@ -96,8 +97,7 @@ Improving existing GameBoy Color support
 
 ## Long-term
 
-Link Cable support
-
+Support for GameBoy addons
 
 # License
 
