@@ -42,9 +42,9 @@ namespace gb
 
 	int shift = (gmem->doublespeed) ? 1 : 0;
 
-	cycles >>= shift;
+	cycles <<= shift;
 	
-        scanlinecounter += floorf(cycles);	
+        scanlinecounter += cycles;	
         
         if (!TestBit(gmem->memorymap[0xFF40], 7))
         {
@@ -63,7 +63,7 @@ namespace gb
             {
                 if (scanlinecounter >= 204)
                 {
-                    scanlinecounter -= 204;
+                    scanlinecounter = 0;
                     gmem->memorymap[0xFF44] += 1;
                     
                     checklyc();
@@ -82,8 +82,6 @@ namespace gb
                         uint8_t req = gmem->readByte(0xFF0F);
                         req = BitSet(req, 0);
                         gmem->writeByte(0xFF0F, req);
-                        
-                        newvblank = true;
                     }
                     else
                     {
@@ -102,7 +100,7 @@ namespace gb
             {
                 if (scanlinecounter >= 456)
                 {
-                    scanlinecounter -= 456;
+                    scanlinecounter = 0;
                     gmem->memorymap[0xFF44]++;
                     
                     checklyc();
@@ -113,6 +111,7 @@ namespace gb
                         windowlinecounter = 0;
                         checklyc();
                     }
+
                     else if (gmem->memorymap[0xFF44] == 1)
                     {
                         mode = 2;
@@ -140,7 +139,7 @@ namespace gb
             {
                 if (scanlinecounter >= 172)
                 {
-                    scanlinecounter -= 172;
+                    scanlinecounter = 0;
                     mode = 0;
 
                     drawscanline();
@@ -256,11 +255,11 @@ namespace gb
 
 	    if (unsig) // Is the value signed or unsigned?
 	    {
-		tilenum = (int16_t)gmem->vram[tileaddr - 0x8000]; // Unsigned
+		tilenum = (uint8_t)gmem->vram[tileaddr - 0x8000]; // Unsigned
 	    }
 	    else
 	    {
-		tilenum = (int16_t)(int8_t)(gmem->vram[tileaddr - 0x8000]); // Signed
+		tilenum = (int8_t)(gmem->vram[tileaddr - 0x8000]); // Signed
 	    }
 
 	
@@ -278,7 +277,7 @@ namespace gb
 	    }
 	    else
 	    {
-		tileloc += (uint32_t)(int32_t)(((tilenum + 128) * 16)); // Signed
+		tileloc += (int16_t)(((tilenum + 128) * 16)); // Signed
 	    }
 
 	    // Find the correct vertical line we're on of this tile
@@ -497,6 +496,8 @@ namespace gb
 	    }
 
 	    uint8_t scanline = gmem->memorymap[0xFF44];
+	
+	    winscanline[pixel] = colornum;
 
 	    if ((scanline < 0) || (scanline > 144))
 	    {
@@ -576,7 +577,7 @@ namespace gb
 		{
 		    uint8_t xpixel = (xpos + pixel);
 		    int spritepixel = (xflip) ? pixel : ((pixel - 7) * -1);
-		    bool iswhite = (bgscanline[xpixel] == 0);
+		    bool iswhite = (bgscanline[xpixel] == 0 && winscanline[xpixel] == 0);
 		    int colornum = BitGetVal(data2, spritepixel);
 		    colornum <<= 1;
 		    colornum |= BitGetVal(data1, spritepixel);

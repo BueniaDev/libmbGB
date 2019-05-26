@@ -908,7 +908,7 @@ namespace gb
 	if (bufferfillamount >= 4096)
 	{
 	    bufferfillamount = 0;
-	    audiocallback(mainbuffer);
+	    audiocallback();
 	}
     }
 

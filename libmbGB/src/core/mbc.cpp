@@ -1,6 +1,7 @@
 #include "../../include/libmbGB/mmu.h"
 #include <iostream>
 #include <cstring>
+#include <time.h>
 using namespace gb;
 using namespace std;
 

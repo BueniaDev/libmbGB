@@ -164,16 +164,15 @@ namespace gb
 
 		if (coremmu.doublespeed)
 		{
-		    coregpu.updategraphics(cycles);
-		    coreapu.updateaudio((cycles * 1.22) / 2);
+		    coregpu.updategraphics(cycles / 2);
 		}
 		else
 		{
 		    coregpu.updategraphics(cycles);
-		    coreapu.updateaudio((cycles * 1.22));
-		}
+		};
 
 		coretimers.updatetimers(cycles);
+		coreapu.updateaudio((cycles * 1.22));
             }
 	}
     }

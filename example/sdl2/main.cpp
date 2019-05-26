@@ -19,14 +19,16 @@ SDL_Renderer *render;
 DMGCore core;
 
 int stateid = 0;
+int fpscount = 0;
+Uint32 fpstime = 0;
 
-void sdlcallback(float *array)
+void sdlcallback()
 {
     while ((SDL_GetQueuedAudioSize(1)) > 4096 * sizeof(float))
     {
         SDL_Delay(1);
     }
-    SDL_QueueAudio(1, array, 4096 * sizeof(float));
+    SDL_QueueAudio(1, core.coreapu.mainbuffer, 4096 * sizeof(float));
 }
 
 bool initSDL()
@@ -175,7 +177,7 @@ void handleinput(SDL_Event& event)
 
 int main(int argc, char* argv[])
 {
-    core.coreapu.setaudiocallback(bind(sdlcallback, placeholders::_1));   
+    core.coreapu.setaudiocallback(bind(sdlcallback));   
 
     if (!core.getoptions(argc, argv))
     {
@@ -215,6 +217,9 @@ int main(int argc, char* argv[])
     
     bool quit = false;
     SDL_Event ev;
+
+    Uint32 framecurrenttime;
+    Uint32 framestarttime;
     
     while (!quit)
     {   
@@ -239,13 +244,27 @@ int main(int argc, char* argv[])
         
         if (!core.paused)
         {
-            while (!core.coregpu.newvblank)
-            {
-                core.runcore();
-            }
-            core.coregpu.newvblank = false;
+            core.runcore();
             drawpixels();
         }
+
+	framecurrenttime = SDL_GetTicks();
+	if ((framecurrenttime - framestarttime) < 16)
+	{
+	    SDL_Delay(16 - (framecurrenttime - framestarttime));
+	}
+
+	framestarttime = SDL_GetTicks();
+
+	fpscount++;
+	if (((SDL_GetTicks() - fpstime) >= 1000))
+	{
+	    fpstime = SDL_GetTicks();
+	    stringstream title;
+	    title << "mbGB-SDL2-" << fpscount << " FPS";
+	    SDL_SetWindowTitle(window, title.str().c_str());
+	    fpscount = 0;
+	}
     }
 
     stopSDL();

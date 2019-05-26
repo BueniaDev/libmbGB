@@ -8,7 +8,7 @@ using namespace std;
 
 namespace gb
 {
-    using apuoutput = function<void(float *)>;
+    using apuoutput = function<void()>;
 
     class LIBMBGB_API APU
     {

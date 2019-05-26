@@ -10,14 +10,14 @@ using namespace std;
 char kp;
 DMGCore core;
 
-void headcallback(float *array)
+void headcallback()
 {
 
 }
 
 int main(int argc, char* argv[])
 {
-    core.coreapu.setaudiocallback(bind(headcallback, placeholders::_1));
+    core.coreapu.setaudiocallback(bind(headcallback));
 
     if (!core.getoptions(argc, argv))
     {
