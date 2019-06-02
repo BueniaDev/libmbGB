@@ -27,7 +27,7 @@ namespace gb
             uint8_t specialrombanks[4] = {0x00, 0x20, 0x40, 0x60};
             uint8_t specialmbc3banks[4] = {0x00};
 	    uint8_t vram[0x4000] = {0};
-	    uint8_t wram[8][0x1000] = {0};
+	    uint8_t wram[0x8000] = {0};
 	    int wrambank = 1;
 	    int vrambank1 = 0;
 	    uint8_t gbcbgpallete[0x40];

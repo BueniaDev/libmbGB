@@ -20,9 +20,13 @@ namespace gb
     
     bool MMU::loadmmu(string filename)
     {
-        memset(memorymap, 0, sizeof(memorymap));
+        memset((memorymap + 0x8000), 0, 0x8000);
         memset(cartmem, 0, sizeof(cartmem));
         memset(rambanks, 0, sizeof(rambanks));
+        memset(vram, 0, sizeof(vram));
+        memset(wram, 0, sizeof(wram));
+        memset(gbcbgpallete, 0, sizeof(gbcbgpallete));
+        memset(gbcobjpallete, 0, sizeof(gbcobjpallete));
         
         fstream file(filename.c_str(), ios::in | ios::binary);
         
@@ -32,9 +36,14 @@ namespace gb
             return false;
         }
         
-        file.read((char*)&memorymap[0], 0x10000);
-        file.read((char*)&cartmem[0], 0x200000);
+        file.read((char*)&memorymap[0x8000], 0x8000);
+        file.read((char*)&cartmem[0], 0x800000);
         file.read((char*)&rambanks[0], 0x8000);
+        file.read((char*)&vram[0], 0x4000);
+        file.read((char*)&wram[0], 0x8000);
+        file.read((char*)&gbcbgpallete[0], 0x40);
+        file.read((char*)&gbcobjpallete[0], 0x40);
+	file.read((char*)&doublespeed, sizeof(doublespeed));
         file.close();
         return true;
     }
@@ -49,9 +58,14 @@ namespace gb
             return false;
         }
         
-        file.write((char*)&memorymap[0], 0x10000);
-        file.write((char*)&cartmem[0], 0x200000);
+        file.write((char*)&memorymap[0x8000], 0x8000);
+        file.write((char*)&cartmem[0], 0x800000);
         file.write((char*)&rambanks[0], 0x8000);
+        file.write((char*)&vram[0], 0x4000);
+        file.write((char*)&wram[0], 0x8000);
+        file.write((char*)&gbcbgpallete[0], 0x40);
+        file.write((char*)&gbcobjpallete[0], 0x40);
+	file.write((char*)&doublespeed, sizeof(doublespeed));
         file.close();
         return true;
     }
@@ -62,6 +76,10 @@ namespace gb
         memset(cartmem, 0, sizeof(cartmem));
         memset(rambanks, 0, sizeof(rambanks));
         memset(bios, 0, sizeof(bios));
+        memset(vram, 0, sizeof(vram));
+        memset(wram, 0, sizeof(wram));
+        memset(gbcbgpallete, 0, sizeof(gbcbgpallete));
+        memset(gbcobjpallete, 0, sizeof(gbcobjpallete));
 
         biosload = false;
         resetmem();
@@ -130,12 +148,14 @@ namespace gb
 
     uint8_t MMU::readWram(uint16_t address)
     {
-	return wram[wrambank][address - 0xD000];
+	uint16_t offset = (wrambank * 0x1000);	
+	return wram[(address - 0xD000) + offset];
     }
 
     void MMU::writeWram(uint16_t address, uint8_t value)
     {
-	wram[wrambank][address - 0xD000] = value;
+	uint16_t offset = (wrambank * 0x1000);	
+	wram[(address - 0xD000) + offset] = value;
     }
 
     uint8_t MMU::readByte(uint16_t address)
@@ -196,7 +216,7 @@ namespace gb
     }
     else if ((address >= 0xC000) && (address < 0xD000))
     {
-	return wram[0][address - 0xC000];
+	return wram[address - 0xC000];
     }
 	else if ((address >= 0xD000) && (address < 0xE000))
 	{
@@ -294,7 +314,7 @@ namespace gb
     }
     else if ((address >= 0xC000) && (address < 0xD000))
     {
-	wram[0][address - 0xC000] = value;
+	wram[address - 0xC000] = value;
     }
 	else if ((address >= 0xD000) && (address < 0xE000))
 	{
@@ -325,6 +345,11 @@ namespace gb
 	{
 	    audio->writeapu(address, value);
 	}
+	else if (address == 0xFF41)
+	{
+	    uint8_t temp = memorymap[address];
+	    memorymap[address] = ((temp & 0x7) | (value & 0xF8));
+	}
 	else if (address == 0xFF44)
 	{
 	    return;
@@ -340,16 +365,7 @@ namespace gb
 	}
 	else if ((address == 0xFF4D && isgbcenabled))
 	{
-	    value &= 0x1;
-
-	    if (value == 1)
-	    {
-		memorymap[address] |= 0x01;
-	    }
-	    else
-	    {
-		memorymap[address] &= ~0x01;
-	    }
+	    memorymap[address] = value;
 	}
 	else if (address == 0xFF4F)
 	{
@@ -503,6 +519,7 @@ namespace gb
             case 25: temp = 5; cout << "Type: MBC5" << endl; break;
             case 26: temp = 5; cout << "Type: MBC5 + RAM" << endl; break;
             case 27: temp = 5; cout << "Type: MBC5 + RAM + BATTERY" << endl; break;
+	    case 30: temp = 5; cout << "Type: MBC5 + RUMBLE + RAM + BATTERY" << endl; break;
         }
         
         return temp;

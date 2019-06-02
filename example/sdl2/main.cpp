@@ -13,14 +13,25 @@ const int screenwidth = 160;
 const int screenheight = 144;
 const int scale = 3;
 
+
 SDL_Window *window;
-SDL_Renderer *render;
+SDL_Surface *surface;
 
 DMGCore core;
 
 int stateid = 0;
+int shotid = 0;
 int fpscount = 0;
 Uint32 fpstime = 0;
+
+void screenshot(string id)
+{
+    string screenstring = core.romname + id + ".bmp";
+
+    SDL_SaveBMP(surface, screenstring.c_str());
+    
+    shotid += 1;
+}
 
 void sdlcallback()
 {
@@ -47,9 +58,9 @@ bool initSDL()
         return false;
     }
     
-    render = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    surface = SDL_GetWindowSurface(window);
     
-    if (render == NULL)
+    if (surface == NULL)
     {
         cout << "Renderer could not be created! SDL_Error: " << SDL_GetError() << endl;
         return false;
@@ -83,18 +94,16 @@ void drawpixels()
             uint8_t green = core.coregpu.framebuffer[i + (j * screenwidth)].green;
             uint8_t blue = core.coregpu.framebuffer[i + (j * screenwidth)].blue;
             
-            SDL_SetRenderDrawColor(render, red, green, blue, 0xFF);
-            SDL_RenderFillRect(render, &pixel);
+            SDL_FillRect(surface, &pixel, SDL_MapRGBA(surface->format, red, green, blue, 255));
         }
     }
     
-    SDL_RenderPresent(render);
+    SDL_UpdateWindowSurface(window);
 }
 
 void stopSDL()
 {
     SDL_CloseAudio();
-    SDL_DestroyRenderer(render);
     SDL_DestroyWindow(window);
     SDL_Quit();
 }
@@ -140,6 +149,7 @@ void handleinput(SDL_Event& event)
             case SDLK_SPACE: key = 5; break;
             case SDLK_a: key = 6; break;
             case SDLK_b: key = 7; break;
+            case SDLK_q: screenshot(inttostring(shotid)); break;
             case SDLK_p: pause(); break;
             case SDLK_r: resume(); break;
             case SDLK_s: pause(); core.savestate(inttostring(stateid)); resume(); break;

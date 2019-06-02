@@ -39,10 +39,6 @@ namespace gb
     {
         uint8_t stat = gmem->memorymap[0xFF41];
         uint8_t mode = stat & 0x3;
-
-	int shift = (gmem->doublespeed) ? 1 : 0;
-
-	cycles <<= shift;
 	
         scanlinecounter += cycles;	
         
@@ -78,7 +74,6 @@ namespace gb
                             gmem->writeByte(0xFF0F, req);
                         }
                         
-                        
                         uint8_t req = gmem->readByte(0xFF0F);
                         req = BitSet(req, 0);
                         gmem->writeByte(0xFF0F, req);
@@ -111,7 +106,6 @@ namespace gb
                         windowlinecounter = 0;
                         checklyc();
                     }
-
                     else if (gmem->memorymap[0xFF44] == 1)
                     {
                         mode = 2;
@@ -141,8 +135,6 @@ namespace gb
                 {
                     scanlinecounter = 0;
                     mode = 0;
-
-                    drawscanline();
                     
                     if (TestBit(stat, 3))
                     {
@@ -150,6 +142,8 @@ namespace gb
                         req = BitSet(req, 1);
                         gmem->writeByte(0xFF0F, req);
                     }
+
+                    drawscanline();
 
 		    if (gmem->gbtype == 2 && gmem->hdmaactive)
 		    {
@@ -300,6 +294,7 @@ namespace gb
 	    if (gmem->isgbcenabled)
 	    {
 		xpos = TestBit(mapattrib, 5) ? (7 - xpos) : (xpos);
+	        bgprior[pixel] = TestBit(mapattrib, 7);
 	    }
 
 	    // Get color bit
@@ -450,9 +445,11 @@ namespace gb
 	    uint8_t data1 = gmem->vram[(tileloc + line) - banknum];
 	    uint8_t data2 = gmem->vram[(tileloc + line + 1) - banknum];
 
+
 	    if (gmem->isgbcenabled)
 	    {
 		xpos = TestBit(mapattrib, 5) ? (7 - xpos) : (xpos);
+	        winprior[pixel] = TestBit(mapattrib, 7);
 	    }
 
 	    // Get color bit
@@ -578,6 +575,7 @@ namespace gb
 		    uint8_t xpixel = (xpos + pixel);
 		    int spritepixel = (xflip) ? pixel : ((pixel - 7) * -1);
 		    bool iswhite = (bgscanline[xpixel] == 0 && winscanline[xpixel] == 0);
+		    bool isbgwhite = (bgscanline[xpixel] == 0);
 		    int colornum = BitGetVal(data2, spritepixel);
 		    colornum <<= 1;
 		    colornum |= BitGetVal(data1, spritepixel);
@@ -624,6 +622,16 @@ namespace gb
 
 		    if ((priority == true && !iswhite))
 		    {
+			continue;
+		    }
+
+		    if ((scanline < 0) || (scanline > 144))
+		    {
+			continue;
+		    }
+
+	    	    if (gmem->isgbcenabled && (bgprior[xpixel] && !isbgwhite))
+		    {		
 			continue;
 		    }
 

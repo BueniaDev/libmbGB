@@ -31,6 +31,9 @@ namespace gb
 	    uint8_t winscanline[160];
 	    uint8_t bgscancolor[160];
 
+	    bool bgprior[160] = { false };
+	    bool winprior[160] = { false };
+
 	    void updategraphics(int cycles);
         void checklyc();
 	    void setlcdstatus();

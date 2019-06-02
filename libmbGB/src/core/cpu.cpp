@@ -18,9 +18,14 @@ namespace gb
 
     bool CPU::loadcpu(string filename)
     {
-        resetBIOS();
+	af.reg = 0x0000;
+	bc.reg = 0x0000;
+	de.reg = 0x0000;
+	hl.reg = 0x0000;
+	pc = 0x0000;
+	sp = 0x0000;
 	
-        fstream file(filename.c_str(), ios::in | ios::binary);
+        ifstream file(filename.c_str(), ios::binary);
         
         if (!file.is_open())
         {
@@ -50,7 +55,7 @@ namespace gb
 
     bool CPU::savecpu(string filename)
     {
-        fstream file(filename.c_str(), ios::out | ios::binary);
+        ofstream file(filename.c_str(), ios::binary);
         
         if (!file.is_open())
         {
@@ -287,17 +292,14 @@ namespace gb
 	{
 	    uint8_t key1 = mem->memorymap[0xFF4D];
 
-	    if (TestBit(key1, 0) && (!TestBit(key1, 7)))
+	    if (TestBit(key1, 0))
 	    {
-		mem->doublespeed = true;
-		mem->memorymap[0xFF4D] = 0x80;
+		mem->doublespeed = !mem->doublespeed;
 	    }
 
-	    if (TestBit(key1, 0) && (TestBit(key1, 7)))
-	    {
-		mem->doublespeed = false;
-		mem->memorymap[0xFF4D] = 0;
-	    }
+	    uint8_t doubletemp = (key1 & 0x7E) | (((mem->doublespeed) ? 1 : 0) << 7);
+	    mem->memorymap[0xFF4D] = doubletemp;
+	    pc++;
 	}
 
 	uint8_t CPU::add8bit(uint8_t regone, uint8_t regtwo)

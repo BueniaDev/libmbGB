@@ -66,7 +66,7 @@ namespace gb
 	    cout << endl;
 	    cout << "-b [FILE], --bios [FILE] \t\t Loads and uses a BIOS file" << endl;
 	    cout << "--sys-dmg \t\t Plays ROMs in DMG mode." << endl;
-	    cout << "--sys-gbc \t\t Plays ROMs in GBC mode (WIP)." << endl;
+	    cout << "--sys-gbc \t\t Plays ROMs in GBC mode." << endl;
 	    cout << endl;
 	    return false;
 	}
@@ -152,7 +152,7 @@ namespace gb
     void DMGCore::runcore()
     {
         corecpu.m_cycles = 0;
-        int maxcycles = 69905;
+        int maxcycles = (coremmu.doublespeed) ? 139810 : 69905;
 	if (!paused)
 	{
 	    while (corecpu.m_cycles < maxcycles)
@@ -162,17 +162,19 @@ namespace gb
                 corecpu.executenextopcode();
                 int cycles = corecpu.m_cycles - corecycles;
 
-		if (coremmu.doublespeed)
+		if ((coremmu.doublespeed))
 		{
 		    coregpu.updategraphics(cycles / 2);
+		    coreapu.updateaudio((cycles * 0.66));
 		}
 		else
 		{
 		    coregpu.updategraphics(cycles);
-		};
+		    coreapu.updateaudio((cycles * 1.22));
+		}
 
 		coretimers.updatetimers(cycles);
-		coreapu.updateaudio((cycles * 1.22));
+
             }
 	}
     }
