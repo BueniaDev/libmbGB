@@ -37,6 +37,7 @@ namespace gb
 	    void updategraphics(int cycles);
         void checklyc();
 	    void setlcdstatus();
+	    bool dumpvram();
 	    
 	    void drawscanline();
 	    void rendertiles(uint8_t lcdcontrol);

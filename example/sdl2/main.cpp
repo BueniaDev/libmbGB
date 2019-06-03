@@ -4,6 +4,7 @@
 #include <fstream>
 #include <sstream>
 #include <cstdio>
+#include <cstdlib>
 #include <string>
 #include <functional>
 using namespace gb;
@@ -20,17 +21,29 @@ SDL_Surface *surface;
 DMGCore core;
 
 int stateid = 0;
-int shotid = 0;
 int fpscount = 0;
 Uint32 fpstime = 0;
 
-void screenshot(string id)
+string inttostring(int val)
 {
-    string screenstring = core.romname + id + ".bmp";
+    stringstream ss;
+    ss << val;
+    return ss.str();
+}
+
+void screenshot()
+{
+    srand(SDL_GetTicks());
+
+    stringstream temp;
+
+    temp << (rand() % 1024) << (rand() % 1024) << (rand() % 1024);
+
+    string screenstring = core.romname + "-" + temp.str() + ".bmp";
 
     SDL_SaveBMP(surface, screenstring.c_str());
-    
-    shotid += 1;
+
+    cout << "Screenshot saved." << endl;
 }
 
 void sdlcallback()
@@ -127,13 +140,6 @@ void changestate(int id)
     cout << "Save slot changed to slot " << stateid << endl;
 }
 
-string inttostring(int val)
-{
-    stringstream ss;
-    ss << val;
-    return ss.str();
-}
-
 void handleinput(SDL_Event& event)
 {
     if (event.type == SDL_KEYDOWN)
@@ -149,7 +155,15 @@ void handleinput(SDL_Event& event)
             case SDLK_SPACE: key = 5; break;
             case SDLK_a: key = 6; break;
             case SDLK_b: key = 7; break;
-            case SDLK_q: screenshot(inttostring(shotid)); break;
+	    case SDLK_d:
+	    {
+		if (!core.coregpu.dumpvram())
+		{
+		    exit(1);
+		}
+	    }
+	    break;
+            case SDLK_q: screenshot(); break;
             case SDLK_p: pause(); break;
             case SDLK_r: resume(); break;
             case SDLK_s: pause(); core.savestate(inttostring(stateid)); resume(); break;

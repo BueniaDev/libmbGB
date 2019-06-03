@@ -8,18 +8,30 @@ The goal here is to do things right and fast (like melonDS). But, also, you know
 
 ## Screenshots (will fix later)
 
+# DMG Screenshots:
+
 <p align="center">
-  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/kdl.png" alt="kdl" width="200"/>
-  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/tetris.png" alt="tetris" width="200"/>
-  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/sml.png" alt="sml" width="200"/>
-  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/poker.png" alt="poker" width="200"/>
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/kdl.bmp" alt="kdl" width="200"/>
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/tetris.bmp" alt="tetris" width="200"/>
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/sml.bmp" alt="sml" width="200"/>
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/poker.bmp" alt="poker" width="200"/>
 </p>
 
 <p align="center">
-  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/mm.png" alt="mm" width="200"/>
-  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/poker2.png" alt="poker2" width="200"/>
-  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/tetris2.png" alt="tetris2" width="200"/>
-  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/smlgc.png" alt="smlgc" width="200"/>
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/mm.bmp" alt="mm" width="200"/>
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/poker2.bmp" alt="poker2" width="200"/>
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/tetris2.bmp" alt="tetris2" width="200"/>
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/smlgc.bmp" alt="smlgc" width="200"/>
+</p>
+
+
+## CGB Screenshots
+
+<p align="center">
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/mariogolf.bmp" alt="mariogolf" width="200"/>
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/tetrisdx.bmp" alt="tetrisdx" width="200"/>
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/pokec.bmp" alt="pokec" width="200"/>
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/shantae.bmp" alt="shantae" width="200"/>
 </p>
 
 ## Current project status

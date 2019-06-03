@@ -8,7 +8,7 @@ namespace gb
 {
     GPU::GPU()
     {
-	reset();
+	
     }
 
     GPU::~GPU()
@@ -189,6 +189,22 @@ namespace gb
         gmem->writeDirectly(0xFF41, stat);
     }
 
+    bool GPU::dumpvram()
+    {
+        fstream file("vram.bin", ios::out | ios::binary);
+        
+        if (!file.is_open())
+        {
+            cout << "Error opening save state" << endl;
+            return false;
+        }
+
+	file.write((char*)&gmem->vram[0], sizeof(gmem->vram));
+	file.close();
+
+	return true;
+    }
+
     void GPU::drawscanline()
     {
 	uint8_t control = gmem->memorymap[0xFF40];
@@ -359,153 +375,141 @@ namespace gb
 
     void GPU::renderwindow(uint8_t lcdcontrol)
     {
-	if (!TestBit(lcdcontrol, 5)) // Is the window disabled?
-	{
-	    return; // If so, then return
-	}
-
-	uint8_t windowY = gmem->readByte(0xFF4A);
-	uint8_t windowX = gmem->readByte(0xFF4B);
-	windowX -= (windowX <= 0x07) ? windowX : 7;
-
-	if (gmem->memorymap[0xFF44] < windowY)
+	if (!TestBit(lcdcontrol, 5))
 	{
 	    return;
 	}
 
-	uint16_t tilemap = TestBit(lcdcontrol, 6) ? 0x9C00 : 0x9800;
-	uint16_t tiledata = TestBit(lcdcontrol, 4) ? 0x8000 : 0x8800;
-	bool unsig = TestBit(lcdcontrol, 4);
+	uint8_t windowX = (gmem->readByte(0xFF4B) - 7);
+	uint8_t windowY = gmem->readByte(0xFF4A);
 
-	uint8_t ypos = gmem->memorymap[0xFF44] - windowY;
-
-	// Which of the current tile's 8 vertical pixels is the scanline on?
-	uint16_t tilerow = (((uint8_t)(ypos / 8)) * 32);
-
-	// Start drawing the 160 horizontal pixels for this scanline
-	for (int pixel = windowX; pixel < 160; pixel++)
+	if (windowX >= 160 || windowY > gmem->memorymap[0xFF44])
 	{
-	    uint8_t xpos = 0;	    
+	    return;
+	}
+
+	int ypos = windowlinecounter;
+	windowlinecounter++;
+
+	for (int pixel = 0; pixel < 160; pixel++)
+	{
 
 	    if (pixel >= windowX)
 	    {
-		xpos = pixel - windowX;
+	        int xpos = (pixel - windowX);		
+
+		int tilenum = (xpos / 8) + ((ypos / 8) * 32);
+
+		uint16_t maploc = 0;
+		uint16_t tileloc = 0;
+		uint8_t mapattrib = 0;
+
+		if (TestBit(lcdcontrol, 6))
+		{
+		    maploc = 0x1C00 + tilenum;
+		}
+		else
+		{
+		    maploc = 0x1800 + tilenum;
+		}
+
+		tileloc = gmem->vram[maploc];
+
+		if (gmem->isgbcenabled)
+		{
+		    mapattrib = gmem->vram[0x2000 | maploc];
+		}
+
+		if (TestBit(lcdcontrol, 4))
+		{
+		    tileloc = (tileloc << 4);
+		}
+		else
+		{
+		    tileloc = (128 + (int16_t)(tileloc)) & 0xFF;
+		    tileloc = 0x800 + (tileloc << 4);
+		}
+
+		int pixelx = (xpos % 8);
+		int pixely = (ypos % 8);
+
+		if (gmem->isgbcenabled)
+		{
+		    if (TestBit(mapattrib, 3))
+		    {
+			tileloc |= 0x2000;
+		    }
+
+		    if (TestBit(mapattrib, 5))
+	 	    {
+			pixelx = (7 - pixelx);
+		    }
+
+		    if (TestBit(mapattrib, 6))
+		    {
+			pixely = (7 - pixely);
+		    }
+		}
+
+		uint8_t line = (pixely % 8);
+		line *= 2;
+
+		uint8_t data1 = (gmem->vram[tileloc + line]);
+		uint8_t data2 = (gmem->vram[tileloc + line + 1]);
+
+		int colorbit = (pixelx % 8);
+		colorbit -= 7;
+		colorbit *= -1;
+
+		int colornum = BitGetVal(data2, colorbit);
+	        colornum <<= 1;
+	        colornum |= BitGetVal(data1, colorbit);
+
+	        int red = 0;
+	        int green = 0;
+	        int blue = 0;
+
+	        if (!gmem->isgbcenabled)
+	        {
+	    	    // Get actual color from palette
+	    	    int color = getdmgcolor(colornum, 0xFF47);
+
+	    	    // Setup RGB values
+	    	    switch (color)
+	    	    {
+		        case 0: red = 0xFF; green = 0xFF; blue = 0xFF; break;
+		        case 1: red = 0xCC; green = 0xCC; blue = 0xCC; break;
+		        case 2: red = 0x77; green = 0x77; blue = 0x77; break;
+		        case 3: red = 0x00; green = 0x00; blue = 0x00; break;
+	    	    }
+	        }
+	        else
+	        {
+		    int color = getgbccolor((mapattrib & 0x7), colornum);
+
+	    	    red = ((color & 0x1F) << 3);
+		    red |= (red >> 5);
+		    green = (((color >> 5) & 0x1F) << 3);
+		    green |= (green >> 5);
+		    blue = (((color >> 10) & 0x1F) << 3);
+		    blue |= (blue >> 5);
+	        }
+
+	        uint8_t scanline = gmem->memorymap[0xFF44];
+
+	        if ((scanline < 0) || (scanline > 144))
+	        {
+		    continue;
+	        }
+
+	        bgscanline[pixel] = colornum;
+
+	        // Set framebuffer values
+	        int index = (pixel + (scanline * 160));
+	        framebuffer[index].red = red;
+	        framebuffer[index].green = green;
+	        framebuffer[index].blue = blue;
 	    }
-
-	    // Which of the horizontal tiles does the x-position fall within?
-	    uint16_t tilecol = (xpos / 8);
-	    int16_t tilenum = 0;
-
-	    // Get the tile identity numbers
-	    uint16_t tileaddr = tilemap + tilerow + tilecol;
-
-	    uint8_t mapattrib = 0;
-
-	    if (unsig) // Is the value signed or unsigned?
-	    {
-		tilenum = (int16_t)gmem->vram[tileaddr - 0x8000]; // Unsigned
-	    }
-	    else
-	    {
-		tilenum = (int16_t)(int8_t)(gmem->vram[tileaddr - 0x8000]); // Signed
-	    }
-
-	
-	    if (gmem->isgbcenabled)
-	    {
-		mapattrib = gmem->vram[tileaddr - 0x6000];
-	    }
-
-	    uint16_t tileloc = tiledata;
-
-	    // Determine where the tile identifier is in memory
-	    if (unsig)
-	    {
-		tileloc += (uint16_t)(tilenum * 16); // Unsigned
-	    }
-	    else
-	    {
-		tileloc += (uint32_t)(int32_t)(((tilenum + 128) * 16)); // Signed
-	    }
-
-	    // Find the correct vertical line we're on of this tile
-
-	    uint16_t banknum = 0x8000;
-
-	    uint8_t line = (ypos % 8);
-
-	    if (gmem->isgbcenabled)
-	    {
-		banknum = TestBit(mapattrib, 3) ? 0x6000 : 0x8000;
-
-		line = TestBit(mapattrib, 6) ? ((7 - ypos) % 8) : (ypos % 8);
-	    }
-
-	    line *= 2; // Each vertical line takes up 2 bytes
-	    uint8_t data1 = gmem->vram[(tileloc + line) - banknum];
-	    uint8_t data2 = gmem->vram[(tileloc + line + 1) - banknum];
-
-
-	    if (gmem->isgbcenabled)
-	    {
-		xpos = TestBit(mapattrib, 5) ? (7 - xpos) : (xpos);
-	        winprior[pixel] = TestBit(mapattrib, 7);
-	    }
-
-	    // Get color bit
-	    int colorbit = (xpos % 8);
-	    colorbit -= 7;
-	    colorbit *= -1;
-
-	    // Get color id
-	    int colornum = BitGetVal(data2, colorbit);
-	    colornum <<= 1;
-	    colornum |= BitGetVal(data1, colorbit);
-
-	    int red = 0;
-	    int green = 0;
-	    int blue = 0;
-
-	    if (!gmem->isgbcenabled)
-	    {
-	    	// Get actual color from palette
-	    	int color = getdmgcolor(colornum, 0xFF47);
-
-	    	// Setup RGB values
-	    	switch (color)
-	    	{
-		    case 0: red = 0xFF; green = 0xFF; blue = 0xFF; break;
-		    case 1: red = 0xCC; green = 0xCC; blue = 0xCC; break;
-		    case 2: red = 0x77; green = 0x77; blue = 0x77; break;
-		    case 3: red = 0x00; green = 0x00; blue = 0x00; break;
-	    	}
-	    }
-	    else
-	    {
-		int color = getgbccolor((mapattrib & 0x7), colornum);
-
-	    	red = ((color & 0x1F) << 3);
-		red |= (red >> 5);
-		green = (((color >> 5) & 0x1F) << 3);
-		green |= (green >> 5);
-		blue = (((color >> 10) & 0x1F) << 3);
-		blue |= (blue >> 5);
-	    }
-
-	    uint8_t scanline = gmem->memorymap[0xFF44];
-	
-	    winscanline[pixel] = colornum;
-
-	    if ((scanline < 0) || (scanline > 144))
-	    {
-		continue;
-	    }
-
-	    // Set framebuffer values
-	    int index = (pixel + (scanline * 160));
-	    framebuffer[index].red = red;
-	    framebuffer[index].green = green;
-	    framebuffer[index].blue = blue;
 	}
     }
 
@@ -630,7 +634,7 @@ namespace gb
 			continue;
 		    }
 
-	    	    if (gmem->isgbcenabled && (bgprior[xpixel] && !isbgwhite))
+	    	    if (gmem->isgbcenabled && TestBit(lcdcontrol, 0) && (bgprior[xpixel] && !isbgwhite))
 		    {		
 			continue;
 		    }

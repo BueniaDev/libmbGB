@@ -7,7 +7,7 @@ namespace gb
 {
     Timers::Timers()
     {
-	reset();
+	
     }
 
     Timers::~Timers()

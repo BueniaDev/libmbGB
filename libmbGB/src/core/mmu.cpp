@@ -10,7 +10,7 @@ namespace gb
 {
     MMU::MMU()
     {
-	reset();
+	
     }
 
     MMU::~MMU()
@@ -44,6 +44,11 @@ namespace gb
         file.read((char*)&gbcbgpallete[0], 0x40);
         file.read((char*)&gbcobjpallete[0], 0x40);
 	file.read((char*)&doublespeed, sizeof(doublespeed));
+	file.read((char*)&currentrombank, sizeof(currentrombank));
+	file.read((char*)&currentrambank, sizeof(currentrambank));
+	file.read((char*)&higherrombankbits, sizeof(higherrombankbits));
+	file.read((char*)&rommode, sizeof(rommode));
+	file.read((char*)&ramenabled, sizeof(ramenabled));
         file.close();
         return true;
     }
@@ -66,6 +71,11 @@ namespace gb
         file.write((char*)&gbcbgpallete[0], 0x40);
         file.write((char*)&gbcobjpallete[0], 0x40);
 	file.write((char*)&doublespeed, sizeof(doublespeed));
+	file.write((char*)&currentrombank, sizeof(currentrombank));
+	file.write((char*)&currentrambank, sizeof(currentrambank));
+	file.write((char*)&higherrombankbits, sizeof(higherrombankbits));
+	file.write((char*)&rommode, sizeof(rommode));
+	file.write((char*)&ramenabled, sizeof(ramenabled));
         file.close();
         return true;
     }
@@ -419,7 +429,7 @@ namespace gb
 
 	    if (!TestBit(value, 7) && !hdmaactive)
 	    {
-		for (int i = 0; i <= (hdmalength); i++)
+		for (int i = 0; i <= (hdmalength & 0x7F); i++)
 		{
 		    hdmatransfer();
 		}

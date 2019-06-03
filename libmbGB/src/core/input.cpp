@@ -7,7 +7,7 @@ namespace gb
 {
     Input::Input()
     {
-	reset();
+	
     }
 
     Input::~Input()
