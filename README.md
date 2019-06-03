@@ -36,7 +36,7 @@ The goal here is to do things right and fast (like melonDS). But, also, you know
 
 ## Current project status
 
-At this point, libmbGB is able to run many commercial Game Boy titles well and (if the SDL2 renderer is built) with sound. Savestates may be a little buggy, e.g: minor freezes, some "Unrecognized opcode" errors, etc. However, I'm trying to fix those bugs and to improve the overall accuracy of libmbGB, so don't lose hope yet... ;)
+At this point, libmbGB is able to run many commercial Game Boy (and Game Boy Color) titles well and (if the SDL2 renderer is built) with sound. Savestates may be a little buggy, e.g: minor freezes, some "Unrecognized opcode" errors, etc. However, I'm trying to fix those bugs and to improve the overall accuracy of libmbGB, so don't lose hope yet... ;)
 
 ## Building Instructions
 
