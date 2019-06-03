@@ -16,6 +16,7 @@ namespace gb
     DMGCore::DMGCore()
     {
 	init();
+	cout << "DMGCore::Initialized" << endl;
     }
 
     DMGCore::~DMGCore()
