@@ -118,6 +118,7 @@ namespace gb
 	    memorymap[0xFF25] = 0xF3;
 	    memorymap[0xFF26] = 0xF1;
 	    memorymap[0xFF40] = 0x91;
+	    memorymap[0xFF44] = 0x90;
 	    memorymap[0xFF47] = 0xFC;
 	    memorymap[0xFF48] = 0xFF;
 	    memorymap[0xFF49] = 0xFF;
@@ -253,6 +254,10 @@ namespace gb
 	else if ((address >= 0xFEA0) && (address <= 0xFEFF))
 	{
 	    return 0xFF;
+	}
+	else if (address == 0xFF40)
+	{
+	    return memorymap[address];
 	}
 	else if (address == 0xFF4F)
 	{

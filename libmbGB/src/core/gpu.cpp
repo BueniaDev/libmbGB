@@ -39,12 +39,10 @@ namespace gb
     {
         uint8_t stat = gmem->memorymap[0xFF41];
         uint8_t mode = stat & 0x3;
-	
-        scanlinecounter += cycles;	
         
         if (!TestBit(gmem->memorymap[0xFF40], 7))
         {
-            scanlinecounter = 0;
+	    scanlinecounter = 0;
             gmem->memorymap[0xFF44] = 0;
             windowlinecounter = 0;
             mode = 0;
@@ -52,6 +50,8 @@ namespace gb
             gmem->writeDirectly(0xFF41, stat);
             return;
         }
+
+        scanlinecounter += cycles;
         
         switch (mode)
         {

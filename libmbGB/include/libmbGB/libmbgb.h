@@ -21,6 +21,7 @@ namespace gb
 
 	    void init();
 	    void resetcpu();
+	    void reset();
         void loadstate(string id);
         void savestate(string id);
 	    bool loadROM(string filename);

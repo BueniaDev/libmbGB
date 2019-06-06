@@ -201,6 +201,7 @@ void handleinput(SDL_Event& event)
 
 int main(int argc, char* argv[])
 {
+    core.init();
     core.coreapu.setaudiocallback(bind(sdlcallback));   
 
     if (!core.getoptions(argc, argv))

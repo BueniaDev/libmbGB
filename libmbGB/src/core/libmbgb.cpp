@@ -15,8 +15,7 @@ namespace gb
 {
     DMGCore::DMGCore()
     {
-	init();
-	cout << "DMGCore::Initialized" << endl;
+
     }
 
     DMGCore::~DMGCore()
@@ -33,6 +32,18 @@ namespace gb
     coremmu.audio = &coreapu;
 	corecpu.timers = &coretimers;
 	corecpu.gpu = &coregpu;
+	reset();
+	cout << "DMGCore::Initialized" << endl;
+    }
+
+    void DMGCore::reset()
+    {
+	resetcpu();
+	coremmu.reset();
+	coregpu.reset();
+	coretimers.reset();
+	coreapu.reset();
+	coretimers.reset();
     }
 
     void DMGCore::resetcpu()
@@ -158,7 +169,7 @@ namespace gb
 	{
 	    while (corecpu.m_cycles < maxcycles)
             {
-                int corecycles = corecpu.m_cycles;
+		int corecycles = corecpu.m_cycles;
                 corecpu.dointerrupts();
                 corecpu.executenextopcode();
                 int cycles = corecpu.m_cycles - corecycles;
@@ -175,7 +186,6 @@ namespace gb
 		}
 
 		coretimers.updatetimers(cycles);
-
             }
 	}
     }
