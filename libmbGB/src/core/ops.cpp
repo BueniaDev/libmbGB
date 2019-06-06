@@ -323,7 +323,18 @@ namespace gb
 		case 0x00: m_bytes += 1; m_cycles += 4; break;
 
 		// STOP
-		case 0x10: stop(); break;
+		case 0x10:
+		{
+		    if (mem->gbtype == 2)
+		    {
+			doubleexec();
+		    }
+		    else
+		    {
+			stop();
+		    }
+		}
+		break;
 
 		// HALT
 		case 0x76:

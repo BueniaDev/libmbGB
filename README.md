@@ -2,29 +2,41 @@
 
 [![Build Status](https://travis-ci.org/Buenia0/libmbGB.svg?branch=master)](https://travis-ci.org/Buenia0/libmbGB)
 
-Gameboy emulation library, sorta
+Game Boy (Color) emulation library, sorta
 
 The goal here is to do things right and fast (like melonDS). But, also, you know, to have a fun challenge... :)
 
 ## Screenshots (will fix later)
 
+# DMG Screenshots:
+
 <p align="center">
-  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/kdl.png" alt="kdl" width="200"/>
-  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/tetris.png" alt="tetris" width="200"/>
-  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/sml.png" alt="sml" width="200"/>
-  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/poker.png" alt="poker" width="200"/>
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/kdl.bmp" alt="kdl" width="200"/>
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/tetris.bmp" alt="tetris" width="200"/>
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/sml.bmp" alt="sml" width="200"/>
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/poker.bmp" alt="poker" width="200"/>
 </p>
 
 <p align="center">
-  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/mm.png" alt="mm" width="200"/>
-  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/poker2.png" alt="poker2" width="200"/>
-  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/tetris2.png" alt="tetris2" width="200"/>
-  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/smlgc.png" alt="smlgc" width="200"/>
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/mm.bmp" alt="mm" width="200"/>
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/poker2.bmp" alt="poker2" width="200"/>
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/tetris2.bmp" alt="tetris2" width="200"/>
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/smlgc.bmp" alt="smlgc" width="200"/>
+</p>
+
+
+## CGB Screenshots
+
+<p align="center">
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/mariogolf.bmp" alt="mariogolf" width="200"/>
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/tetrisdx.bmp" alt="tetrisdx" width="200"/>
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/pokec.bmp" alt="pokec" width="200"/>
+  <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/screens/shantae.bmp" alt="shantae" width="200"/>
 </p>
 
 ## Current project status
 
-At this point, libmbGB is able to run many commercial Game Boy titles well and (if the SDL2 renderer is built) with sound. Savestates may be a little buggy, e.g: minor freezes, some "Unrecognized opcode" errors, etc. However, I'm trying to fix those bugs and to improve the overall accuracy of libmbGB, so don't lose hope yet... ;)
+At this point, libmbGB is able to run many commercial Game Boy (and Game Boy Color) titles well and (if the SDL2 renderer is built) with sound. In additon, I'm trying to improve the overall accuracy of libmbGB, so don't lose hope yet... ;)
 
 ## Building Instructions
 
@@ -34,7 +46,12 @@ At this point, libmbGB is able to run many commercial Game Boy titles well and (
 
 On Linux:
 
-`sudo apt install libsdl2-dev`
+Ubuntu: `sudo apt install libsdl2-dev`
+
+Arch: `pacman -S sdl2`
+
+Fedora: `dnf install SDL2-devel`
+
 
 On Mac:
 
@@ -93,11 +110,11 @@ Various bugfixes
 
 ## Medium-term
 
-GameBoy Color support
+Improving existing GameBoy Color support
 
 ## Long-term
 
-Support for GameBoy addons
+Support for GameBoy (and GameBoy Color) addons
 
 # License
 

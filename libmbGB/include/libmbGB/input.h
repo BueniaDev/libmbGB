@@ -31,6 +31,8 @@ namespace gb
 
 	    bool directionswitch = false;
 	    bool buttonswitch = false;
+
+	    uint8_t p1data = 0xFF;
     };
 }
 

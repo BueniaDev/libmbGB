@@ -7,7 +7,7 @@ namespace gb
 {
     Input::Input()
     {
-	reset();
+	
     }
 
     Input::~Input()
@@ -47,34 +47,34 @@ namespace gb
 
     void Input::write(uint8_t set)
     {
-	directionswitch = !TestBit(set, 4);
-	buttonswitch = !TestBit(set, 5);
+	p1data = (p1data & 0xF) | (set & 0x30);
     }
 
     uint8_t Input::getjoypadstate()
     {
-	uint8_t buttons = 0b1111;
+	uint8_t controlbits = 0;
 
-	if (directionswitch)
+	if ((p1data & 0x30) == 0x20)
 	{
-	    buttons = BitSetTo(buttons, 0, !right);
-	    buttons = BitSetTo(buttons, 1, !left);
-	    buttons = BitSetTo(buttons, 2, !up);
-	    buttons = BitSetTo(buttons, 3, !down);
+	    controlbits |= (right ? 0 : 1) << 0;
+	    controlbits |= (left ? 0 : 1) << 1;
+	    controlbits |= (up ? 0 : 1) << 2;
+	    controlbits |= (down ? 0 : 1) << 3;
+	}
+	else if ((p1data & 0x30) == 0x10)
+	{
+	    controlbits |= (a ? 0 : 1) << 0;
+	    controlbits |= (b ? 0 : 1) << 1;
+	    controlbits |= (select ? 0 : 1) << 2;
+	    controlbits |= (start ? 0 : 1) << 3;
+	}
+	else
+	{
+	    controlbits = 0xF;
 	}
 
-	if (buttonswitch)
-	{
-	    buttons = BitSetTo(buttons, 0, !a);
-	    buttons = BitSetTo(buttons, 1, !b);
-	    buttons = BitSetTo(buttons, 2, !select);
-	    buttons = BitSetTo(buttons, 3, !start);
-	}
-
-
-	buttons = BitSetTo(buttons, 4, !directionswitch);
-	buttons = BitSetTo(buttons, 5, !buttonswitch);
-
-	return buttons;
+	p1data &= 0xF0;
+	p1data |= controlbits;
+	return (p1data | 0xC0);
     }
 }

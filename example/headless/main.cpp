@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <string>
 #include <cstring>
+#include <functional>
 using namespace gb;
 using namespace std;
 
@@ -16,7 +17,7 @@ void headcallback()
 
 int main(int argc, char* argv[])
 {
-    core.coreapu.setaudiocallback((apuoutput)(headcallback));
+    core.coreapu.setaudiocallback(bind(headcallback));
 
     if (!core.getoptions(argc, argv))
     {

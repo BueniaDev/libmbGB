@@ -4,7 +4,9 @@
 #include <fstream>
 #include <sstream>
 #include <cstdio>
+#include <cstdlib>
 #include <string>
+#include <functional>
 using namespace gb;
 using namespace std;
 
@@ -12,12 +14,37 @@ const int screenwidth = 160;
 const int screenheight = 144;
 const int scale = 3;
 
+
 SDL_Window *window;
-SDL_Renderer *render;
+SDL_Surface *surface;
 
 DMGCore core;
 
 int stateid = 0;
+int fpscount = 0;
+Uint32 fpstime = 0;
+
+string inttostring(int val)
+{
+    stringstream ss;
+    ss << val;
+    return ss.str();
+}
+
+void screenshot()
+{
+    srand(SDL_GetTicks());
+
+    stringstream temp;
+
+    temp << (rand() % 1024) << (rand() % 1024) << (rand() % 1024);
+
+    string screenstring = core.romname + "-" + temp.str() + ".bmp";
+
+    SDL_SaveBMP(surface, screenstring.c_str());
+
+    cout << "Screenshot saved." << endl;
+}
 
 void sdlcallback()
 {
@@ -44,9 +71,9 @@ bool initSDL()
         return false;
     }
     
-    render = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    surface = SDL_GetWindowSurface(window);
     
-    if (render == NULL)
+    if (surface == NULL)
     {
         cout << "Renderer could not be created! SDL_Error: " << SDL_GetError() << endl;
         return false;
@@ -80,18 +107,16 @@ void drawpixels()
             uint8_t green = core.coregpu.framebuffer[i + (j * screenwidth)].green;
             uint8_t blue = core.coregpu.framebuffer[i + (j * screenwidth)].blue;
             
-            SDL_SetRenderDrawColor(render, red, green, blue, 0xFF);
-            SDL_RenderFillRect(render, &pixel);
+            SDL_FillRect(surface, &pixel, SDL_MapRGBA(surface->format, red, green, blue, 255));
         }
     }
     
-    SDL_RenderPresent(render);
+    SDL_UpdateWindowSurface(window);
 }
 
 void stopSDL()
 {
     SDL_CloseAudio();
-    SDL_DestroyRenderer(render);
     SDL_DestroyWindow(window);
     SDL_Quit();
 }
@@ -115,13 +140,6 @@ void changestate(int id)
     cout << "Save slot changed to slot " << stateid << endl;
 }
 
-string inttostring(int val)
-{
-    stringstream ss;
-    ss << val;
-    return ss.str();
-}
-
 void handleinput(SDL_Event& event)
 {
     if (event.type == SDL_KEYDOWN)
@@ -137,6 +155,15 @@ void handleinput(SDL_Event& event)
             case SDLK_SPACE: key = 5; break;
             case SDLK_a: key = 6; break;
             case SDLK_b: key = 7; break;
+	    case SDLK_d:
+	    {
+		if (!core.coregpu.dumpvram())
+		{
+		    exit(1);
+		}
+	    }
+	    break;
+            case SDLK_q: screenshot(); break;
             case SDLK_p: pause(); break;
             case SDLK_r: resume(); break;
             case SDLK_s: pause(); core.savestate(inttostring(stateid)); resume(); break;
@@ -174,7 +201,9 @@ void handleinput(SDL_Event& event)
 
 int main(int argc, char* argv[])
 {
-    core.coreapu.setaudiocallback((apuoutput)(sdlcallback));   
+    core.init();
+    core.reset();
+    core.coreapu.setaudiocallback(bind(sdlcallback));   
 
     if (!core.getoptions(argc, argv))
     {
@@ -182,19 +211,23 @@ int main(int argc, char* argv[])
     }
 
     bool initialized = true;
-    
+
     if (!core.loadROM(core.romname))
     {
 	initialized = false;
     }
-    
+
     if (core.coremmu.biosload == true)
-    {
-        core.corecpu.resetBIOS();
-        if (!core.loadBIOS(core.biosname))
+    {	
+	core.corecpu.resetBIOS();	
+	if (!core.loadBIOS(core.biosname))
         {
             initialized = false;
         }
+    }
+    else
+    {      
+	core.resetcpu();
     }
 
     if (!initSDL())
@@ -210,6 +243,9 @@ int main(int argc, char* argv[])
     
     bool quit = false;
     SDL_Event ev;
+
+    Uint32 framecurrenttime;
+    Uint32 framestarttime;
     
     while (!quit)
     {   
@@ -234,13 +270,27 @@ int main(int argc, char* argv[])
         
         if (!core.paused)
         {
-            while (!core.coregpu.newvblank)
-            {
-                core.runcore();
-            }
-            core.coregpu.newvblank = false;
+            core.runcore();
             drawpixels();
         }
+
+	framecurrenttime = SDL_GetTicks();
+	if ((framecurrenttime - framestarttime) < 16)
+	{
+	    SDL_Delay(16 - (framecurrenttime - framestarttime));
+	}
+
+	framestarttime = SDL_GetTicks();
+
+	fpscount++;
+	if (((SDL_GetTicks() - fpstime) >= 1000))
+	{
+	    fpstime = SDL_GetTicks();
+	    stringstream title;
+	    title << "mbGB-SDL2-" << fpscount << " FPS";
+	    SDL_SetWindowTitle(window, title.str().c_str());
+	    fpscount = 0;
+	}
     }
 
     stopSDL();

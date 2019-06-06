@@ -8,7 +8,7 @@ namespace gb
 {
 	CPU::CPU()
 	{
-	    reset();
+
 	}
 
 	CPU::~CPU()
@@ -18,9 +18,14 @@ namespace gb
 
     bool CPU::loadcpu(string filename)
     {
-        resetBIOS();
+	af.reg = 0x0000;
+	bc.reg = 0x0000;
+	de.reg = 0x0000;
+	hl.reg = 0x0000;
+	pc = 0x0000;
+	sp = 0x0000;
 	
-        fstream file(filename.c_str(), ios::in | ios::binary);
+        ifstream file(filename.c_str(), ios::binary);
         
         if (!file.is_open())
         {
@@ -50,7 +55,7 @@ namespace gb
 
     bool CPU::savecpu(string filename)
     {
-        fstream file(filename.c_str(), ios::out | ios::binary);
+        ofstream file(filename.c_str(), ios::binary);
         
         if (!file.is_open())
         {
@@ -79,9 +84,9 @@ namespace gb
         return true;
     }
 
-	void CPU::reset()
+	void CPU::reset(bool cgb)
 	{
-	    af.reg = 0x01B0;
+	    af.reg = (cgb) ? 0x11B0 : 0x01B0;
 	    bc.reg = 0x0013;
 	    de.reg = 0x00D8;
 	    hl.reg = 0x014D;
@@ -125,8 +130,9 @@ namespace gb
 
 	void CPU::dointerrupts()
 	{
-	    uint8_t req = mem->readByte(0xFF0F);
-	    uint8_t enabled = mem->readByte(0xFFFF);	    
+	    uint8_t req = mem->memorymap[0xFF0F];
+	    uint8_t enabled = mem->memorymap[0xFFFF];	
+	    uint8_t intfired = (req & enabled);    
 
 	    if (interruptdelay)
 	    {
@@ -136,8 +142,9 @@ namespace gb
 	    }	    
 
 	    if (interruptmaster)
-	    {
-		if (TestBit(req, 0) && TestBit(enabled, 0))
+	    {		
+
+		if (TestBit(intfired, 0))
 		{
 		    interruptmaster = false;
 		    halted = false;
@@ -147,8 +154,7 @@ namespace gb
 		    pc = 0x40;
 		    advancecycles(36);
 		}
-		
-		if (TestBit(req, 1) && TestBit(enabled, 1))
+		else if (TestBit(intfired, 1))
 		{
 		    interruptmaster = false;
 		    halted = false;
@@ -158,8 +164,7 @@ namespace gb
 		    pc = 0x48;
 		    advancecycles(36);
 		}
-
-		if (TestBit(req, 2) && TestBit(enabled, 2))
+		else if (TestBit(intfired, 2))
 		{
 		    interruptmaster = false;
 		    halted = false;
@@ -169,8 +174,7 @@ namespace gb
 		    pc = 0x50;
 		    advancecycles(36);
 		}
-
-		if (TestBit(req, 3) && TestBit(enabled, 3))
+		else if (TestBit(intfired, 3))
 		{
 		    interruptmaster = false;
 		    halted = false;
@@ -180,8 +184,7 @@ namespace gb
 		    pc = 0x58;
 		    advancecycles(36);
 		}
-
-		if (TestBit(req, 4) && TestBit(enabled, 4))
+		else if (TestBit(intfired, 4))
 		{
 		    interruptmaster = false;
 		    halted = false;
@@ -196,7 +199,7 @@ namespace gb
 		mem->writeByte(0xFF0F, req);
 		return;
 	    }
-	    else if ((req & enabled & 0x1F) && (!skipinstruction))
+	    else if ((intfired & 0x1F) && (!skipinstruction))
 	    {
 		halted = false;
 		return;
@@ -282,6 +285,20 @@ namespace gb
 
 	void CPU::stop()
 	{
+	    pc++;
+	}
+
+	void CPU::doubleexec()
+	{
+	    uint8_t key1 = mem->memorymap[0xFF4D];
+
+	    if (TestBit(key1, 0))
+	    {
+		mem->doublespeed = !mem->doublespeed;
+	    }
+
+	    uint8_t doubletemp = (key1 & 0x7E) | (((mem->doublespeed) ? 1 : 0) << 7);
+	    mem->memorymap[0xFF4D] = doubletemp;
 	    pc++;
 	}
 

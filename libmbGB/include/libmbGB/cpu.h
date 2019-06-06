@@ -38,7 +38,7 @@ namespace gb
 		CPU();
 		~CPU();
 
-	        void reset();
+	        void reset(bool cgb);
 	        void resetBIOS();
 
 	        Register af;
@@ -83,6 +83,7 @@ namespace gb
 
 	        void daa();
 		void stop();
+		void doubleexec();
 	        uint8_t add8bit(uint8_t regone, uint8_t regtwo);
 		uint8_t add8bitc(uint8_t regone, uint8_t regtwo);
 	        uint8_t sub8bit(uint8_t regone, uint8_t regtwo);

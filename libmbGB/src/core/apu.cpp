@@ -7,7 +7,7 @@ namespace gb
 {
     APU::APU()
     {
-        reset();
+        
     }
     
     APU::~APU()

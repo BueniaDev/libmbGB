@@ -19,6 +19,8 @@ namespace gb
 	    DMGCore();
 	    ~DMGCore();
 
+	    void init();
+	    void resetcpu();
 	    void reset();
         void loadstate(string id);
         void savestate(string id);

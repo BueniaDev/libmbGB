@@ -27,21 +27,29 @@ namespace gb
 	    MMU *gmem;
 
 	    RGB framebuffer[160 * 144];
+	    uint8_t bgscanline[160];
+	    uint8_t winscanline[160];
+	    uint8_t bgscancolor[160];
+
+	    bool bgprior[160] = { false };
+	    bool winprior[160] = { false };
 
 	    void updategraphics(int cycles);
         void checklyc();
 	    void setlcdstatus();
+	    bool dumpvram();
 	    
 	    void drawscanline();
 	    void rendertiles(uint8_t lcdcontrol);
 	    void renderwindow(uint8_t lcdcontrol);
 	    void rendersprites(uint8_t lcdcontrol);
-	    int getcolor(int id, uint16_t palette);
+	    int getdmgcolor(int id, uint16_t palette);
+	    int getgbccolor(int id, int color);
+	    int getgbcobjcolor(int id, int color);
 
 	    int scanlinecounter;
         int windowlinecounter;
         uint8_t mode = 0;
-        bool newvblank = false;
     };
 }
 

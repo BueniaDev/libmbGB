@@ -1,6 +1,7 @@
 #include "../../include/libmbGB/mmu.h"
 #include <iostream>
 #include <cstring>
+#include <time.h>
 using namespace gb;
 using namespace std;
 
@@ -186,20 +187,26 @@ namespace gb
         }
         else if ((address >= 0xA000) && (address < 0xC000))
         {
-            if (ramenabled)
+            if (ramrtcselect < 0x04)
             {
-                int ramaddress = 0;
-                if (currentrambank != 0)
-                {
-                    ramaddress = currentrambank * 0x2000;
-                }
-                
-                return rambanks[(address - 0xA000) + ramaddress];
+          	currentrambank = ramrtcselect;      
+	  	uint16_t ramaddr = currentrambank * 0x2000;
+                return rambanks[(address - 0xA000) + ramaddr];
             }
-            else
-            {
-                return 0xFF;
-            }
+	    else if (rtc && ramrtcselect >= 0x08 && ramrtcselect < 0x0D)
+	    {
+		updatetimer();
+
+		switch (ramrtcselect)
+		{
+		    case 0x08: return latchsecs; break;
+		    case 0x09: return latchmins; break;
+		    case 0x0A: return latchhours; break;
+		    case 0x0B: return latchdays; break;
+		    case 0x0C: return latchdayshi; break;
+		    default: break;
+		}
+	    }
         }
 
         return memorymap[address];
@@ -230,19 +237,39 @@ namespace gb
         }
         else if ((address >= 0x4000) && (address < 0x6000))
         {
-            currentrambank = (value & 0x07);
+            ramrtcselect = (value % 0x0D);
         }
         else if ((address >= 0x6000) && (address < 0x8000))
         {
-            // TODO: RTC
+            if (!latch && TestBit(value, 0) && rtc)
+	    {
+		latchtimer();
+	    }
+
+	    latch = TestBit(value, 0);
         }
         else if ((address >= 0xA000) && (address < 0xC000))
         {
-            if (ramenabled)
+            if (ramrtcselect < 0x04)
             {
-                uint16_t ramaddr = currentrambank * 0x2000;
+          	currentrambank = ramrtcselect;      
+	  	uint16_t ramaddr = currentrambank * 0x2000;
                 rambanks[(address - 0xA000) + ramaddr] = value;
             }
+	    else if (rtc && ramrtcselect >= 0x08 && ramrtcselect < 0x0D)
+	    {
+		updatetimer();
+
+		switch (ramrtcselect)
+		{
+		    case 0x08: realsecs = value; break;
+		    case 0x09: realmins = value; break;
+		    case 0x0A: realhours = value; break;
+		    case 0x0B: realdays = value; break;
+		    case 0x0C: realdayshi = value; break;
+		    default: break;
+		}
+	    }
         }
     }
     
@@ -273,6 +300,77 @@ namespace gb
         
         return memorymap[address];
     }
+
+    void MMU::updatetimer()
+    {
+	time_t newtime = time(nullptr);
+	unsigned int difference = 0;
+
+	if ((newtime > currenttime) & !TestBit(realdayshi, 6))
+	{
+	    difference = (unsigned int)(newtime - currenttime);
+	    currenttime = newtime;
+	}
+	else
+	{
+	    currenttime = newtime;
+	    return;
+	}
+
+	unsigned int newseconds = realsecs + difference;
+
+	if (newseconds == realsecs)
+	{
+	    return;
+	}
+
+	realsecs = newseconds % 60;
+
+	unsigned int newmins = realmins + (newseconds / 60);
+
+	if (newmins == realmins)
+	{
+	    return;
+	}
+
+	realmins = newmins % 60;
+
+	unsigned int newhours = realhours + (newmins / 60);
+
+	if (newhours == realhours)
+	{
+	    return;
+	}
+
+	realhours = newhours % 24;
+
+	unsigned int realdaysunsplit = ((realdayshi & 0x1) << 8) | realdays;
+	unsigned int newdays = realdaysunsplit + (newhours / 24);
+	if (newdays == realdaysunsplit)
+	{
+	    return;
+	}
+
+	realdays = newdays;
+	
+	realdayshi &= 0xFE;
+	realdayshi |= (newdays >> 8) & 0x1;
+
+	if (newdays > 511)
+	{
+	    realdayshi |= 0x80;
+	}
+    }
+
+    void MMU::latchtimer()
+    {
+	updatetimer();
+	latchsecs = realsecs;
+	latchmins = realmins;
+	latchhours = realhours;
+	latchdays = realdays;
+	latchdayshi = realdayshi;
+    }
     
     void MMU::mbc5write(uint16_t address, uint8_t value)
     {
@@ -297,7 +395,7 @@ namespace gb
         }
         else if ((address >= 0xA000) && (address < 0xC000))
         {
-            if (ramenabled)
+            if (ramenabled && ramsize > 0)
             {
                 uint16_t ramaddr = currentrambank * 0x2000;
                 rambanks[(address - 0xA000) + ramaddr] = value;
