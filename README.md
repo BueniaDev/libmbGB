@@ -6,7 +6,7 @@ Game Boy (Color) emulation library, sorta
 
 The goal here is to do things right and fast (like melonDS). But, also, you know, to have a fun challenge... :)
 
-## Screenshots (will fix later)
+## Screenshots
 
 # DMG Screenshots:
 
