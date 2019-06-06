@@ -32,8 +32,6 @@ namespace gb
     coremmu.audio = &coreapu;
 	corecpu.timers = &coretimers;
 	corecpu.gpu = &coregpu;
-	reset();
-	cout << "DMGCore::Initialized" << endl;
     }
 
     void DMGCore::reset()
@@ -44,6 +42,7 @@ namespace gb
 	coretimers.reset();
 	coreapu.reset();
 	coretimers.reset();
+	cout << "DMGCore::Initialized" << endl;
     }
 
     void DMGCore::resetcpu()

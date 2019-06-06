@@ -202,6 +202,7 @@ void handleinput(SDL_Event& event)
 int main(int argc, char* argv[])
 {
     core.init();
+    core.reset();
     core.coreapu.setaudiocallback(bind(sdlcallback));   
 
     if (!core.getoptions(argc, argv))
@@ -225,8 +226,8 @@ int main(int argc, char* argv[])
         }
     }
     else
-    {
-        core.resetcpu();
+    {      
+	core.resetcpu();
     }
 
     if (!initSDL())
