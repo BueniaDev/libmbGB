@@ -47,8 +47,11 @@ At this point, libmbGB is able to run many commercial Game Boy (and Game Boy Col
 On Linux:
 
 Ubuntu: `sudo apt install libsdl2-dev`
+
 Arch: `pacman -S sdl2`
+
 Fedora: `dnf install SDL2-devel`
+
 
 On Mac:
 
