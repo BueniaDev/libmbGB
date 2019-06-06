@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/Buenia0/libmbGB.svg?branch=master)](https://travis-ci.org/Buenia0/libmbGB)
 
-Gameboy emulation library, sorta
+Game Boy (Color) emulation library, sorta
 
 The goal here is to do things right and fast (like melonDS). But, also, you know, to have a fun challenge... :)
 
@@ -36,7 +36,7 @@ The goal here is to do things right and fast (like melonDS). But, also, you know
 
 ## Current project status
 
-At this point, libmbGB is able to run many commercial Game Boy (and Game Boy Color) titles well and (if the SDL2 renderer is built) with sound. Savestates may be a little buggy, e.g: minor freezes, some "Unrecognized opcode" errors, etc. However, I'm trying to fix those bugs and to improve the overall accuracy of libmbGB, so don't lose hope yet... ;)
+At this point, libmbGB is able to run many commercial Game Boy (and Game Boy Color) titles well and (if the SDL2 renderer is built) with sound. In additon, I'm trying to improve the overall accuracy of libmbGB, so don't lose hope yet... ;)
 
 ## Building Instructions
 
@@ -46,7 +46,9 @@ At this point, libmbGB is able to run many commercial Game Boy (and Game Boy Col
 
 On Linux:
 
-`sudo apt install libsdl2-dev`
+Ubuntu: `sudo apt install libsdl2-dev`
+Arch: `pacman -S sdl2`
+Fedora: `dnf install SDL2-devel`
 
 On Mac:
 
@@ -109,7 +111,7 @@ Improving existing GameBoy Color support
 
 ## Long-term
 
-Support for GameBoy addons
+Support for GameBoy (and GameBoy Color) addons
 
 # License
 
