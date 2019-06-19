@@ -91,10 +91,23 @@ namespace gb
 	cout << "CPU::Shutting down..." << endl;
     }
 
+    void CPU::printregs()
+    {
+	cout << "AF: " << hex << (int)(af.getreg()) << endl;
+	cout << "BC: " << hex << (int)(bc.getreg()) << endl;
+	cout << "DE: " << hex << (int)(de.getreg()) << endl;
+	cout << "HL: " << hex << (int)(hl.getreg()) << endl;
+	cout << "PC: " << hex << (int)(pc) << endl;
+	cout << "SP: " << hex << (int)(sp) << endl;
+	cout << endl;
+    }
+
     int CPU::runfor(int cycles)
     {
 	while (cycles > 0)
 	{
+	    printregs();	    
+
 	    if (state == CPUState::Stopped)
 	    {
 		// TODO: CPU stopping
@@ -118,6 +131,7 @@ namespace gb
 		// TODO: Halted ticking stuff
 		cycles -= 4;
 	    }
+
 	}
 
 	return cycles;
@@ -129,14 +143,5 @@ namespace gb
 	{
 	    // TODO: Hardware ticking
 	}
-    }
-
-    uint16_t CPU::getimmword()
-    {
-	hardwaretick(4);
-	uint16_t temp = mem.readWord(pc + 1);
-	hardwaretick(4);
-
-	return temp;
     }
 };

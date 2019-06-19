@@ -22,7 +22,7 @@ int main(int argc, char* argv[])
     coremmu.loadBIOS(argv[2]);
     coremmu.loadROM(argv[1]);
 
-    corecpu.runfor(32);
+    corecpu.runfor(1000000);
 
     coremmu.shutdown();
     return 0;
