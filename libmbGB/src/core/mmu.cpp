@@ -100,7 +100,7 @@ namespace gb
 	}
 	else if (addr < 0xFF80)
 	{
-	    return 0xFF; // TODO: I/O Registers
+	    return readIO(addr);
 	}
 	else if (addr < 0xFFFF)
 	{
@@ -148,7 +148,7 @@ namespace gb
 	}
 	else if (addr < 0xFF80)
 	{
-	    return; // TODO: I/O Registers
+	    writeIO(addr, value);
 	}
 	else if (addr < 0xFFFF)
 	{
@@ -169,6 +169,28 @@ namespace gb
     {
 	writeByte(addr , (val & 0xFF));
 	writeByte((addr + 1), (val >> 8));
+    }
+
+    uint8_t MMU::readIO(uint16_t addr)
+    {
+	uint8_t temp = 0;
+	
+	switch ((addr & 0xFF))
+	{
+	    case 0x47: temp = bgpalette; break;
+	    default: break;
+	}
+	
+	return temp;
+    }
+
+    void MMU::writeIO(uint16_t addr, uint8_t value)
+    {
+	switch ((addr & 0xFF))
+	{
+	    case 0x47: bgpalette = value; break;
+	    default: break;
+	}
     }
 
     string MMU::determinegametitle(vector<uint8_t>& rom)

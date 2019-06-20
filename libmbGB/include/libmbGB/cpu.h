@@ -146,30 +146,46 @@ namespace gb
 		hardwaretick(4);
 	    }
 
+	    uint8_t store8frommem(uint16_t reg)
+	    {
+		uint8_t temp = mem.readByte(reg);
+		hardwaretick(4);
+		return temp;
+	    }
+
 	    inline void xorreg(uint8_t reg)
 	    {
 		af.sethi(af.gethi() ^ reg);
-		af.setlo(setzero(af.getlo(), af.gethi() == 0));
-		af.setlo(setsubtract(af.getlo(), false));
-		af.setlo(sethalf(af.getlo(), false));
-		af.setlo(setcarry(af.getlo(), false));
+		setzero(af.gethi() == 0);
+		setsubtract(false);
+		sethalf(false);
+		setcarry(false);
+	    }
+
+	    inline void cmpreg(uint8_t reg)
+	    {
+		uint8_t temp = (af.gethi() - reg);
+		setzero(temp == 0);
+		setsubtract(true);
+		sethalf(((af.gethi() & 0x0F) - (reg & 0x0F)) < 0);
+		setcarry(af.gethi() < reg);
 	    }
 
 	    inline uint8_t incregbyte(uint8_t reg)
 	    {
 		uint8_t temp = reg;
-		af.setlo(sethalf(af.getlo(), ((reg & 0x0F) == 0x0F)));
+		sethalf((reg & 0x0F) == 0x0F);
 		temp += 1;
-		af.setlo(setzero(af.getlo(), (temp == 0)));
+		setzero((temp == 0));
 		return temp;
 	    }
 
 	    inline uint8_t decregbyte(uint8_t reg)
 	    {
 		uint8_t temp = reg;
-		af.setlo(sethalf(af.getlo(), ((reg & 0x0F) == 0x00)));
+		sethalf((reg & 0x0F) == 0x00);
 		temp -= 1;
-		af.setlo(setzero(af.getlo(), (temp == 0)));
+		setzero((temp == 0));
 		return temp;
 	    }
 
@@ -207,39 +223,203 @@ namespace gb
 		return temp;
 	    }
 
+	    inline void call(uint16_t addr)
+	    {
+		hardwaretick(4);
+		sp -= 2;
+		hardwaretick(4);
+		mem.writeWord(sp, pc);
+		hardwaretick(4);
+
+		pc = addr;
+	    }
+
+	    inline int callcond(uint16_t addr, bool cond)
+	    {
+		int temp = 0;
+
+		if (cond)
+		{
+		    call(addr);
+		    temp = 24;
+		}
+		else
+		{
+		    hardwaretick(8);
+		    pc += 2;
+		    temp = 12;
+		}
+
+		return temp;
+	    }
+
+	    inline void ret()
+	    {
+		uint16_t temp = 0;
+		hardwaretick(4);
+		temp = mem.readWord(sp);
+		hardwaretick(4);
+		sp += 2;
+		hardwaretick(4);
+		pc = temp;
+	    }
+
+	    inline int retcond(bool cond)
+	    {
+		int temp = 0;
+
+		hardwaretick(4);
+		
+		if (cond)
+		{
+		    ret();
+		    temp = 20;
+		}
+		else
+		{
+		    temp = 8;
+		}
+
+		return temp;
+	    }
+
+	    inline void push(uint16_t reg)
+	    {
+		hardwaretick(4);
+		sp -= 2;
+		hardwaretick(4);
+		mem.writeWord(sp, reg);
+		hardwaretick(4);
+	    }
+
+	    inline uint16_t pop()
+	    {
+		uint16_t temp = 0;
+		hardwaretick(4);
+		temp = mem.readWord(sp);
+		hardwaretick(4);
+		sp += 2;
+
+		return temp;
+	    }
+
+	    inline uint8_t rl(uint8_t reg)
+	    {
+		uint8_t temp = reg;
+		bool carryval = TestBit(reg, 7);
+
+		temp = ((reg << 1) | (iscarry() ? 1 : 0));
+
+		setzero(temp == 0);
+
+		setsubtract(false);
+		sethalf(false);
+		setcarry(carryval);
+
+		return temp;
+	    }
+
+	    inline uint8_t rlc(uint8_t reg)
+	    {
+		uint8_t temp = reg;
+
+		setcarry(TestBit(reg, 7));
+
+		temp = ((reg << 1) | (reg >> 7));
+
+		setzero(temp == 0);
+
+		setsubtract(false);
+		sethalf(false);
+
+		return temp;
+	    }
+
+	    inline uint8_t rr(uint8_t reg)
+	    {
+		uint8_t temp = reg;
+		bool carryval = TestBit(reg, 0);
+
+		temp = ((reg >> 1) | ((iscarry() ? 1 : 0) << 7));
+
+		setzero(temp == 0);
+
+		setsubtract(false);
+		sethalf(false);
+		setcarry(carryval);
+
+		return temp;
+	    }
+
+	    inline uint8_t rrc(uint8_t reg)
+	    {
+		uint8_t temp = reg;
+
+		setcarry(TestBit(reg, 0));
+
+		temp = ((reg >> 1) | (reg << 7));
+
+		setzero(temp == 0);
+
+		setsubtract(false);
+		sethalf(false);
+
+		return temp;
+	    }
+
 	    inline void bit(uint8_t reg, int bit)
 	    {
-		af.setlo(setzero(af.getlo(), !TestBit(reg, bit)));
-		af.setlo(setsubtract(af.getlo(), false));
-		af.setlo(sethalf(af.getlo(), true));
+		setzero(!TestBit(reg, bit));
+		setsubtract(false);
+		sethalf(true);
 	    }
 
-	    uint8_t setzero(uint8_t reg, bool val)
+	    void setzero(bool val)
 	    {
-		uint8_t temp = reg;
+		uint8_t temp = af.getlo();
 		temp = (val) ? BitSet(temp, 7) : BitReset(temp, 7);
-		return temp;
+		af.setlo(temp);
 	    }
 
-	    uint8_t setsubtract(uint8_t reg, bool val)
+	    bool iszero()
 	    {
-		uint8_t temp = reg;
+		return TestBit(af.getlo(), 7);
+	    }
+
+	    void setsubtract(bool val)
+	    {
+		uint8_t temp = af.getlo();
 		temp = (val) ? BitSet(temp, 6) : BitReset(temp, 6);
-		return temp;
+		af.setlo(temp);
 	    }
 
-	    uint8_t sethalf(uint8_t reg, bool val)
+	    bool issubtract()
 	    {
-		uint8_t temp = reg;
+		return TestBit(af.getlo(), 6);
+	    }
+
+	    void sethalf(bool val)
+	    {
+		uint8_t temp = af.getlo();
 		temp = (val) ? BitSet(temp, 5) : BitReset(temp, 5);
-		return temp;
+		af.setlo(temp);
 	    }
 
-	    uint8_t setcarry(uint8_t reg, bool val)
+	    bool ishalf()
 	    {
-		uint8_t temp = reg;
+		return TestBit(af.getlo(), 5);
+	    }
+
+	    void setcarry(bool val)
+	    {
+		uint8_t temp = af.getlo();
 		temp = (val) ? BitSet(temp, 4) : BitReset(temp, 4);
-		return temp;
+		af.setlo(temp);
+	    }
+
+	    bool iscarry()
+	    {
+		return TestBit(af.getlo(), 4);
 	    }
 	
     };

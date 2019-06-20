@@ -67,6 +67,12 @@ namespace gb
 	    void writeByte(uint16_t addr, uint8_t value);
 	    uint16_t readWord(uint16_t addr);
 	    void writeWord(uint16_t addr, uint16_t value);
+
+	    uint8_t readIO(uint16_t addr);
+	    void writeIO(uint16_t addr, uint8_t value);
+
+
+	    uint8_t bgpalette = 0x00; // Use garbage value for now.
     };
 };
 

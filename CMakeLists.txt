@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(libmbGB)
 
+option(BUILD_EXAMPLE "Enables the example renderer (requires SDL2)." OFF)
 option(BUILD_HEADLESS "Enables the headless renderer." OFF)
 
 if (WIN32)
@@ -26,6 +27,10 @@ set(LIBMBGB
 	libmbGB/src/core/mmu.cpp
 	libmbGB/src/core/cpu.cpp
 	libmbGB/src/core/ops.cpp)
+
+if (BUILD_EXAMPLE STREQUAL "ON")
+	add_subdirectory(example/sdl2)
+endif()
 
 if (BUILD_HEADLESS STREQUAL "ON")
 	add_subdirectory(example/headless)
