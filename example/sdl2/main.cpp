@@ -1,12 +1,14 @@
 #include <libmbGB/cpu.h>
 #include <libmbGB/mmu.h>
+#include <libmbGB/gpu.h>
 #include <SDL2/SDL.h>
 #include <iostream>
 using namespace gb;
 using namespace std;
 
 MMU coremmu;
-CPU corecpu(coremmu);
+GPU coregpu(coremmu);
+CPU corecpu(coremmu, coregpu);
 
 SDL_Window *window;
 SDL_Surface *surface;
@@ -40,6 +42,27 @@ void stop()
 {
     SDL_DestroyWindow(window);
     SDL_Quit();
+}
+
+void drawpixels()
+{
+    SDL_Rect pixel = {0, 0, scale, scale};
+
+    for (int i = 0; i < screenwidth; i++)
+    {
+	pixel.x = (i * scale);
+	for (int j = 0; j < screenheight; j++)
+	{
+	    pixel.y = (j * scale);
+	    uint8_t red = coregpu.framebuffer[i + (j * screenwidth)].red;
+	    uint8_t green = coregpu.framebuffer[i + (j * screenwidth)].green;
+	    uint8_t blue = coregpu.framebuffer[i + (j * screenwidth)].blue;
+
+	    SDL_FillRect(surface, &pixel, SDL_MapRGBA(surface->format, red, green, blue, 255));
+	}
+    }
+
+    SDL_UpdateWindowSurface(window);
 }
 
 int runcore(int spentcycles)
@@ -83,6 +106,7 @@ int main(int argc, char* argv[])
 	}
 
 	overspentcycles = runcore(overspentcycles);
+	drawpixels();
     }
 
     stop();

@@ -1,15 +1,15 @@
 // This file is part of libmbGB.
-// Copyright (C) 2019 Buenia.ui
+// Copyright (C) 2019 Buenia.
 // libmbGB is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-
+//
 // libmbGB is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-
+//
 // You should have received a copy of the GNU General Public License
 // along with libmbGB.  If not, see <https://www.gnu.org/licenses/>.
 
@@ -18,7 +18,7 @@ using namespace gb;
 
 namespace gb
 {
-    CPU::CPU(MMU& memory) : mem(memory)
+    CPU::CPU(MMU& memory, GPU& graphics) : mem(memory), gpu(graphics)
     {
 
     }
@@ -99,14 +99,14 @@ namespace gb
 	cout << "HL: " << hex << (int)(hl.getreg()) << endl;
 	cout << "PC: " << hex << (int)(pc) << endl;
 	cout << "SP: " << hex << (int)(sp) << endl;
-	// cout << endl;
+	cout << endl;
     }
 
     int CPU::runfor(int cycles)
     {
 	while (cycles > 0)
 	{
-	    printregs();
+	    // printregs();
 
 	    if (state == CPUState::Stopped)
 	    {
@@ -131,6 +131,14 @@ namespace gb
 		// TODO: Halted ticking stuff
 		cycles -= 4;
 	    }
+
+	    /*
+	    if (pc == 0x68 && gpu.currentscanline == 0x90)
+	    {
+	        cout << hex << (int)(af.getlo()) << endl;
+		exit(1);
+	    }
+	    */
 	
 	}
 
@@ -141,7 +149,7 @@ namespace gb
     {
 	for (; cycles != 0; cycles -= 4)
 	{
-	    // TODO: Hardware ticking
+	    gpu.updatelcd();
 	}
     }
 };

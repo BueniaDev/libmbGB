@@ -1,15 +1,15 @@
 // This file is part of libmbGB.
-// Copyright (C) 2019 Buenia.ui
+// Copyright (C) 2019 Buenia.
 // libmbGB is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-
+//
 // libmbGB is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-
+//
 // You should have received a copy of the GNU General Public License
 // along with libmbGB.  If not, see <https://www.gnu.org/licenses/>.
 
@@ -138,6 +138,14 @@ namespace gb
 	    case 0x7D: af.sethi(hl.getlo()); cycles = 4; break;
 	    case 0x7E: af.sethi(store8frommem(hl.getreg())); cycles = 8; break;
 	    case 0x7F: af.sethi(af.gethi()); cycles = 4; break;
+	    case 0x90: af.sethi(subreg(bc.gethi())); cycles = 4; break;
+	    case 0x91: af.sethi(subreg(bc.getlo())); cycles = 4; break;
+	    case 0x92: af.sethi(subreg(de.gethi())); cycles = 4; break;
+	    case 0x93: af.sethi(subreg(de.getlo())); cycles = 4; break;
+	    case 0x94: af.sethi(subreg(hl.gethi())); cycles = 4; break;
+	    case 0x95: af.sethi(subreg(hl.getlo())); cycles = 4; break;
+	    case 0x96: af.sethi(subreg(store8frommem(hl.getreg()))); cycles = 8; break;
+	    case 0x97: af.sethi(subreg(af.gethi())); cycles = 4; break;
 	    case 0xA8: xorreg(bc.gethi()); cycles = 4; break;
 	    case 0xA9: xorreg(bc.getlo()); cycles = 4; break;
 	    case 0xAA: xorreg(de.gethi()); cycles = 4; break;
@@ -173,11 +181,13 @@ namespace gb
 	    case 0xE1: hl.setreg(pop()); cycles = 12; break;
 	    case 0xE2: load8intomem((0xFF00 + bc.getlo()), af.gethi()); cycles = 8; break;
 	    case 0xE5: push(hl.getreg()); cycles = 16; break;
+	    case 0xEA: load8intomem(getimmword(), af.gethi()); cycles = 16; break;
 	    case 0xEE: xorreg(getimmbyte()); cycles = 8; break;
 	    case 0xF0: af.sethi(store8frommem((0xFF00 + getimmbyte()))); cycles = 8; break;
 	    case 0xF1: af.setreg(pop()); cycles = 12; break;
 	    case 0xF2: af.sethi(store8frommem((0xFF00 + bc.getlo()))); cycles = 8; break;
 	    case 0xF5: push(af.getreg()); cycles = 16; break;
+	    case 0xFA: af.sethi(store8frommem(getimmword())); cycles = 16; break;
 	    case 0xFE: cmpreg(getimmbyte()); cycles = 8; break;
 	    default: cout << "Unrecognized opcode at 0x" << uppercase << hex << (int)(opcode) << endl; exit(1); break;
 	}

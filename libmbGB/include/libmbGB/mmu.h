@@ -5,12 +5,12 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-
+//
 // libmbGB is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-
+//
 // You should have received a copy of the GNU General Public License
 // along with libmbGB.  If not, see <https://www.gnu.org/licenses/>.
 
@@ -23,6 +23,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <functional>
 #include "enums.h"
 #include "libmbgb_api.h"
 using namespace std;
@@ -48,6 +49,8 @@ namespace gb
     {
 	return (reg & (1 << bit)) ? 1 : 0;
     }
+
+    using poweronfunc = function<void(bool)>;
 
     class LIBMBGB_API MMU
     {
@@ -91,6 +94,8 @@ namespace gb
 	    uint8_t readIO(uint16_t addr);
 	    void writeIO(uint16_t addr, uint8_t value);
 
+	    poweronfunc poweron;
+
 	    inline bool islcdenabled()
 	    {
 		return TestBit(lcdc, 7);
@@ -106,13 +111,27 @@ namespace gb
 		stat = ((stat & 0xFC) | mode);
 	    }
 
+	    inline void writelcdc(uint8_t value)
+	    {
+		bool lcdwasenabled = islcdenabled();
+
+		lcdc = value;
+
+		poweron(lcdwasenabled);
+	    }
+
+	    void setpoweroncallback(poweronfunc cb)
+	    {
+		poweron = cb;
+	    }
+
 	    uint8_t lcdc = 0x91;
 	    uint8_t stat = 0x01;
 	    uint8_t scrolly = 0x00;
 	    uint8_t scrollx = 0x00;
 	    uint8_t ly = 0x00;
 	    uint8_t lyc = 0x00;
-	    uint8_t bgpalette = 0x00; // Use garbage value for now.
+	    uint8_t bgpalette = 0xFC;
     };
 };
 

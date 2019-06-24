@@ -1,15 +1,15 @@
 // This file is part of libmbGB.
-// Copyright (C) 2019 Buenia.ui
+// Copyright (C) 2019 Buenia.
 // libmbGB is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-
+//
 // libmbGB is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-
+//
 // You should have received a copy of the GNU General Public License
 // along with libmbGB.  If not, see <https://www.gnu.org/licenses/>.
 
@@ -17,6 +17,7 @@
 #define LIBMBGB_CPU
 
 #include "mmu.h"
+#include "gpu.h"
 #include "libmbgb_api.h"
 #include <cstdint>
 #include <iostream>
@@ -71,7 +72,7 @@ namespace gb
     class LIBMBGB_API CPU
     {
 	public:
-	    CPU(MMU& memory);
+	    CPU(MMU& memory, GPU& graphics);
 	    ~CPU();
 
 	    CPUState state = CPUState::Running;
@@ -82,6 +83,7 @@ namespace gb
 	    void shutdown();
 
 	    MMU& mem;
+	    GPU& gpu;
 
 	    Register af;
 	    Register bc;
@@ -132,6 +134,16 @@ namespace gb
 	    {
 		uint8_t temp = mem.readByte(reg);
 		hardwaretick(4);
+		return temp;
+	    }
+
+	    inline uint8_t subreg(uint8_t reg)
+	    {
+		uint8_t temp = (af.gethi() - reg);
+		setzero(temp == 0);
+		setsubtract(true);
+		sethalf(((af.gethi() & 0x0F) - (reg & 0x0F)) < 0);
+		setcarry(af.gethi() < reg);
 		return temp;
 	    }
 
