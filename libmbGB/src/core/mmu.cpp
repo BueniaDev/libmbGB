@@ -177,6 +177,12 @@ namespace gb
 	
 	switch ((addr & 0xFF))
 	{
+	    case 0x40: temp = lcdc; break;
+	    case 0x41: temp = stat; break;
+	    case 0x42: temp = scrolly; break;
+	    case 0x43: temp = scrollx; break;
+	    case 0x44: temp = ly; break;
+	    case 0x45: temp = lyc; break;
 	    case 0x47: temp = bgpalette; break;
 	    default: break;
 	}
@@ -188,6 +194,12 @@ namespace gb
     {
 	switch ((addr & 0xFF))
 	{
+	    case 0x40: lcdc = value; break;
+	    case 0x41: stat = value; break;
+	    case 0x42: scrolly = value; break;
+	    case 0x43: scrollx = value; break;
+	    case 0x44: break; // LY should not be written to
+	    case 0x45: lyc = value; break;
 	    case 0x47: bgpalette = value; break;
 	    default: break;
 	}

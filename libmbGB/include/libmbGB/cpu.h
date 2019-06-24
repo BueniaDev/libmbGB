@@ -66,25 +66,7 @@ namespace gb
 	}
     };
 
-    inline bool TestBit(uint32_t reg, int bit)
-    {
-	return (reg & (1 << bit)) ? true : false;
-    }
 
-    inline uint8_t BitSet(uint32_t reg, int bit)
-    {
-	return (reg | (1 << bit));
-    }
-
-    inline uint8_t BitReset(uint32_t reg, int bit)
-    {
-	return (reg & ~(1 << bit));
-    }
-
-    inline int BitGetVal(uint32_t reg, int bit)
-    {
-	return (reg & (1 << bit)) ? 1 : 0;
-    }
 
     class LIBMBGB_API CPU
     {

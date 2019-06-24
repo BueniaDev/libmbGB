@@ -29,6 +29,26 @@ using namespace std;
 
 namespace gb
 {
+    inline bool TestBit(uint32_t reg, int bit)
+    {
+	return (reg & (1 << bit)) ? true : false;
+    }
+
+    inline uint8_t BitSet(uint32_t reg, int bit)
+    {
+	return (reg | (1 << bit));
+    }
+
+    inline uint8_t BitReset(uint32_t reg, int bit)
+    {
+	return (reg & ~(1 << bit));
+    }
+
+    inline int BitGetVal(uint32_t reg, int bit)
+    {
+	return (reg & (1 << bit)) ? 1 : 0;
+    }
+
     class LIBMBGB_API MMU
     {
 	public:
@@ -71,7 +91,27 @@ namespace gb
 	    uint8_t readIO(uint16_t addr);
 	    void writeIO(uint16_t addr, uint8_t value);
 
+	    inline bool islcdenabled()
+	    {
+		return TestBit(lcdc, 7);
+	    }
 
+	    inline bool isbgenabled()
+	    {
+		return TestBit(lcdc, 0);
+	    }
+
+	    inline void setstatmode(int mode)
+	    {
+		stat = ((stat & 0xFC) | mode);
+	    }
+
+	    uint8_t lcdc = 0x91;
+	    uint8_t stat = 0x01;
+	    uint8_t scrolly = 0x00;
+	    uint8_t scrollx = 0x00;
+	    uint8_t ly = 0x00;
+	    uint8_t lyc = 0x00;
 	    uint8_t bgpalette = 0x00; // Use garbage value for now.
     };
 };

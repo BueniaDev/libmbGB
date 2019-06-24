@@ -99,14 +99,14 @@ namespace gb
 	cout << "HL: " << hex << (int)(hl.getreg()) << endl;
 	cout << "PC: " << hex << (int)(pc) << endl;
 	cout << "SP: " << hex << (int)(sp) << endl;
-	cout << endl;
+	// cout << endl;
     }
 
     int CPU::runfor(int cycles)
     {
 	while (cycles > 0)
 	{
-	    printregs();	    
+	    printregs();
 
 	    if (state == CPUState::Stopped)
 	    {
@@ -131,7 +131,7 @@ namespace gb
 		// TODO: Halted ticking stuff
 		cycles -= 4;
 	    }
-
+	
 	}
 
 	return cycles;
