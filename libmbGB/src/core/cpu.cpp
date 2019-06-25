@@ -102,11 +102,69 @@ namespace gb
 	cout << endl;
     }
 
+    int CPU::handleinterrupts()
+    {
+	int temp = 0;	
+
+	if (interruptmasterenable)
+	{
+	    if (mem.requestedenabledinterrupts())
+	    {
+		hardwaretick(12);
+
+		interruptmasterenable = false;
+
+		if (mem.ispending(0))
+		{
+		    mem.clearinterrupt(0);
+		    serviceinterrupt(0x40);
+		}
+		else if (mem.ispending(1))
+		{
+		    mem.clearinterrupt(1);
+		    serviceinterrupt(0x48);
+		}
+		else if (mem.ispending(2))
+		{
+		    mem.clearinterrupt(2);
+		    serviceinterrupt(0x50);
+		}
+		else if (mem.ispending(3))
+		{
+		    mem.clearinterrupt(1);
+		    serviceinterrupt(0x58);
+		}
+		else if (mem.ispending(4))
+		{
+		    mem.clearinterrupt(2);
+		    serviceinterrupt(0x60);
+		}
+
+		temp = 20;
+	    }
+	}
+
+	return temp;
+    }
+
+    void CPU::serviceinterrupt(uint16_t addr)
+    {
+	sp -= 2;
+	hardwaretick(4);
+	mem.writeWord(sp, pc);
+	hardwaretick(4);
+
+	pc = addr;
+    }
+
     int CPU::runfor(int cycles)
     {
 	while (cycles > 0)
 	{
-	    // printregs();
+	    if (pc >= 0x100)
+	    {
+	        printregs();
+	    }
 
 	    if (state == CPUState::Stopped)
 	    {
@@ -116,6 +174,8 @@ namespace gb
 	    }
 	    
 	    // TODO: HDMA transfer stuff
+
+	    cycles -= handleinterrupts();
 
 	    if (state == CPUState::Running)
 	    {

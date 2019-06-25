@@ -96,6 +96,11 @@ namespace gb
 	    void hardwaretick(int cycles);
 	    int executenextopcode(uint8_t opcode);
 	    int executenextcbopcode(uint8_t opcode);
+	    int handleinterrupts();
+	    void serviceinterrupt(uint16_t addr);
+
+	    bool interruptmasterenable = false;
+	    bool enableinterruptsdelayed = false;
 
 	    void printregs();
 
@@ -137,6 +142,33 @@ namespace gb
 		return temp;
 	    }
 
+	    inline void compareg()
+	    {
+		af.sethi(~af.gethi());
+		setsubtract(true);
+		sethalf(true);
+	    }
+
+	    inline uint8_t addreg(uint8_t reg)
+	    {
+		uint8_t temp = (af.gethi() + reg);
+		setzero(temp == 0);
+		setsubtract(false);
+		sethalf(((af.gethi() & 0x0F) + (reg & 0x0F)) > 0x0F);
+		setcarry(temp > 0xFF);
+		return temp;
+	    }
+
+	    inline uint16_t add16reg(uint16_t reg1, uint16_t reg2)
+	    {
+		uint16_t temp = (reg1 + reg2);
+		setzero(temp == 0);
+		setsubtract(false);
+		sethalf(((reg1 & 0xFFF) + (reg2 & 0xFFF)) > 0xFFF);
+		setcarry(temp > 0xFFFF);
+		return temp;
+	    }
+
 	    inline uint8_t subreg(uint8_t reg)
 	    {
 		uint8_t temp = (af.gethi() - reg);
@@ -145,6 +177,24 @@ namespace gb
 		sethalf(((af.gethi() & 0x0F) - (reg & 0x0F)) < 0);
 		setcarry(af.gethi() < reg);
 		return temp;
+	    }
+
+	    inline void andreg(uint8_t reg)
+	    {
+		af.sethi(af.gethi() & reg);
+		setzero(af.gethi() == 0);
+		setsubtract(false);
+		sethalf(true);
+		setcarry(false);
+	    }
+
+	    inline void orreg(uint8_t reg)
+	    {
+		af.sethi(af.gethi() | reg);
+		setzero(af.gethi() == 0);
+		setsubtract(false);
+		sethalf(false);
+		setcarry(false);
 	    }
 
 	    inline void xorreg(uint8_t reg)
@@ -191,6 +241,30 @@ namespace gb
 	    inline uint16_t decreg(uint16_t reg)
 	    {
 		return (reg - 1);
+	    }
+
+	    inline void jump(uint16_t addr)
+	    {
+		hardwaretick(4);
+		pc = addr;
+	    }
+
+	    inline int jumpcond(uint16_t addr, bool cond)
+	    {
+		int temp = 0;
+		if (cond)
+		{
+		    jump(addr);
+		    temp = 16;
+		}
+		else
+		{
+		    hardwaretick(8);
+		    pc += 1;
+		    temp = 12;
+		}
+
+		return temp;
 	    }
 
 	    inline void reljump(int8_t imm)
@@ -361,11 +435,31 @@ namespace gb
 		return temp;
 	    }
 
+	    inline uint8_t swap(uint8_t reg)
+	    {
+		uint8_t temp = ((reg << 4) | (reg >> 4));
+		setzero(temp == 0);
+		setsubtract(false);
+		sethalf(false);
+		setcarry(false);
+		return temp;
+	    }
+
 	    inline void bit(uint8_t reg, int bit)
 	    {
 		setzero(!TestBit(reg, bit));
 		setsubtract(false);
 		sethalf(true);
+	    }
+
+	    inline uint8_t res(uint8_t reg, int bit)
+	    {
+		return BitReset(reg, bit);
+	    }
+
+	    inline uint8_t set(uint8_t reg, int bit)
+	    {
+		return BitSet(reg, bit);
 	    }
 
 	    void setzero(bool val)

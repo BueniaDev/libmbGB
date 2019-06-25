@@ -65,6 +65,11 @@ namespace gb
 	    {
 		return bios[addr];
 	    }
+	    else if (biosload && addr == 0x100)
+	    {
+		exitbios();
+		return rom[addr];
+	    }
 	    else
 	    {
 		return rom[addr];
@@ -108,7 +113,7 @@ namespace gb
 	}
 	else
 	{
-	    return 0xFF; // TODO: I/O Registers
+	    return interruptenabled;
 	}
     }
 
@@ -156,7 +161,7 @@ namespace gb
 	}
 	else
 	{
-	    return; // TODO: I/O Registers
+	    interruptenabled = value;
 	}
     }
 
@@ -177,6 +182,7 @@ namespace gb
 	
 	switch ((addr & 0xFF))
 	{
+	    case 0x0F: temp = (interruptflags | 0xE0); break;
 	    case 0x40: temp = lcdc; break;
 	    case 0x41: temp = stat; break;
 	    case 0x42: temp = scrolly; break;
@@ -194,6 +200,7 @@ namespace gb
     {
 	switch ((addr & 0xFF))
 	{
+	    case 0x0F: writeif(value); break;
 	    case 0x40: writelcdc(value); break;
 	    case 0x41: stat = value; break;
 	    case 0x42: scrolly = value; break;

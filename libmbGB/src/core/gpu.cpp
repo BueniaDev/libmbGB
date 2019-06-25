@@ -39,6 +39,7 @@ namespace gb
 	scanlinecounter += 4;
 
 	updately();
+	updatelycomparesignal();
 
 	if (currentscanline <= 143)
 	{
@@ -60,8 +61,30 @@ namespace gb
 	{
 	    if (scanlinecounter == 4)
 	    {
+		gpumem.requestinterrupt(0);
 		gpumem.setstatmode(1);
 	    }
+	}
+    }
+
+    void GPU::updatelycomparesignal()
+    {
+	if (lycomparezero)
+	{
+	    gpumem.setlycompare(gpumem.lyc == gpumem.lylastcycle);
+
+	    lycomparezero = false;
+	}
+	else if (gpumem.ly != gpumem.lylastcycle)
+	{
+	    gpumem.setlycompare(false);
+	    lycomparezero = true;
+	    gpumem.lylastcycle = gpumem.ly;
+	}
+	else
+	{
+	    gpumem.setlycompare(gpumem.lyc == gpumem.ly);
+	    gpumem.lylastcycle = gpumem.ly;
 	}
     }
 

@@ -125,6 +125,59 @@ namespace gb
 		poweron = cb;
 	    }
 
+	    inline void exitbios()
+	    {
+		biosload = false;
+		cout << "MMU::Exiting BIOS..." << endl;
+	    }
+
+	    inline void requestinterrupt(int id)
+	    {
+		if (!ifwrittenthiscycle)
+		{
+		    interruptflags = BitSet(interruptflags, id);
+		}
+	    }
+
+	    inline void clearinterrupt(int id)
+	    {
+		if (!ifwrittenthiscycle)
+		{
+		    interruptflags = BitReset(interruptflags, id);
+		}
+	    }
+
+	    bool ispending(int id)
+	    {
+		return (interruptflags & interruptenabled & (1 << id));
+	    }
+
+	    bool requestedenabledinterrupts()
+	    {
+		return (interruptflags & interruptenabled);
+	    }
+
+	    inline void writeif(uint8_t value)
+	    {
+		interruptflags = (value & 0x1F);
+		ifwrittenthiscycle = true;
+	    }
+
+	    inline void setlycompare(bool cond)
+	    {
+		if (cond)
+		{
+		    stat = BitSet(stat, 2);
+		}
+		else
+		{
+		    stat = BitReset(stat, 2);
+		}
+	    }
+
+	    bool ifwrittenthiscycle = false;
+
+	    uint8_t interruptflags = 0x00;
 	    uint8_t lcdc = 0x91;
 	    uint8_t stat = 0x01;
 	    uint8_t scrolly = 0x00;
@@ -132,6 +185,9 @@ namespace gb
 	    uint8_t ly = 0x00;
 	    uint8_t lyc = 0x00;
 	    uint8_t bgpalette = 0xFC;
+	    uint8_t interruptenabled = 0x00;
+
+	    uint8_t lylastcycle = 0x00;
     };
 };
 

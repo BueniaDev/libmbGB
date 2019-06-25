@@ -72,17 +72,16 @@ int runcore(int spentcycles)
 
 int main(int argc, char* argv[])
 {
-    if (argc < 3)
+    if (argc < 2)
     {
 	cout << "Usage: " << argv[0] << " ROM [BIOS]" << endl;
 	return 1;
     }
 
     coremmu.init();
-    coremmu.biosload = true;
+    coremmu.biosload = false;
     corecpu.init();
 
-    coremmu.loadBIOS(argv[2]);
     coremmu.loadROM(argv[1]);
 
     if (!init())

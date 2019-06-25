@@ -42,8 +42,11 @@ namespace gb
 
 	    void updatelcd();
 	    void updately();
+	    void updatelycomparesignal();
 	    void renderscanline();
 	    void renderbg(int pixel);
+
+	    bool lycomparezero = false;
 
 	    int scanlinecounter = 452;
 	    int currentscanline = 0;
