@@ -65,6 +65,10 @@ namespace gb
 		gpumem.setstatmode(1);
 	    }
 	}
+
+	checkstatinterrupt();
+
+	cout << currentscanline << endl;
     }
 
     void GPU::updatelycomparesignal()
@@ -120,10 +124,26 @@ namespace gb
 	    }
 	    else
 	    {
-		gpumem.ly += 1;
-		currentscanline = gpumem.ly;
+		currentscanline = ++gpumem.ly;
 	    }
 	}
+    }
+
+    void GPU::checkstatinterrupt()
+    {
+	statinterruptsignal |= (mode0check() && statmode() == 0);
+	statinterruptsignal |= (mode1check() && statmode() == 1);
+	statinterruptsignal |= (mode2check() && statmode() == 2);
+	statinterruptsignal |= (lycompcheck() && lycompequal());
+
+
+	if (statinterruptsignal && !previnterruptsignal)
+	{
+	    gpumem.requestinterrupt(1);
+	}
+
+	previnterruptsignal = statinterruptsignal;
+	statinterruptsignal = false;
     }
 
     void GPU::renderscanline()
@@ -179,8 +199,8 @@ namespace gb
 	uint8_t line = (ypos % 8);
 
 	line *= 2;
-	uint8_t data1 = gpumem.vram[(tileloc + line) - 0x8000];
-	uint8_t data2 = gpumem.vram[(tileloc + line + 1) - 0x8000];
+	uint8_t data1 = gpumem.readByte((tileloc + line));
+	uint8_t data2 = gpumem.readByte((tileloc + line + 1));
 
 	int colorbit = (xpos % 8);
 	colorbit -= 7;
@@ -194,7 +214,7 @@ namespace gb
 	int green = 0;
 	int blue = 0;
 
-	int color = getdmgcolor(colornum, gpumem.bgpalette);
+	int color = getdmgcolor(colornum, gpumem.readByte(0xFF47));
 
 	switch (color)
 	{

@@ -67,8 +67,8 @@ namespace gb
 	    hl.setreg(0x000D);   
 	}
 
-	pc = 0;
-	sp = 0;
+	pc = 0x0100;
+	sp = 0xFFFE;
 
 	cout << "CPU::Initialized" << endl;
     }
@@ -99,12 +99,18 @@ namespace gb
 	cout << "HL: " << hex << (int)(hl.getreg()) << endl;
 	cout << "PC: " << hex << (int)(pc) << endl;
 	cout << "SP: " << hex << (int)(sp) << endl;
+	cout << "IF: " << hex << (int)(mem.readByte(0xFF0F)) << endl;
+	cout << "IE: " << hex << (int)(mem.readByte(0xFFFF)) << endl;
+	cout << "IME: " << (int)(interruptmasterenable) << endl;
+	cout << "IMA: " << (int)(enableinterruptsdelayed) << endl;
+	cout << "REI: " << (int)(mem.requestedenabledinterrupts()) << endl;
+	cout << "VBlank: " << (int)(mem.ispending(0)) << endl;
 	cout << endl;
     }
 
     int CPU::handleinterrupts()
     {
-	int temp = 0;	
+	int temp = 0;
 
 	if (interruptmasterenable)
 	{
@@ -131,16 +137,29 @@ namespace gb
 		}
 		else if (mem.ispending(3))
 		{
-		    mem.clearinterrupt(1);
+		    mem.clearinterrupt(3);
 		    serviceinterrupt(0x58);
 		}
 		else if (mem.ispending(4))
 		{
-		    mem.clearinterrupt(2);
+		    mem.clearinterrupt(4);
 		    serviceinterrupt(0x60);
 		}
 
+		if (state == CPUState::Halted)
+		{
+		    state = CPUState::Running;
+		}
+
 		temp = 20;
+	    }
+	}
+	else if (state == CPUState::Halted)
+	{
+	    if (mem.requestedenabledinterrupts())
+	    {
+		state = CPUState::Running;
+		temp = 0;
 	    }
 	}
 
@@ -161,11 +180,6 @@ namespace gb
     {
 	while (cycles > 0)
 	{
-	    if (pc >= 0x100)
-	    {
-	        printregs();
-	    }
-
 	    if (state == CPUState::Stopped)
 	    {
 		// TODO: CPU stopping
@@ -188,24 +202,32 @@ namespace gb
 	    }
 	    else if (state == CPUState::Halted)
 	    {
-		// TODO: Halted ticking stuff
+		haltedtick(4);
 		cycles -= 4;
 	    }
-
-	    /*
-	    if (pc == 0x68 && gpu.currentscanline == 0x90)
-	    {
-	        cout << hex << (int)(af.getlo()) << endl;
-		exit(1);
-	    }
-	    */
 	
 	}
 
 	return cycles;
     }
 
+    void CPU::enabledelayedinterrupts()
+    {
+	interruptmasterenable = (interruptmasterenable || enableinterruptsdelayed);
+	enableinterruptsdelayed = false;
+    }
+
     void CPU::hardwaretick(int cycles)
+    {
+	for (; cycles != 0; cycles -= 4)
+	{
+	    enabledelayedinterrupts();
+	    gpu.updatelcd();
+	    mem.ifwrittenthiscycle = false;
+	}
+    }
+
+    void CPU::haltedtick(int cycles)
     {
 	for (; cycles != 0; cycles -= 4)
 	{

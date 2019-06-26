@@ -20,6 +20,7 @@ namespace gb
 {
     int CPU::executenextopcode(uint8_t opcode)
     {
+	hardwaretick(4);
 	int cycles = 0;	
 
 	switch (opcode)
@@ -137,6 +138,7 @@ namespace gb
 	    case 0x73: load8intomem(hl.getreg(), de.getlo()); cycles = 8; break;
 	    case 0x74: load8intomem(hl.getreg(), hl.gethi()); cycles = 8; break;
 	    case 0x75: load8intomem(hl.getreg(), hl.getlo()); cycles = 8; break;
+	    case 0x76: halt(); cycles = 4; break;
 	    case 0x77: load8intomem(hl.getreg(), af.gethi()); cycles = 8; break;
 	    case 0x78: af.sethi(bc.gethi()); cycles = 4; break;
 	    case 0x79: af.sethi(bc.getlo()); cycles = 4; break;
@@ -217,6 +219,7 @@ namespace gb
 	    case 0xD6: af.sethi(subreg(getimmbyte())); cycles = 8; break;
 	    case 0xD7: call(0x10); cycles = 16; break;
 	    case 0xD8: cycles = retcond(iscarry()); break;
+	    case 0xD9: ret(); interruptmasterenable = true; cycles = 16; break;
 	    case 0xDA: cycles = jumpcond(getimmword(), iscarry()); break;
 	    case 0xDC: cycles = callcond(getimmword(), iscarry()); break;
 	    case 0xDF: call(0x18); cycles = 16; break;
@@ -285,6 +288,22 @@ namespace gb
 	    case 0x1D: hl.setlo(rr(hl.getlo())); cycles = 8; break;
 	    case 0x1E: load8intomem(hl.getreg(), rr(store8frommem(hl.getreg()))); cycles = 16; break;
 	    case 0x1F: af.sethi(rr(af.gethi())); cycles = 8; break;
+	    case 0x20: bc.sethi(sla(bc.gethi())); cycles = 8; break;
+	    case 0x21: bc.setlo(sla(bc.getlo())); cycles = 8; break;
+	    case 0x22: de.sethi(sla(de.gethi())); cycles = 8; break;
+	    case 0x23: de.setlo(sla(de.getlo())); cycles = 8; break;
+	    case 0x24: hl.sethi(sla(hl.gethi())); cycles = 8; break;
+	    case 0x25: hl.setlo(sla(hl.getlo())); cycles = 8; break;
+	    case 0x26: load8intomem(hl.getreg(), sla(store8frommem(hl.getreg()))); cycles = 16; break;
+	    case 0x27: af.sethi(sla(af.gethi())); cycles = 8; break;
+	    case 0x28: bc.sethi(sra(bc.gethi())); cycles = 8; break;
+	    case 0x29: bc.setlo(sra(bc.getlo())); cycles = 8; break;
+	    case 0x2A: de.sethi(sra(de.gethi())); cycles = 8; break;
+	    case 0x2B: de.setlo(sra(de.getlo())); cycles = 8; break;
+	    case 0x2C: hl.sethi(sra(hl.gethi())); cycles = 8; break;
+	    case 0x2D: hl.setlo(sra(hl.getlo())); cycles = 8; break;
+	    case 0x2E: load8intomem(hl.getreg(), sra(store8frommem(hl.getreg()))); cycles = 16; break;
+	    case 0x2F: af.sethi(sra(af.gethi())); cycles = 8; break;
 	    case 0x30: bc.sethi(swap(bc.gethi())); cycles = 8; break;
 	    case 0x31: bc.setlo(swap(bc.getlo())); cycles = 8; break;
 	    case 0x32: de.sethi(swap(de.gethi())); cycles = 8; break;
@@ -293,6 +312,14 @@ namespace gb
 	    case 0x35: hl.setlo(swap(hl.getlo())); cycles = 8; break;
 	    case 0x36: load8intomem(hl.getreg(), swap(store8frommem(hl.getreg()))); cycles = 16; break;
 	    case 0x37: af.sethi(swap(af.gethi())); cycles = 8; break;
+	    case 0x38: bc.sethi(srl(bc.gethi())); cycles = 8; break;
+	    case 0x39: bc.setlo(srl(bc.getlo())); cycles = 8; break;
+	    case 0x3A: de.sethi(srl(de.gethi())); cycles = 8; break;
+	    case 0x3B: de.setlo(srl(de.getlo())); cycles = 8; break;
+	    case 0x3C: hl.sethi(srl(hl.gethi())); cycles = 8; break;
+	    case 0x3D: hl.setlo(srl(hl.getlo())); cycles = 8; break;
+	    case 0x3E: load8intomem(hl.getreg(), srl(store8frommem(hl.getreg()))); cycles = 16; break;
+	    case 0x3F: af.sethi(srl(af.gethi())); cycles = 8; break;
 	    case 0x40: bit(bc.gethi(), 0); cycles = 8; break;
 	    case 0x41: bit(bc.getlo(), 0); cycles = 8; break;
 	    case 0x42: bit(de.gethi(), 0); cycles = 8; break;

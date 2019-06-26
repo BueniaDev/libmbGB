@@ -149,7 +149,7 @@ namespace gb
 
 	    bool ispending(int id)
 	    {
-		return (interruptflags & interruptenabled & (1 << id));
+		return (interruptflags & interruptenabled & (1 << id)) ? true : false;
 	    }
 
 	    bool requestedenabledinterrupts()
@@ -159,7 +159,7 @@ namespace gb
 
 	    inline void writeif(uint8_t value)
 	    {
-		interruptflags = (value & 0x1F);
+		interruptflags = (value | 0xE0);
 		ifwrittenthiscycle = true;
 	    }
 
@@ -177,7 +177,7 @@ namespace gb
 
 	    bool ifwrittenthiscycle = false;
 
-	    uint8_t interruptflags = 0x00;
+	    uint8_t interruptflags = 0xE1;
 	    uint8_t lcdc = 0x91;
 	    uint8_t stat = 0x01;
 	    uint8_t scrolly = 0x00;

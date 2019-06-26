@@ -94,6 +94,7 @@ namespace gb
 
 	    int runfor(int cycles);
 	    void hardwaretick(int cycles);
+	    void haltedtick(int cycles);
 	    int executenextopcode(uint8_t opcode);
 	    int executenextcbopcode(uint8_t opcode);
 	    int handleinterrupts();
@@ -101,6 +102,8 @@ namespace gb
 
 	    bool interruptmasterenable = false;
 	    bool enableinterruptsdelayed = false;
+
+	    void enabledelayedinterrupts();
 
 	    void printregs();
 
@@ -221,6 +224,7 @@ namespace gb
 		sethalf((reg & 0x0F) == 0x0F);
 		temp += 1;
 		setzero((temp == 0));
+		setsubtract(false);
 		return temp;
 	    }
 
@@ -230,6 +234,7 @@ namespace gb
 		sethalf((reg & 0x0F) == 0x00);
 		temp -= 1;
 		setzero((temp == 0));
+		setsubtract(true);
 		return temp;
 	    }
 
@@ -260,7 +265,6 @@ namespace gb
 		else
 		{
 		    hardwaretick(8);
-		    pc += 1;
 		    temp = 12;
 		}
 
@@ -314,7 +318,6 @@ namespace gb
 		else
 		{
 		    hardwaretick(8);
-		    pc += 2;
 		    temp = 12;
 		}
 
@@ -435,6 +438,46 @@ namespace gb
 		return temp;
 	    }
 
+	    inline uint8_t sla(uint8_t reg)
+	    {
+		setcarry(TestBit(reg, 7));
+
+		uint8_t temp = (reg << 1);
+
+		setzero(temp == 0);
+		setsubtract(false);
+		sethalf(false);
+
+		return temp;
+	    }
+
+	    inline uint8_t sra(uint8_t reg)
+	    {
+		setcarry(TestBit(reg, 0));
+
+		uint8_t temp = (reg >> 1);
+		temp |= ((temp & 0x40) << 1);
+
+		setzero(temp == 0);
+		setsubtract(false);
+		sethalf(false);
+
+		return temp;
+	    }
+
+	    inline uint8_t srl(uint8_t reg)
+	    {
+		setcarry(TestBit(reg, 0));
+
+		uint8_t temp = (reg >> 1);
+
+		setzero(temp == 0);
+		setsubtract(false);
+		sethalf(false);
+
+		return temp;
+	    }
+
 	    inline uint8_t swap(uint8_t reg)
 	    {
 		uint8_t temp = ((reg << 4) | (reg >> 4));
@@ -460,6 +503,18 @@ namespace gb
 	    inline uint8_t set(uint8_t reg, int bit)
 	    {
 		return BitSet(reg, bit);
+	    }
+
+	    inline void halt()
+	    {
+		if (!interruptmasterenable && mem.requestedenabledinterrupts())
+		{
+		    state = CPUState::HaltBug;
+		}
+		else
+		{
+		    state = CPUState::Halted;
+		}
 	    }
 
 	    void setzero(bool val)

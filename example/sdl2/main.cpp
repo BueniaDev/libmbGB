@@ -80,13 +80,13 @@ int main(int argc, char* argv[])
 
     coremmu.init();
     coremmu.biosload = false;
-    corecpu.init();
 
     coremmu.loadROM(argv[1]);
+    corecpu.init();
 
     if (!init())
     {
-	return 1;
+	exit(1);
     }
 
     SDL_Event event;
@@ -108,9 +108,8 @@ int main(int argc, char* argv[])
 	drawpixels();
     }
 
-    stop();
-
     corecpu.shutdown();
     coremmu.shutdown();
-    return 0;
+    stop();
+    exit(0);
 }

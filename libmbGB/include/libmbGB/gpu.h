@@ -43,10 +43,13 @@ namespace gb
 	    void updatelcd();
 	    void updately();
 	    void updatelycomparesignal();
+	    void checkstatinterrupt();
 	    void renderscanline();
 	    void renderbg(int pixel);
 
 	    bool lycomparezero = false;
+	    bool statinterruptsignal = false;
+	    bool previnterruptsignal = false;
 
 	    int scanlinecounter = 452;
 	    int currentscanline = 0;
@@ -85,6 +88,36 @@ namespace gb
 	        }
 
 	        return cycles;
+	    }
+
+	    inline bool mode2check()
+	    {
+		return TestBit(gpumem.stat, 5);
+	    }
+
+	    inline bool mode1check()
+	    {
+		return TestBit(gpumem.stat, 4);
+	    }
+
+	    inline bool mode0check()
+	    {
+		return TestBit(gpumem.stat, 3);
+	    }
+
+	    inline int statmode()
+	    {
+		return (gpumem.stat & 0x03);
+	    }
+
+	    inline bool lycompcheck()
+	    {
+		return TestBit(gpumem.stat, 6);
+	    }
+
+	    inline bool lycompequal()
+	    {
+		return TestBit(gpumem.stat, 2);
 	    }
     };
 };
