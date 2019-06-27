@@ -132,6 +132,20 @@ namespace gb
 		return temp;
 	    }
 
+	    inline void setcarryflag()
+	    {
+		setcarry(true);
+		setsubtract(false);
+		sethalf(false);
+	    }
+
+	    inline void compcarryflag()
+	    {
+		setcarry(!iscarry());
+		setsubtract(false);
+		sethalf(false);
+	    }
+
 	    void load8intomem(uint16_t reg, uint8_t imm)
 	    {
 		mem.writeByte(reg, imm);
@@ -145,11 +159,66 @@ namespace gb
 		return temp;
 	    }
 
+	    void load16intomem(uint16_t reg, uint16_t imm)
+	    {
+		mem.writeWord(reg, imm);
+		hardwaretick(8);
+	    }
+
+	    inline uint16_t loadspn(int8_t val)
+	    {
+		uint8_t temp = (uint8_t)(val);		
+
+		setzero(false);
+		setsubtract(false);
+		sethalf(((sp & 0x000F) + (temp & 0x0F)) & 0x0010);
+		setcarry(((sp & 0x00FF) + (temp)) & 0x0100);
+
+		hardwaretick(4);
+		return (sp + val);
+	    }
+
 	    inline void compareg()
 	    {
 		af.sethi(~af.gethi());
 		setsubtract(true);
 		sethalf(true);
+	    }
+
+	    inline void daa()
+	    {
+		uint8_t temp = af.gethi();
+
+		if (issubtract())
+		{
+		    if (iscarry())
+		    {
+			temp -= 0x60;
+		    }
+
+		    if (ishalf())
+		    {
+			temp -= 0x06;
+		    }
+		}
+		else
+		{
+		    if (iscarry() || af.gethi() > 0x99)
+		    {
+			temp += 0x60;
+			setcarry(true);
+		    }
+
+		    if (ishalf() || (af.gethi() & 0x0F) > 0x09)
+		    {
+			temp += 0x06;
+		    }
+		}
+
+		setzero(temp == 0);
+		sethalf(false);
+
+		af.sethi(temp);
 	    }
 
 	    inline uint8_t addreg(uint8_t reg)
@@ -158,6 +227,17 @@ namespace gb
 		setzero(temp == 0);
 		setsubtract(false);
 		sethalf(((af.gethi() & 0x0F) + (reg & 0x0F)) > 0x0F);
+		setcarry((af.gethi() + reg) > 0xFF);
+		return temp;
+	    }
+
+	    inline uint8_t adcreg(uint8_t reg)
+	    {
+		uint16_t carrybit = (iscarry() ? 1 : 0);
+		uint16_t temp = (af.gethi() + reg + carrybit);
+		setzero((temp & 0xFF) == 0);
+		setsubtract(false);
+		sethalf(((af.gethi() & 0x0F) + (reg & 0x0F) + carrybit) > 0x0F);
 		setcarry(temp > 0xFF);
 		return temp;
 	    }
@@ -165,11 +245,26 @@ namespace gb
 	    inline uint16_t add16reg(uint16_t reg1, uint16_t reg2)
 	    {
 		uint16_t temp = (reg1 + reg2);
-		setzero(temp == 0);
 		setsubtract(false);
-		sethalf(((reg1 & 0xFFF) + (reg2 & 0xFFF)) > 0xFFF);
-		setcarry(temp > 0xFFFF);
+		sethalf(((reg1 & 0xFFF) + (reg2 & 0xFFF)) & 0x1000);
+		setcarry((reg1 + reg2) & 0x10000);
+		hardwaretick(4);
+		
 		return temp;
+	    }
+
+	    inline void addsp(int8_t val)
+	    {
+		setzero(false);
+		setsubtract(false);
+
+		uint8_t temp = (uint8_t)(val);
+
+		sethalf(((sp & 0x000F) + (temp & 0x0F)) & 0x0010);
+		setcarry(((sp & 0x00FF) + (temp)) & 0x0100);
+
+		sp += val;
+		hardwaretick(8);
 	    }
 
 	    inline uint8_t subreg(uint8_t reg)
@@ -179,6 +274,17 @@ namespace gb
 		setsubtract(true);
 		sethalf(((af.gethi() & 0x0F) - (reg & 0x0F)) < 0);
 		setcarry(af.gethi() < reg);
+		return temp;
+	    }
+
+	    inline uint8_t sbcreg(uint8_t reg)
+	    {
+		uint8_t carrybit = (iscarry() ? 1 : 0);
+		uint8_t temp = (af.gethi() - (reg + carrybit));
+		setzero(temp == 0);
+		setsubtract(true);
+		sethalf(((af.gethi() & 0x0F) < (reg & 0x0F) + carrybit));
+		setcarry(af.gethi() < (reg + carrybit));
 		return temp;
 	    }
 

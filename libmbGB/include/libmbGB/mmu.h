@@ -159,8 +159,18 @@ namespace gb
 
 	    inline void writeif(uint8_t value)
 	    {
-		interruptflags = (value | 0xE0);
+		interruptflags = (value & 0x1F);
 		ifwrittenthiscycle = true;
+	    }
+
+	    inline void writestat(uint8_t value)
+	    {
+		stat = (0x80 | (value & 0x78) | (stat & 0x07));
+
+		if (TestBit(lcdc, 7) && !TestBit(stat, 1))
+		{
+		    setstatsignal();
+		}
 	    }
 
 	    inline void setlycompare(bool cond)
@@ -175,19 +185,30 @@ namespace gb
 		}
 	    }
 
+	    inline void setstatsignal()
+	    {
+		statinterruptsignal = true;
+	    }
+
 	    bool ifwrittenthiscycle = false;
+	
+
+     	    bool statinterruptsignal = false;
+	    bool previnterruptsignal = false;
+	    bool bgpchanged = false;
 
 	    uint8_t interruptflags = 0xE1;
 	    uint8_t lcdc = 0x91;
-	    uint8_t stat = 0x01;
+	    uint8_t stat = 0x85;
 	    uint8_t scrolly = 0x00;
 	    uint8_t scrollx = 0x00;
 	    uint8_t ly = 0x00;
 	    uint8_t lyc = 0x00;
 	    uint8_t bgpalette = 0xFC;
+	    uint8_t lastbgp = 0x00;
 	    uint8_t interruptenabled = 0x00;
 
-	    uint8_t lylastcycle = 0x00;
+	    uint8_t lylastcycle = 0xFF;
     };
 };
 

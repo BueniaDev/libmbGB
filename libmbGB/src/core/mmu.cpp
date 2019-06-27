@@ -182,7 +182,7 @@ namespace gb
 	
 	switch ((addr & 0xFF))
 	{
-	    case 0x0F: temp = interruptflags; break;
+	    case 0x0F: temp = (interruptflags | 0xE0); break;
 	    case 0x40: temp = lcdc; break;
 	    case 0x41: temp = stat; break;
 	    case 0x42: temp = scrolly; break;
@@ -202,12 +202,12 @@ namespace gb
 	{
 	    case 0x0F: writeif(value); break;
 	    case 0x40: writelcdc(value); break;
-	    case 0x41: stat = value; break;
+	    case 0x41: writestat(value); break;
 	    case 0x42: scrolly = value; break;
 	    case 0x43: scrollx = value; break;
 	    case 0x44: break; // LY should not be written to
 	    case 0x45: lyc = value; break;
-	    case 0x47: bgpalette = value; break;
+	    case 0x47: bgpalette = value; bgpchanged = true; break;
 	    default: break;
 	}
     }
@@ -243,6 +243,7 @@ namespace gb
 	switch (rom[0x0147])
 	{
 	    case 0: gbmbc = MBCType::None; externalrampres = false; mbctype = "ROM ONLY"; break;
+	    case 1: gbmbc = MBCType::None; externalrampres = false; mbctype = "ROM ONLY"; break; // Hack to get test ROMS running
 	    case 8: gbmbc = MBCType::None; externalrampres = true; mbctype = "ROM + RAM"; break;
 	    case 9: gbmbc = MBCType::None; externalrampres = true; mbctype = "ROM + RAM + BATTERY"; break;
 	    default: cout << "MMU::Error - Unrecognized MBC type" << endl; exit(1); break;

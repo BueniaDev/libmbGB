@@ -40,22 +40,23 @@ namespace gb
 
 	    MMU& gpumem;
 
+	    void init();
+	    void shutdown();
+
 	    void updatelcd();
 	    void updately();
 	    void updatelycomparesignal();
 	    void checkstatinterrupt();
-	    void renderscanline();
-	    void renderbg(int pixel);
 
 	    bool lycomparezero = false;
-	    bool statinterruptsignal = false;
-	    bool previnterruptsignal = false;
 
 	    int scanlinecounter = 452;
 	    int currentscanline = 0;
+	    int pixel = 0;
 
 	    void updatepoweronstate(bool wasenabled);
 
+	    RGB linebuffer[160];
 	    RGB framebuffer[160 * 144];
 
 	    inline int getdmgcolor(int id, uint8_t palette)

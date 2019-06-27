@@ -104,7 +104,8 @@ namespace gb
 	cout << "IME: " << (int)(interruptmasterenable) << endl;
 	cout << "IMA: " << (int)(enableinterruptsdelayed) << endl;
 	cout << "REI: " << (int)(mem.requestedenabledinterrupts()) << endl;
-	cout << "VBlank: " << (int)(mem.ispending(0)) << endl;
+	cout << "LCD: " << (int)(mem.ispending(1)) << endl;
+	cout << "(FF41): " << hex << (int)(mem.readByte(0xFF41)) << endl;
 	cout << endl;
     }
 
@@ -205,7 +206,6 @@ namespace gb
 		haltedtick(4);
 		cycles -= 4;
 	    }
-	
 	}
 
 	return cycles;

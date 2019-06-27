@@ -29,6 +29,16 @@ namespace gb
 
     }
 
+    void GPU::init()
+    {
+	cout << "GPU::Initialized" << endl;
+    }
+
+    void GPU::shutdown()
+    {
+	cout << "GPU::Shutting down..." << endl;
+    }
+
     void GPU::updatelcd()
     {
 	if (!gpumem.islcdenabled())
@@ -43,14 +53,13 @@ namespace gb
 
 	if (currentscanline <= 143)
 	{
-	    if (scanlinecounter == 4)
+	    if (scanlinecounter == 0)
 	    {
 		gpumem.setstatmode(2);
 	    }
 	    else if (scanlinecounter == 84)
 	    {
 		gpumem.setstatmode(3);
-		renderscanline();
 	    }
 	    else if (scanlinecounter == mode3cycles())
 	    {
@@ -63,12 +72,11 @@ namespace gb
 	    {
 		gpumem.requestinterrupt(0);
 		gpumem.setstatmode(1);
+		gpumem.statinterruptsignal |= mode2check();
 	    }
 	}
 
 	checkstatinterrupt();
-
-	cout << currentscanline << endl;
     }
 
     void GPU::updatelycomparesignal()
@@ -103,6 +111,8 @@ namespace gb
 	{
 	    gpumem.ly = 0;
 	    gpumem.setstatmode(0);
+	    gpumem.statinterruptsignal = false;
+	    gpumem.previnterruptsignal = false;
 	}
     }
 
@@ -131,104 +141,18 @@ namespace gb
 
     void GPU::checkstatinterrupt()
     {
-	statinterruptsignal |= (mode0check() && statmode() == 0);
-	statinterruptsignal |= (mode1check() && statmode() == 1);
-	statinterruptsignal |= (mode2check() && statmode() == 2);
-	statinterruptsignal |= (lycompcheck() && lycompequal());
+	gpumem.statinterruptsignal |= (mode0check() && statmode() == 0);
+	gpumem.statinterruptsignal |= (mode1check() && statmode() == 1);
+	gpumem.statinterruptsignal |= (mode2check() && statmode() == 2);
+	gpumem.statinterruptsignal |= (lycompcheck() && lycompequal());
 
 
-	if (statinterruptsignal && !previnterruptsignal)
+	if (gpumem.statinterruptsignal && !gpumem.previnterruptsignal)
 	{
 	    gpumem.requestinterrupt(1);
 	}
 
-	previnterruptsignal = statinterruptsignal;
-	statinterruptsignal = false;
-    }
-
-    void GPU::renderscanline()
-    {
-	for (int i = 0; i < 160; i++)
-	{
-	    if (gpumem.isbgenabled())
-	    {
-		renderbg(i);
-	    }
-	}
-    }
-
-    void GPU::renderbg(int pixel)
-    {
-	uint16_t tilemap = TestBit(gpumem.lcdc, 3) ? 0x9C00 : 0x9800;
-	uint16_t tiledata = TestBit(gpumem.lcdc, 4) ? 0x8000 : 0x8800;
-	bool unsig = TestBit(gpumem.lcdc, 4);
-
-	uint8_t ypos = 0;
-
-	ypos = gpumem.scrolly + gpumem.ly;
-
-	uint16_t tilerow = (((uint8_t)(ypos / 8)) * 32);
-
-	uint8_t xpos = pixel + gpumem.scrollx;
-
-	uint16_t tilecol = (xpos / 8);
-	int16_t tilenum = 0;
-
-	uint16_t tileaddr = (tilemap + tilerow + tilecol);
-
-	if (unsig)
-	{
-	    tilenum = (uint8_t)(gpumem.vram[tileaddr - 0x8000]);
-	}
-	else
-	{
-	    tilenum = (int8_t)(gpumem.vram[tileaddr - 0x8000]);
-	}
-
-	uint16_t tileloc = tiledata;
-
-	if (unsig)
-	{
-	    tileloc += (uint16_t)(tilenum * 16);
-	}
-	else
-	{
-	    tileloc += (int16_t)(((tilenum + 128) * 16));
-	}
-
-	uint8_t line = (ypos % 8);
-
-	line *= 2;
-	uint8_t data1 = gpumem.readByte((tileloc + line));
-	uint8_t data2 = gpumem.readByte((tileloc + line + 1));
-
-	int colorbit = (xpos % 8);
-	colorbit -= 7;
-	colorbit *= -1;
-
-	int colornum = BitGetVal(data2, colorbit);
-	colornum <<= 1;
-	colornum |= BitGetVal(data1, colorbit);
-
-	int red = 0;
-	int green = 0;
-	int blue = 0;
-
-	int color = getdmgcolor(colornum, gpumem.readByte(0xFF47));
-
-	switch (color)
-	{
-	    case 0: red = green = blue = 0xFF; break;
-	    case 1: red = green = blue = 0xCC; break;
-	    case 2: red = green = blue = 0x77; break;
-	    case 3: red = green = blue = 0x00; break;
-	}
-
-	uint8_t scanline = currentscanline;
-
-	int index = (pixel + (scanline * 160));
-	framebuffer[index].red = red;
-	framebuffer[index].green = green;
-	framebuffer[index].blue = blue;
+	gpumem.previnterruptsignal = gpumem.statinterruptsignal;
+	gpumem.statinterruptsignal = false;
     }
 };

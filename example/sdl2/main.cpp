@@ -83,6 +83,7 @@ int main(int argc, char* argv[])
 
     coremmu.loadROM(argv[1]);
     corecpu.init();
+    coregpu.init();
 
     if (!init())
     {
@@ -108,6 +109,7 @@ int main(int argc, char* argv[])
 	drawpixels();
     }
 
+    coregpu.shutdown();
     corecpu.shutdown();
     coremmu.shutdown();
     stop();
