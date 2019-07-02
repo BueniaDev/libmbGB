@@ -128,6 +128,11 @@ namespace gb
 		poweron(lcdwasenabled);
 	    }
 
+	    inline void writediv()
+	    {
+		divider = 0x0000;
+	    }
+
 	    void setpoweroncallback(poweronfunc cb)
 	    {
 		poweron = cb;

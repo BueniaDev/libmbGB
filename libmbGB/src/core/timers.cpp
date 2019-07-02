@@ -41,7 +41,7 @@ namespace gb
 
     void Timers::updatetimer()
     {
-	timermem.incdiv(4);
+	timermem.divider += 4;
 
 	if (timaoverflownotinterrupted)
 	{
@@ -66,14 +66,14 @@ namespace gb
 	    timaoverflow = false;
 	}
 
-	bool divtickbit = (divbit[tacfreq()] & timermem.readdiv());
+	bool divtickbit = (divbit[tacfreq()] & timermem.divider);
 	bool timainc = (divtickbit && tacenable());
 	uint8_t timaval = timermem.readByte(0xFF05);
 
 	if (timaincwentlow(timainc))
 	{
-	    timaoverflow = (timaval == 0xFF);
-	    timermem.writeByte(0xFF05, ++timaval);
+	    timaoverflow = (++timaval == 0x00);
+	    timermem.writeByte(0xFF05, timaval);
 	}
 
 	prevtimaval = timaval;

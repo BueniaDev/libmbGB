@@ -38,6 +38,7 @@ namespace gb
 	hram.resize(0x7F, 0);
 
 	joypad = 0xCF;
+	divider = 0xABCC;
 
 	cout << "MMU::Initialized" << endl;
     }
@@ -209,7 +210,7 @@ namespace gb
 	    case 0x00: writejoypad(value); break;
 	    case 0x01: sb = value; break;
 	    case 0x02: writesc(value); break;
-	    case 0x04: divider = 0; break;
+	    case 0x04: writediv(); break;
 	    case 0x05: timercounter = value; break;
 	    case 0x06: timermodulo = value; break;
 	    case 0x07: timercontrol = (value & 0x07); break;

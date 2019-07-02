@@ -139,19 +139,19 @@ namespace gb
 
     void GPU::checkstatinterrupt()
     {
-	statinterruptsignal |= (mode0check() && statmode() == 0);
-	statinterruptsignal |= (mode1check() && statmode() == 1);
-	statinterruptsignal |= (mode2check() && statmode() == 2);
-	statinterruptsignal |= (lycompcheck() && lycompequal());
+	gpumem.statinterruptsignal |= (mode0check() && statmode() == 0);
+	gpumem.statinterruptsignal |= (mode1check() && statmode() == 1);
+	gpumem.statinterruptsignal |= (mode2check() && statmode() == 2);
+	gpumem.statinterruptsignal |= (lycompcheck() && lycompequal());
 
 
-	if (statinterruptsignal && !previnterruptsignal)
+	if (gpumem.statinterruptsignal && !gpumem.previnterruptsignal)
 	{
 	    gpumem.requestinterrupt(1);
 	}
 
-	previnterruptsignal = statinterruptsignal;
-	statinterruptsignal = false;
+	gpumem.previnterruptsignal = gpumem.statinterruptsignal;
+	gpumem.statinterruptsignal = false;
     }
 
     void GPU::renderscanline()
