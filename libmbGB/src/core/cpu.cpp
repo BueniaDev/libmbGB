@@ -106,6 +106,7 @@ namespace gb
 	cout << "REI: " << (int)(mem.requestedenabledinterrupts()) << endl;
 	cout << "LCD: " << (int)(mem.ispending(1)) << endl;
 	cout << "(FF41): " << hex << (int)(mem.readByte(0xFF41)) << endl;
+	cout << "STAT IRQ: " << (int)(mem.statinterruptsignal) << endl;
 	cout << endl;
     }
 
@@ -118,6 +119,8 @@ namespace gb
 	    if (mem.requestedenabledinterrupts())
 	    {
 		hardwaretick(12);
+
+		// printregs();
 
 		interruptmasterenable = false;
 
@@ -168,13 +171,14 @@ namespace gb
     }
 
     void CPU::serviceinterrupt(uint16_t addr)
-    {
+    {	
 	sp -= 2;
 	hardwaretick(4);
 	mem.writeWord(sp, pc);
 	hardwaretick(4);
 
 	pc = addr;
+	// printregs();
     }
 
     int CPU::runfor(int cycles)
@@ -187,6 +191,15 @@ namespace gb
 		cycles -= 4;
 		continue;
 	    }
+
+	    /*
+	    if (pc == 0x0100)
+	    {
+		printregs();
+	    }
+	    */
+
+	    // cout << (char)(af.gethi()) << endl;
 	    
 	    // TODO: HDMA transfer stuff
 
@@ -206,6 +219,16 @@ namespace gb
 		haltedtick(4);
 		cycles -= 4;
 	    }
+
+	    /*
+	    printregs();
+
+	    if (pc == 0x01DA)
+	    {
+		printregs();
+		exit(1);
+	    }
+	    */
 	}
 
 	return cycles;

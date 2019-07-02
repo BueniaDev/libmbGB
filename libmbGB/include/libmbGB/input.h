@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with libmbGB.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef LIBMBGB_GPU
-#define LIBMBGB_GPU
+#ifndef LIBMBGB_INPUT
+#define LIBMBGB_INPUT
 
 #include "mmu.h"
 #include "libmbgb_api.h"
@@ -24,43 +24,62 @@ using namespace std;
 
 namespace gb
 {
-    struct RGB
+    enum Button : int
     {
-	uint8_t red;
-	uint8_t green;
-	uint8_t blue;
-    };    
+	Right = 0,
+	Left = 1,
+	Up = 2,
+	Down = 3,
+	A = 4,
+	B = 5,
+	Select = 6,
+	Start = 7
+    };
 
-
-    class LIBMBGB_API GPU
+    class LIBMBGB_API Input
     {
 	public:
-	    GPU(MMU& memory);
-	    ~GPU();
+	    Input(MMU& memory);
+	    ~Input();
 
-	    MMU& gpumem;
+	    MMU& p1mem;
 
 	    void init();
 	    void shutdown();
 
-    	    void updatelcd();
-	    void renderscanline();
-	    void renderbg(int pixel);
+	    void updatejoypad();
 
-	    int scanlinecounter = 452;
-	    int currentscanline = 0;
-
-	    RGB framebuffer[160 * 144];
-
-	    inline int getdmgcolor(int id, uint8_t palette)
+	    inline void keypressed(Button button)
 	    {
-	        int hi = (2 * id + 1);
-	        int lo = (2 * id);
-	        int bit1 = ((palette >> hi) & 1);
-	        int bit0 = ((palette >> lo) & 1);
-	        return ((bit1 << 1) | bit0);
+		buttonstates = BitReset(buttonstates, button);
+	    }
+
+	    inline void keyreleased(Button button)
+	    {
+		buttonstates = BitSet(buttonstates, button);
+	    }
+
+	    uint8_t buttonstates = 0xFF;
+	    bool wasunset = false;
+
+	    inline bool joypadpress()
+	    {
+		return ((p1mem.joypad & 0x0F) != 0x0F);
+	    }
+
+	    bool interruptsignal = false;
+	    bool previnterruptsignal = false;
+
+	    inline bool buttonkeysselected()
+	    {
+		return !TestBit(p1mem.joypad, 5);
+	    }
+
+	    inline bool directionkeysselected()
+	    {
+		return !TestBit(p1mem.joypad, 4);
 	    }
     };
 };
 
-#endif // LIBMBGB_GPU
+#endif // LIBMBGB_INPUT

@@ -22,12 +22,14 @@ set(LIBMBGB_API_HEADERS
 	libmbGB/include/libmbGB/enums.h
 	libmbGB/include/libmbGB/mmu.h
 	libmbGB/include/libmbGB/cpu.h
-	libmbGB/include/libmbGB/gpu.h)
+	libmbGB/include/libmbGB/gpu.h
+	libmbGB/include/libmbGB/input.h)
 
 set(LIBMBGB
 	libmbGB/src/core/mmu.cpp
 	libmbGB/src/core/cpu.cpp
 	libmbGB/src/core/gpu.cpp
+	libmbGB/src/core/input.cpp
 	libmbGB/src/core/ops.cpp)
 
 if (BUILD_EXAMPLE STREQUAL "ON")

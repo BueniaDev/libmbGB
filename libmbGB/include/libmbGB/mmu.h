@@ -51,6 +51,7 @@ namespace gb
     }
 
     using poweronfunc = function<void(bool)>;
+    using joypadfunc = function<void()>;
 
     class LIBMBGB_API MMU
     {
@@ -95,6 +96,7 @@ namespace gb
 	    void writeIO(uint16_t addr, uint8_t value);
 
 	    poweronfunc poweron;
+	    joypadfunc updatep1;
 
 	    inline bool islcdenabled()
 	    {
@@ -111,18 +113,29 @@ namespace gb
 		stat = ((stat & 0xFC) | mode);
 	    }
 
+	    inline void writejoypad(uint8_t value)
+	    {
+		joypad = ((joypad & 0x0F) | (value & 0x30));
+		updatep1();
+	    }
+
 	    inline void writelcdc(uint8_t value)
 	    {
 		bool lcdwasenabled = islcdenabled();
 
 		lcdc = value;
 
-		poweron(lcdwasenabled);
+		// poweron(lcdwasenabled);
 	    }
 
 	    void setpoweroncallback(poweronfunc cb)
 	    {
 		poweron = cb;
+	    }
+
+	    void setjoypadcallback(joypadfunc cb)
+	    {
+		updatep1 = cb;
 	    }
 
 	    inline void exitbios()
@@ -149,12 +162,18 @@ namespace gb
 
 	    bool ispending(int id)
 	    {
-		return (interruptflags & interruptenabled & (1 << id)) ? true : false;
+		uint8_t temp = (interruptflags & interruptenabled);
+		return TestBit(temp, id);
 	    }
 
 	    bool requestedenabledinterrupts()
 	    {
 		return (interruptflags & interruptenabled);
+	    }
+
+	    inline void writesc(uint8_t value)
+	    {
+		sc = value;
 	    }
 
 	    inline void writeif(uint8_t value)
@@ -165,7 +184,8 @@ namespace gb
 
 	    inline void writestat(uint8_t value)
 	    {
-		stat = (0x80 | (value & 0x78) | (stat & 0x07));
+		int temp = (stat & 0x07);	
+		stat = ((value & 0x78) | temp);
 
 		if (TestBit(lcdc, 7) && !TestBit(stat, 1))
 		{
@@ -197,9 +217,12 @@ namespace gb
 	    bool previnterruptsignal = false;
 	    bool bgpchanged = false;
 
+	    uint8_t joypad = 0x00;
+	    uint8_t sb = 0x00;
+	    uint8_t sc = 0x00;
 	    uint8_t interruptflags = 0xE1;
 	    uint8_t lcdc = 0x91;
-	    uint8_t stat = 0x85;
+	    uint8_t stat = 0x81;
 	    uint8_t scrolly = 0x00;
 	    uint8_t scrollx = 0x00;
 	    uint8_t ly = 0x00;

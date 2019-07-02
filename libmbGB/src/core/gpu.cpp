@@ -41,118 +41,92 @@ namespace gb
 
     void GPU::updatelcd()
     {
-	if (!gpumem.islcdenabled())
-	{
-	    return;
-	}
 
-	scanlinecounter += 4;
-
-	updately();
-	updatelycomparesignal();
-
-	if (currentscanline <= 143)
-	{
-	    if (scanlinecounter == 0)
-	    {
-		gpumem.setstatmode(2);
-	    }
-	    else if (scanlinecounter == 84)
-	    {
-		gpumem.setstatmode(3);
-	    }
-	    else if (scanlinecounter == mode3cycles())
-	    {
-		gpumem.setstatmode(0);
-	    }
-	}
-	else if (currentscanline == 144)
-	{
-	    if (scanlinecounter == 4)
-	    {
-		gpumem.requestinterrupt(0);
-		gpumem.setstatmode(1);
-		gpumem.statinterruptsignal |= mode2check();
-	    }
-	}
-
-	checkstatinterrupt();
     }
 
-    void GPU::updatelycomparesignal()
+    void GPU::renderscanline()
     {
-	if (lycomparezero)
+	for (int i = 0; i < 160; i++)
 	{
-	    gpumem.setlycompare(gpumem.lyc == gpumem.lylastcycle);
-
-	    lycomparezero = false;
+	    if (gpumem.isbgenabled())
+	    {
+		renderbg(i);
+	    }
 	}
-	else if (gpumem.ly != gpumem.lylastcycle)
+    }
+
+    void GPU::renderbg(int pixel)
+    {
+	uint16_t tilemap = TestBit(gpumem.lcdc, 3) ? 0x9C00 : 0x9800;
+	uint16_t tiledata = TestBit(gpumem.lcdc, 4) ? 0x8000 : 0x8800;
+	bool unsig = TestBit(gpumem.lcdc, 4);
+
+	uint8_t ypos = 0;
+
+	ypos = gpumem.scrolly + gpumem.ly;
+
+	uint16_t tilerow = (((uint8_t)(ypos / 8)) * 32);
+
+	uint8_t xpos = pixel + gpumem.scrollx;
+
+	uint16_t tilecol = (xpos / 8);
+	int16_t tilenum = 0;
+
+	uint16_t tileaddr = (tilemap + tilerow + tilecol);
+
+	if (unsig)
 	{
-	    gpumem.setlycompare(false);
-	    lycomparezero = true;
-	    gpumem.lylastcycle = gpumem.ly;
+	    tilenum = (uint8_t)(gpumem.vram[tileaddr - 0x8000]);
 	}
 	else
 	{
-	    gpumem.setlycompare(gpumem.lyc == gpumem.ly);
-	    gpumem.lylastcycle = gpumem.ly;
+	    tilenum = (int8_t)(gpumem.vram[tileaddr - 0x8000]);
 	}
-    }
 
-    void GPU::updatepoweronstate(bool wasenabled)
-    {
-	if (!wasenabled && gpumem.islcdenabled())
+	uint16_t tileloc = tiledata;
+
+	if (unsig)
 	{
-	    scanlinecounter = 452;
-	    currentscanline = 153;
+	    tileloc += (uint16_t)(tilenum * 16);
 	}
-	else if (wasenabled && !gpumem.islcdenabled())
+	else
 	{
-	    gpumem.ly = 0;
-	    gpumem.setstatmode(0);
-	    gpumem.statinterruptsignal = false;
-	    gpumem.previnterruptsignal = false;
+	    tileloc += (int16_t)(((tilenum + 128) * 16));
 	}
-    }
 
-    void GPU::updately()
-    {
-	if (currentscanline == 153 && scanlinecounter == line153cycles())
+	uint8_t line = (ypos % 8);
+
+	line *= 2;
+	uint8_t data1 = gpumem.readByte((tileloc + line));
+	uint8_t data2 = gpumem.readByte((tileloc + line + 1));
+
+	int colorbit = (xpos % 8);
+	colorbit -= 7;
+	colorbit *= -1;
+
+	int colornum = BitGetVal(data2, colorbit);
+	colornum <<= 1;
+	colornum |= BitGetVal(data1, colorbit);
+
+	int red = 0;
+	int green = 0;
+	int blue = 0;
+
+	int color = getdmgcolor(colornum, gpumem.readByte(0xFF47));
+
+	switch (color)
 	{
-	    gpumem.ly = 0;
+	    case 0: red = green = blue = 0xFF; break;
+	    case 1: red = green = blue = 0xCC; break;
+	    case 2: red = green = blue = 0x77; break;
+	    case 3: red = green = blue = 0x00; break;
 	}
 
-	if (scanlinecounter == 456)
-	{
-	    scanlinecounter = 0;
+	uint8_t scanline = currentscanline;
 
-	    if (currentscanline == 153)
-	    {
-		gpumem.setstatmode(0);
-		currentscanline = 0;
-	    }
-	    else
-	    {
-		currentscanline = ++gpumem.ly;
-	    }
-	}
-    }
-
-    void GPU::checkstatinterrupt()
-    {
-	gpumem.statinterruptsignal |= (mode0check() && statmode() == 0);
-	gpumem.statinterruptsignal |= (mode1check() && statmode() == 1);
-	gpumem.statinterruptsignal |= (mode2check() && statmode() == 2);
-	gpumem.statinterruptsignal |= (lycompcheck() && lycompequal());
-
-
-	if (gpumem.statinterruptsignal && !gpumem.previnterruptsignal)
-	{
-	    gpumem.requestinterrupt(1);
-	}
-
-	gpumem.previnterruptsignal = gpumem.statinterruptsignal;
-	gpumem.statinterruptsignal = false;
+	int index = (pixel + (scanline * 160));
+	framebuffer[index].red = red;
+	framebuffer[index].green = green;
+	framebuffer[index].blue = blue;
     }
 };

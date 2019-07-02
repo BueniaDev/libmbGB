@@ -1,6 +1,7 @@
 #include <libmbGB/cpu.h>
 #include <libmbGB/mmu.h>
 #include <libmbGB/gpu.h>
+#include <libmbGB/input.h>
 #include <SDL2/SDL.h>
 #include <iostream>
 using namespace gb;
@@ -9,6 +10,7 @@ using namespace std;
 MMU coremmu;
 GPU coregpu(coremmu);
 CPU corecpu(coremmu, coregpu);
+Input coreinput(coremmu);
 
 SDL_Window *window;
 SDL_Surface *surface;
@@ -70,20 +72,74 @@ int runcore(int spentcycles)
     return corecpu.runfor(70224 + spentcycles);
 }
 
+void handleinput(SDL_Event event)
+{
+    if (event.type == SDL_KEYDOWN)
+    {
+	switch (event.key.keysym.sym)
+	{
+	    case SDLK_UP: coreinput.keypressed(Button::Up); break;
+	    case SDLK_DOWN: coreinput.keypressed(Button::Down); break;
+	    case SDLK_LEFT: coreinput.keypressed(Button::Left); break;
+	    case SDLK_RIGHT: coreinput.keypressed(Button::Right); break;
+	    case SDLK_a: coreinput.keypressed(Button::A); break;
+	    case SDLK_b: coreinput.keypressed(Button::B); break;
+	    case SDLK_RETURN: coreinput.keypressed(Button::Start); break;
+	    case SDLK_SPACE: coreinput.keypressed(Button::Select); break;
+	}
+    }
+    else if (event.type == SDL_KEYUP)
+    {
+	switch (event.key.keysym.sym)
+	{
+	    case SDLK_UP: coreinput.keyreleased(Button::Up); break;
+	    case SDLK_DOWN: coreinput.keyreleased(Button::Down); break;
+	    case SDLK_LEFT: coreinput.keyreleased(Button::Left); break;
+	    case SDLK_RIGHT: coreinput.keyreleased(Button::Right); break;
+	    case SDLK_a: coreinput.keyreleased(Button::A); break;
+	    case SDLK_b: coreinput.keyreleased(Button::B); break;
+	    case SDLK_RETURN: coreinput.keyreleased(Button::Start); break;
+	    case SDLK_SPACE: coreinput.keyreleased(Button::Select); break;
+	}
+    }
+}
+
 int main(int argc, char* argv[])
 {
     if (argc < 2)
     {
-	cout << "Usage: " << argv[0] << " ROM [BIOS]" << endl;
+	cout << "Usage: " << argv[0] << " ROM" << endl;
 	return 1;
     }
 
+
+    /*
+    if (argc < 3)
+    {
+	cout << "Usage: " << argv[0] << " ROM [BIOS]" << endl;
+	return 1;
+    }
+    */
+
     coremmu.init();
     coremmu.biosload = false;
+    /*
+    coremmu.biosload = true;
 
-    coremmu.loadROM(argv[1]);
+    if(!coremmu.loadBIOS(argv[2]))
+    {
+	return 1;
+    }
+    */
+
+    if(!coremmu.loadROM(argv[1]))
+    {
+	return 1;
+    }
+
     corecpu.init();
     coregpu.init();
+    coreinput.init();
 
     if (!init())
     {
@@ -99,6 +155,7 @@ int main(int argc, char* argv[])
     {
 	while (SDL_PollEvent(&event))
 	{
+    	    handleinput(event);
 	    if (event.type == SDL_QUIT)
 	    {
 		quit = true;
@@ -109,6 +166,7 @@ int main(int argc, char* argv[])
 	drawpixels();
     }
 
+    coreinput.shutdown();
     coregpu.shutdown();
     corecpu.shutdown();
     coremmu.shutdown();
