@@ -184,6 +184,10 @@ namespace gb
 	switch ((addr & 0xFF))
 	{
 	    case 0x00: temp = (joypad | 0xC0); break;
+	    case 0x04: temp = (divider >> 8); break;
+	    case 0x05: temp = timercounter; break;
+	    case 0x06: temp = timermodulo; break;
+	    case 0x07: temp = (timercontrol | 0xF8); break;
 	    case 0x0F: temp = (interruptflags | 0xE0); break;
 	    case 0x40: temp = lcdc; break;
 	    case 0x41: temp = (stat | 0x80); break;
@@ -205,6 +209,10 @@ namespace gb
 	    case 0x00: writejoypad(value); break;
 	    case 0x01: sb = value; break;
 	    case 0x02: writesc(value); break;
+	    case 0x04: divider = 0; break;
+	    case 0x05: timercounter = value; break;
+	    case 0x06: timermodulo = value; break;
+	    case 0x07: timercontrol = (value & 0x07); break;
 	    case 0x0F: writeif(value); break;
 	    case 0x40: writelcdc(value); break;
 	    case 0x41: writestat(value); break;

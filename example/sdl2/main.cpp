@@ -2,6 +2,7 @@
 #include <libmbGB/mmu.h>
 #include <libmbGB/gpu.h>
 #include <libmbGB/input.h>
+#include <libmbGB/timers.h>
 #include <SDL2/SDL.h>
 #include <iostream>
 using namespace gb;
@@ -9,7 +10,8 @@ using namespace std;
 
 MMU coremmu;
 GPU coregpu(coremmu);
-CPU corecpu(coremmu, coregpu);
+Timers coretimers(coremmu);
+CPU corecpu(coremmu, coregpu, coretimers);
 Input coreinput(coremmu);
 
 SDL_Window *window;
@@ -139,6 +141,7 @@ int main(int argc, char* argv[])
 
     corecpu.init();
     coregpu.init();
+    coretimers.init();
     coreinput.init();
 
     if (!init())
@@ -167,6 +170,7 @@ int main(int argc, char* argv[])
     }
 
     coreinput.shutdown();
+    coretimers.shutdown();
     coregpu.shutdown();
     corecpu.shutdown();
     coremmu.shutdown();

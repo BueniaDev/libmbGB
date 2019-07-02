@@ -41,7 +41,117 @@ namespace gb
 
     void GPU::updatelcd()
     {
+	if (!gpumem.islcdenabled())
+	{
+	    return;
+	}
 
+	scanlinecounter += 4;
+
+	updately();
+	updatelycomparesignal();
+
+	if (currentscanline <= 143)
+	{
+	    if (scanlinecounter == 4)
+	    {
+		gpumem.setstatmode(2);
+	    }
+	    else if (scanlinecounter == 84)
+	    {
+		gpumem.setstatmode(3);
+		renderscanline();
+	    }
+	    else if (scanlinecounter == mode3cycles())
+	    {
+		gpumem.setstatmode(0);
+	    }
+	}
+	else if (currentscanline == 144)
+	{
+	    if (scanlinecounter == 4)
+	    {
+		gpumem.requestinterrupt(0);
+		gpumem.setstatmode(1);
+	    }
+	}
+
+	checkstatinterrupt();
+    }
+
+    void GPU::updatelycomparesignal()
+    {
+	if (lycomparezero)
+	{
+	    gpumem.setlycompare(gpumem.lyc == gpumem.lylastcycle);
+
+	    lycomparezero = false;
+	}
+	else if (gpumem.ly != gpumem.lylastcycle)
+	{
+	    gpumem.setlycompare(false);
+	    lycomparezero = true;
+	    gpumem.lylastcycle = gpumem.ly;
+	}
+	else
+	{
+	    gpumem.setlycompare(gpumem.lyc == gpumem.ly);
+	    gpumem.lylastcycle = gpumem.ly;
+	}
+    }
+
+    void GPU::updatepoweronstate(bool wasenabled)
+    {
+	if (!wasenabled && gpumem.islcdenabled())
+	{
+	    scanlinecounter = 452;
+	    currentscanline = 153;
+	}
+	else if (wasenabled && !gpumem.islcdenabled())
+	{
+	    gpumem.ly = 0;
+	    gpumem.setstatmode(0);
+	}
+    }
+
+    void GPU::updately()
+    {
+	if (currentscanline == 153 && scanlinecounter == line153cycles())
+	{
+	    gpumem.ly = 0;
+	}
+
+	if (scanlinecounter == 456)
+	{
+	    scanlinecounter = 0;
+
+	    if (currentscanline == 153)
+	    {
+		gpumem.setstatmode(0);
+		currentscanline = 0;
+	    }
+	    else
+	    {
+		currentscanline = ++gpumem.ly;
+	    }
+	}
+    }
+
+    void GPU::checkstatinterrupt()
+    {
+	statinterruptsignal |= (mode0check() && statmode() == 0);
+	statinterruptsignal |= (mode1check() && statmode() == 1);
+	statinterruptsignal |= (mode2check() && statmode() == 2);
+	statinterruptsignal |= (lycompcheck() && lycompequal());
+
+
+	if (statinterruptsignal && !previnterruptsignal)
+	{
+	    gpumem.requestinterrupt(1);
+	}
+
+	previnterruptsignal = statinterruptsignal;
+	statinterruptsignal = false;
     }
 
     void GPU::renderscanline()

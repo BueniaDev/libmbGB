@@ -18,7 +18,7 @@ using namespace gb;
 
 namespace gb
 {
-    CPU::CPU(MMU& memory, GPU& graphics) : mem(memory), gpu(graphics)
+    CPU::CPU(MMU& memory, GPU& graphics, Timers& timers) : mem(memory), gpu(graphics), timer(timers)
     {
 
     }
@@ -220,9 +220,10 @@ namespace gb
 		cycles -= 4;
 	    }
 
-	    /*
-	    printregs();
+	    
+	    // printregs();
 
+	    /*
 	    if (pc == 0x01DA)
 	    {
 		printregs();
@@ -245,6 +246,7 @@ namespace gb
 	for (; cycles != 0; cycles -= 4)
 	{
 	    enabledelayedinterrupts();
+	    timer.updatetimer();
 	    gpu.updatelcd();
 	    mem.ifwrittenthiscycle = false;
 	}
@@ -254,6 +256,7 @@ namespace gb
     {
 	for (; cycles != 0; cycles -= 4)
 	{
+	    timer.updatetimer();
 	    gpu.updatelcd();
 	}
     }

@@ -43,12 +43,21 @@ namespace gb
 	    void init();
 	    void shutdown();
 
-    	    void updatelcd();
+	    void updatelcd();
+	    void updately();
+	    void updatelycomparesignal();
+	    void checkstatinterrupt();
 	    void renderscanline();
 	    void renderbg(int pixel);
 
+	    bool lycomparezero = false;
+	    bool statinterruptsignal = false;
+	    bool previnterruptsignal = false;
+
 	    int scanlinecounter = 452;
 	    int currentscanline = 0;
+
+	    void updatepoweronstate(bool wasenabled);
 
 	    RGB framebuffer[160 * 144];
 
@@ -59,6 +68,59 @@ namespace gb
 	        int bit1 = ((palette >> hi) & 1);
 	        int bit0 = ((palette >> lo) & 1);
 	        return ((bit1 << 1) | bit0);
+	    }
+
+	    inline int line153cycles()
+	    {
+	        return 4;
+	    }
+
+	    inline int mode3cycles()
+	    {
+	        int cycles = 256;
+
+	        int scxmod = (gpumem.scrollx % 8);
+
+    	        if ((scxmod > 0) && (scxmod < 5))
+	        {
+		    cycles += 4;
+	        }
+	        else if (scxmod > 4)
+	        {
+		    cycles += 8;
+	        }
+
+	        return cycles;
+	    }
+
+	    inline bool mode2check()
+	    {
+		return TestBit(gpumem.stat, 5);
+	    }
+
+	    inline bool mode1check()
+	    {
+		return TestBit(gpumem.stat, 4);
+	    }
+
+	    inline bool mode0check()
+	    {
+		return TestBit(gpumem.stat, 3);
+	    }
+
+	    inline int statmode()
+	    {
+		return (gpumem.stat & 0x03);
+	    }
+
+	    inline bool lycompcheck()
+	    {
+		return TestBit(gpumem.stat, 6);
+	    }
+
+	    inline bool lycompequal()
+	    {
+		return TestBit(gpumem.stat, 2);
 	    }
     };
 };

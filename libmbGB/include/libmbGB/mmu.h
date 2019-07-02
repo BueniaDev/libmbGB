@@ -125,7 +125,7 @@ namespace gb
 
 		lcdc = value;
 
-		// poweron(lcdwasenabled);
+		poweron(lcdwasenabled);
 	    }
 
 	    void setpoweroncallback(poweronfunc cb)
@@ -186,11 +186,16 @@ namespace gb
 	    {
 		int temp = (stat & 0x07);	
 		stat = ((value & 0x78) | temp);
+	    }
 
-		if (TestBit(lcdc, 7) && !TestBit(stat, 1))
-		{
-		    setstatsignal();
-		}
+	    inline uint16_t readdiv()
+	    {
+		return divider;
+	    }
+
+	    inline void incdiv(int cycles)
+	    {
+		divider += cycles;
 	    }
 
 	    inline void setlycompare(bool cond)
@@ -220,6 +225,10 @@ namespace gb
 	    uint8_t joypad = 0x00;
 	    uint8_t sb = 0x00;
 	    uint8_t sc = 0x00;
+	    uint16_t divider = 0x0000;
+	    uint8_t timercounter = 0x00;
+	    uint8_t timermodulo = 0x00;
+	    uint8_t timercontrol = 0x00;
 	    uint8_t interruptflags = 0xE1;
 	    uint8_t lcdc = 0x91;
 	    uint8_t stat = 0x81;
