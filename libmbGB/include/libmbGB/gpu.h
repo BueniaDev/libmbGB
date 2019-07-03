@@ -48,7 +48,9 @@ namespace gb
 	    void updatelycomparesignal();
 	    void checkstatinterrupt();
 	    void renderscanline();
-	    void renderbg(int pixel);
+	    void renderbg();
+	    void renderwin();
+	    void renderobj();
 
 	    bool lycomparezero = false;
 	    bool statinterruptsignal = false;

@@ -97,9 +97,13 @@ namespace gb
 	{
 	    return wram[addr - 0xC000];
 	}
-	else if (addr < 0xFEA0)
+	else if (addr < 0xFE00)
 	{
 	    return wram[addr - 0xE000];
+	}
+	else if (addr < 0xFEA0)
+	{
+	    return oam[addr - 0xFE00];
 	}
 	else if (addr < 0xFF00)
 	{
@@ -145,9 +149,13 @@ namespace gb
 	{
 	    wram[addr - 0xC000] = value;
 	}
-	else if (addr < 0xFEA0)
+	else if (addr < 0xFE00)
 	{
 	    wram[addr - 0xE000] = value;
+	}
+	else if (addr < 0xFEA0)
+	{
+	    oam[addr - 0xFE00] = value;
 	}
 	else if (addr < 0xFF00)
 	{
@@ -196,6 +204,8 @@ namespace gb
 	    case 0x43: temp = scrollx; break;
 	    case 0x44: temp = ly; break;
 	    case 0x45: temp = lyc; break;
+	    case 0x4A: temp = windowy; break;
+	    case 0x4B: temp = windowx; break;
 	    case 0x47: temp = bgpalette; break;
 	    default: temp = 0xFF; break;
 	}
@@ -221,7 +231,10 @@ namespace gb
 	    case 0x43: scrollx = value; break;
 	    case 0x44: break; // LY should not be written to
 	    case 0x45: lyc = value; break;
+	    case 0x46: dodmatransfer(value); break;
 	    case 0x47: bgpalette = value; break;
+	    case 0x4A: windowy = value; break;
+	    case 0x4B: windowx = value; break;
 	    default: break;
 	}
     }

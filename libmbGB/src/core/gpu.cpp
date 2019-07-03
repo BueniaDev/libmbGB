@@ -156,16 +156,13 @@ namespace gb
 
     void GPU::renderscanline()
     {
-	for (int i = 0; i < 160; i++)
+	if (gpumem.isbgenabled())
 	{
-	    if (gpumem.isbgenabled())
-	    {
-		renderbg(i);
-	    }
+	    renderbg();
 	}
     }
 
-    void GPU::renderbg(int pixel)
+    void GPU::renderbg()
     {
 	uint16_t tilemap = TestBit(gpumem.lcdc, 3) ? 0x9C00 : 0x9800;
 	uint16_t tiledata = TestBit(gpumem.lcdc, 4) ? 0x8000 : 0x8800;
@@ -177,66 +174,69 @@ namespace gb
 
 	uint16_t tilerow = (((uint8_t)(ypos / 8)) * 32);
 
-	uint8_t xpos = pixel + gpumem.scrollx;
-
-	uint16_t tilecol = (xpos / 8);
-	int16_t tilenum = 0;
-
-	uint16_t tileaddr = (tilemap + tilerow + tilecol);
-
-	if (unsig)
+	for (int pixel = 0; pixel < 160; pixel++)
 	{
-	    tilenum = (uint8_t)(gpumem.vram[tileaddr - 0x8000]);
+	    uint8_t xpos = pixel + gpumem.scrollx;	    
+
+	    uint16_t tilecol = (xpos / 8);
+	    int16_t tilenum = 0;
+
+   	    uint16_t tileaddr = (tilemap + tilerow + tilecol);
+
+	    if (unsig)
+	    {
+	        tilenum = (uint8_t)(gpumem.vram[tileaddr - 0x8000]);
+	    }
+	    else
+	    {
+	        tilenum = (int8_t)(gpumem.vram[tileaddr - 0x8000]);
+	    }
+
+	    uint16_t tileloc = tiledata;
+
+	    if (unsig)
+	    {
+	        tileloc += (uint16_t)(tilenum * 16);
+	    }
+	    else
+	    {
+	        tileloc += (int16_t)(((tilenum + 128) * 16));
+	    }
+
+	    uint8_t line = (ypos % 8);
+
+	    line *= 2;
+	    uint8_t data1 = gpumem.readByte((tileloc + line));
+	    uint8_t data2 = gpumem.readByte((tileloc + line + 1));
+
+	    int colorbit = (xpos % 8);
+	    colorbit -= 7;
+	    colorbit *= -1;
+
+	    int colornum = BitGetVal(data2, colorbit);
+	    colornum <<= 1;
+	    colornum |= BitGetVal(data1, colorbit);
+
+	    int red = 0;
+	    int green = 0;
+	    int blue = 0;
+
+	    int color = getdmgcolor(colornum, gpumem.readByte(0xFF47));
+
+	    switch (color)
+	    {
+	        case 0: red = green = blue = 0xFF; break;
+	        case 1: red = green = blue = 0xCC; break;
+	        case 2: red = green = blue = 0x77; break;
+	        case 3: red = green = blue = 0x00; break;
+	    }
+
+	    uint8_t scanline = currentscanline;
+
+	    int index = (pixel + (scanline * 160));
+	    framebuffer[index].red = red;
+	    framebuffer[index].green = green;
+	    framebuffer[index].blue = blue;
 	}
-	else
-	{
-	    tilenum = (int8_t)(gpumem.vram[tileaddr - 0x8000]);
-	}
-
-	uint16_t tileloc = tiledata;
-
-	if (unsig)
-	{
-	    tileloc += (uint16_t)(tilenum * 16);
-	}
-	else
-	{
-	    tileloc += (int16_t)(((tilenum + 128) * 16));
-	}
-
-	uint8_t line = (ypos % 8);
-
-	line *= 2;
-	uint8_t data1 = gpumem.readByte((tileloc + line));
-	uint8_t data2 = gpumem.readByte((tileloc + line + 1));
-
-	int colorbit = (xpos % 8);
-	colorbit -= 7;
-	colorbit *= -1;
-
-	int colornum = BitGetVal(data2, colorbit);
-	colornum <<= 1;
-	colornum |= BitGetVal(data1, colorbit);
-
-	int red = 0;
-	int green = 0;
-	int blue = 0;
-
-	int color = getdmgcolor(colornum, gpumem.readByte(0xFF47));
-
-	switch (color)
-	{
-	    case 0: red = green = blue = 0xFF; break;
-	    case 1: red = green = blue = 0xCC; break;
-	    case 2: red = green = blue = 0x77; break;
-	    case 3: red = green = blue = 0x00; break;
-	}
-
-	uint8_t scanline = currentscanline;
-
-	int index = (pixel + (scanline * 160));
-	framebuffer[index].red = red;
-	framebuffer[index].green = green;
-	framebuffer[index].blue = blue;
     }
 };

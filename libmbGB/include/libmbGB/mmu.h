@@ -98,9 +98,28 @@ namespace gb
 	    poweronfunc poweron;
 	    joypadfunc updatep1;
 
+	    inline void dodmatransfer(uint8_t value)
+	    {
+		uint16_t addr = (value << 8);
+		for (int i = 0; i < 0xA0; i++)
+		{
+		    writeByte((0xFE00 + i), readByte(addr + 1));
+		}
+	    }
+
 	    inline bool islcdenabled()
 	    {
 		return TestBit(lcdc, 7);
+	    }
+
+	    inline bool iswinenabled()
+	    {
+		return TestBit(lcdc, 5);
+	    }
+
+	    inline bool isobjenabled()
+	    {
+		return TestBit(lcdc, 1);
 	    }
 
 	    inline bool isbgenabled()
@@ -239,6 +258,8 @@ namespace gb
 	    uint8_t stat = 0x81;
 	    uint8_t scrolly = 0x00;
 	    uint8_t scrollx = 0x00;
+	    uint8_t windowy = 0x00;
+	    uint8_t windowx = 0x00;
 	    uint8_t ly = 0x00;
 	    uint8_t lyc = 0x00;
 	    uint8_t bgpalette = 0xFC;
