@@ -204,9 +204,11 @@ namespace gb
 	    case 0x43: temp = scrollx; break;
 	    case 0x44: temp = ly; break;
 	    case 0x45: temp = lyc; break;
+	    case 0x47: temp = bgpalette; break;
+	    case 0x48: temp = objpalette0; break;
+	    case 0x49: temp = objpalette1; break;
 	    case 0x4A: temp = windowy; break;
 	    case 0x4B: temp = windowx; break;
-	    case 0x47: temp = bgpalette; break;
 	    default: temp = 0xFF; break;
 	}
 	
@@ -233,6 +235,8 @@ namespace gb
 	    case 0x45: lyc = value; break;
 	    case 0x46: dodmatransfer(value); break;
 	    case 0x47: bgpalette = value; break;
+	    case 0x48: objpalette0 = value; break;
+	    case 0x49: objpalette1 = value; break;
 	    case 0x4A: windowy = value; break;
 	    case 0x4B: windowx = value; break;
 	    default: break;

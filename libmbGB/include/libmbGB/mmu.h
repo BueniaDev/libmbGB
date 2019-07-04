@@ -99,11 +99,11 @@ namespace gb
 	    joypadfunc updatep1;
 
 	    inline void dodmatransfer(uint8_t value)
-	    {
+	    {		
 		uint16_t addr = (value << 8);
 		for (int i = 0; i < 0xA0; i++)
 		{
-		    writeByte((0xFE00 + i), readByte(addr + 1));
+		    writeByte((0xFE00 + i), readByte(addr + i));
 		}
 	    }
 
@@ -255,7 +255,7 @@ namespace gb
 	    uint8_t timercontrol = 0x00;
 	    uint8_t interruptflags = 0xE1;
 	    uint8_t lcdc = 0x91;
-	    uint8_t stat = 0x81;
+	    uint8_t stat = 0x01;
 	    uint8_t scrolly = 0x00;
 	    uint8_t scrollx = 0x00;
 	    uint8_t windowy = 0x00;
@@ -263,6 +263,8 @@ namespace gb
 	    uint8_t ly = 0x00;
 	    uint8_t lyc = 0x00;
 	    uint8_t bgpalette = 0xFC;
+	    uint8_t objpalette0 = 0xFF;
+	    uint8_t objpalette1 = 0xFF;
 	    uint8_t lastbgp = 0x00;
 	    uint8_t interruptenabled = 0x00;
 
