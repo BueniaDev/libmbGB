@@ -111,6 +111,8 @@ namespace gb
 	{
 	    gpumem.ly = 0;
 	    gpumem.setstatmode(0);
+	    gpumem.statinterruptsignal = false;
+	    gpumem.previnterruptsignal = false;
 	}
     }
 
@@ -143,7 +145,6 @@ namespace gb
 	gpumem.statinterruptsignal |= (mode1check() && statmode() == 1);
 	gpumem.statinterruptsignal |= (mode2check() && statmode() == 2);
 	gpumem.statinterruptsignal |= (lycompcheck() && lycompequal());
-
 
 	if (gpumem.statinterruptsignal && !gpumem.previnterruptsignal)
 	{
@@ -180,7 +181,7 @@ namespace gb
 
 	uint8_t ypos = 0;
 
-	ypos = gpumem.scrolly + gpumem.ly;
+	ypos = gpumem.scrolly + currentscanline;
 
 	uint16_t tilerow = (((uint8_t)(ypos / 8)) * 32);
 
@@ -243,6 +244,8 @@ namespace gb
 
 	    uint8_t scanline = currentscanline;
 
+	    bgscanline[pixel] = colornum;
+
 	    int index = (pixel + (scanline * 160));
 	    framebuffer[index].red = red;
 	    framebuffer[index].green = green;
@@ -255,7 +258,7 @@ namespace gb
 	uint8_t windowy = gpumem.windowy;
 	uint8_t windowx = (gpumem.windowx - 7);
 
-	if (windowy > gpumem.ly)
+	if (windowy > currentscanline)
 	{
 	    return;
 	}
@@ -326,6 +329,8 @@ namespace gb
 
 	    uint8_t scanline = currentscanline;
 
+	    bgscanline[pixel] = colornum;
+
 	    int index = (pixel + (scanline * 160));
 	    framebuffer[index].red = red;
 	    framebuffer[index].green = green;
@@ -339,7 +344,7 @@ namespace gb
 	int ysize = TestBit(gpumem.lcdc, 2) ? 16 : 8;
 	int spritelimit = 40;
 
-	uint8_t scanline = gpumem.readByte(0xFF44);
+	uint8_t scanline = currentscanline;
 
 	for (int i = (spritelimit - 1); i >= 0; i--)
 	{
@@ -386,6 +391,7 @@ namespace gb
 		{
 		    uint8_t xpixel = (xpos + pixel);
 		    int spritepixel = (xflip) ? pixel : ((pixel - 7) * -1);
+		    bool iswhite = (bgscanline[xpixel] == 0);
 		    int colornum = BitGetVal(data2, spritepixel);
 		    colornum <<= 1;
 		    colornum |= BitGetVal(data1, spritepixel);
@@ -411,6 +417,11 @@ namespace gb
 		    }
 
 		    if (colornum == 0)
+		    {
+			continue;
+		    }
+
+		    if ((priority == true && !iswhite))
 		    {
 			continue;
 		    }

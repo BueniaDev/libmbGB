@@ -28,6 +28,7 @@ set(LIBMBGB_API_HEADERS
 
 set(LIBMBGB
 	libmbGB/src/core/mmu.cpp
+	libmbGB/src/core/mbc.cpp
 	libmbGB/src/core/cpu.cpp
 	libmbGB/src/core/gpu.cpp
 	libmbGB/src/core/timers.cpp

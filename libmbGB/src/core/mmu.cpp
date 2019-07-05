@@ -36,6 +36,7 @@ namespace gb
 	wram.resize(0x8000, 0);
 	oam.resize(0xA0, 0);
 	hram.resize(0x7F, 0);
+	rambanks.resize(0x8000, 0);
 
 	joypad = 0xCF;
 	divider = 0xABCC;
@@ -51,6 +52,7 @@ namespace gb
 	wram.clear();
 	oam.clear();
 	hram.clear();
+	rambanks.clear();
 	
 	cout << "MMU::Shutting down..." << endl;
     }
@@ -79,7 +81,16 @@ namespace gb
 	}
 	else if (addr < 0x8000)
 	{
-	    return rom[addr];
+	    uint8_t temp = 0;
+
+	    switch (gbmbc)
+	    {
+		case MBCType::None: temp = rom[addr]; break;
+		case MBCType::MBC1: temp = mbc1read(addr); break;
+		case MBCType::MBC2: temp = 0xFF; break;
+	    }
+
+	    return temp;
 	}
 	else if (addr < 0xA000)
 	{
@@ -87,7 +98,16 @@ namespace gb
 	}
 	else if (addr < 0xC000)
 	{
-	    return 0xFF;
+	    uint8_t temp = 0;
+
+	    switch (gbmbc)
+	    {
+		case MBCType::None: temp = 0xFF; break;
+		case MBCType::MBC1: temp = mbc1read(addr); break;
+		case MBCType::MBC2: temp = 0xFF; break;
+	    }
+
+	    return temp;
 	}
 	else if (addr < 0xD000)
 	{
@@ -125,13 +145,14 @@ namespace gb
 
     void MMU::writeByte(uint16_t addr, uint8_t value)
     {
-	if (addr < 0x4000)
+	if (addr < 0x8000)
 	{
-	    return;
-	}
-	else if (addr < 0x8000)
-	{
-	    return;
+	    switch (gbmbc)
+	    {
+		case MBCType::None: return; break;
+		case MBCType::MBC1: mbc1write(addr, value); break;
+		case MBCType::MBC2: return; break;
+	    }
 	}
 	else if (addr < 0xA000)
 	{
@@ -139,7 +160,12 @@ namespace gb
 	}
 	else if (addr < 0xC000)
 	{
-	    return;
+	    switch (gbmbc)
+	    {
+		case MBCType::None: return; break;
+		case MBCType::MBC1: mbc1write(addr, value); break;
+		case MBCType::MBC2: return; break;
+	    }
 	}
 	else if (addr < 0xD000)
 	{
@@ -243,45 +269,6 @@ namespace gb
 	}
     }
 
-    string MMU::determinegametitle(vector<uint8_t>& rom)
-    {
-	stringstream temp;
-	
-	for (int i = 0x134; i < 0x0143; i++)
-	{
-	    temp << ((char)(int)(rom[i]));
-	}
-
-	return temp.str();
-    }
-
-    void MMU::determineramsize(vector<uint8_t>& rom)
-    {
-	switch (rom[0x0149])
-	{
-	    case 0: ramsize = 0; break;
-	    case 1: ramsize = 0x800; break;
-	    case 2: ramsize = 0x2000; break;
-	    case 3: ramsize = 0x8000; break;
-	    case 4: ramsize = 0x20000; break;
-	    case 5: ramsize = 0x10000; break;
-	    default: cout << "MMU::Error - Unrecognzied RAM quantity given in cartridge" << endl; exit(1); break;
-	}
-    }
-
-    void MMU::determinembctype(vector<uint8_t>& rom)
-    {
-	switch (rom[0x0147])
-	{
-	    case 0: gbmbc = MBCType::None; externalrampres = false; mbctype = "ROM ONLY"; break;
-	    case 1: gbmbc = MBCType::None; externalrampres = false; mbctype = "ROM ONLY"; break; // Hack to get test ROMS running, will be fixed later
-	    case 2: gbmbc = MBCType::None; externalrampres = false; mbctype = "ROM ONLY"; break; // Hack to get test ROMS running, will be fixed later
-	    case 8: gbmbc = MBCType::None; externalrampres = true; mbctype = "ROM + RAM"; break;
-	    case 9: gbmbc = MBCType::None; externalrampres = true; mbctype = "ROM + RAM + BATTERY"; break;
-	    default: cout << "MMU::Error - Unrecognized MBC type" << endl; exit(1); break;
-	}
-    }
-
     bool MMU::loadROM(string filename)
     {
 	cout << "MMU::Loading ROM " << filename << "..." << endl;
@@ -324,15 +311,15 @@ namespace gb
 	    cout << "Title: " << determinegametitle(cartmem) << endl;
 	    determinembctype(cartmem);
 	    cout << "MBC type: " << mbctype << endl;
-	    int rombanks = ((0x8000 << cartmem[0x0148]) / 0x4000);
-	    cout << "ROM banks: " << rombanks << endl;
+	    numrombanks = getrombanks(cartmem);
+	    cout << "ROM size: " << romsize << endl;
+	    numrambanks = getrambanks(cartmem);
+	    cout << "RAM size: " << ramsize << endl;
 
-	    if (size != (rombanks * 0x4000))
+	    if (size != (numrombanks * 0x4000))
 	    {
 		cout << "MMU::Warning - Size of ROM does not match size in cartridge header." << endl;
 	    }
-
-	    determineramsize(cartmem);
 
 	    for (int i = 0; i < 0x8000; i++)
 	    {

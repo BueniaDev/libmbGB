@@ -63,6 +63,9 @@ namespace gb
 
 	    RGB framebuffer[160 * 144];
 
+	    uint8_t bgscanline[160];
+	    uint8_t winscanline[160];
+
 	    inline int getdmgcolor(int id, uint8_t palette)
 	    {
 	        int hi = (2 * id + 1);

@@ -24,6 +24,7 @@
 #include <fstream>
 #include <sstream>
 #include <functional>
+#include <array>
 #include "enums.h"
 #include "libmbgb_api.h"
 using namespace std;
@@ -73,16 +74,92 @@ namespace gb
 	    vector<uint8_t> oam;
 	    vector<uint8_t> hram;
 	    vector<uint8_t> cartmem;
+	    vector<uint8_t> rambanks;
 	    vector<uint8_t> bios;
+	    array<uint8_t, 4> specialrombanks = {0x00, 0x20, 0x40, 0x60};
 
 	    bool externalrampres = false;
 	    bool biosload = false;
-	    int ramsize = 0;
+	    uint8_t currentrombank = 1;
+	    uint8_t currentrambank = 0;
+	    int higherrombankbits = 0;
+	    bool ramenabled = false;
+	    bool rommode = false;
+	    int numrombanks;
+	    int numrambanks;
+	    int mbcramsize;
 
-	    void determinembctype(vector<uint8_t>& rom);
-	    void determineramsize(vector<uint8_t>& rom);
-	    string determinegametitle(vector<uint8_t>& rom);
+	    inline void determinembctype(vector<uint8_t>& rom)
+	    {
+		switch (rom[0x0147])
+		{
+		    case 0: gbmbc = MBCType::None; externalrampres = false; mbctype = "ROM ONLY"; break;
+		    case 1: gbmbc = MBCType::MBC1; externalrampres = false; mbctype = "MBC1"; break;
+		    case 2: gbmbc = MBCType::MBC1; externalrampres = true; mbctype = "MBC1 + RAM"; break;
+		    case 3: gbmbc = MBCType::MBC1; externalrampres = true; mbctype = "MBC1 + RAM + BATTERY"; break;
+		    case 5: gbmbc = MBCType::MBC2; externalrampres = false; mbctype = "MBC2"; break;
+		    case 8: gbmbc = MBCType::None; externalrampres = true; mbctype = "ROM + RAM"; break;
+		    case 9: gbmbc = MBCType::None; externalrampres = true; mbctype = "ROM + RAM + BATTERY"; break;
+		    default: cout << "MMU::Error - Unrecognized MBC type" << endl; exit(1); break;
+		}
+	    }
+
+	    inline int getrombanks(vector<uint8_t>& rom)
+	    {
+		bool ismbc1 = ((rom[0x0147] >= 1) && (rom[0x0147] <= 3));
+
+		int banks = 0;
+
+		switch (rom[0x0148])
+		{
+		    case 0: banks = 0; romsize = "32 KB"; break;
+		    case 1: banks = 4; romsize = "64 KB"; break;
+		    case 2: banks = 8; romsize = "128 KB"; break;
+		    case 3: banks = 16; romsize = "256 KB"; break;
+		    case 4: banks = 32; romsize = "512 KB"; break;
+		    case 5: banks = (ismbc1 ? 63 : 64); romsize = "1 MB"; break;
+		    case 6: banks = (ismbc1 ? 125 : 128); romsize = "2 MB"; break;
+		    case 7: banks = 256; romsize = "4 MB"; break;
+		    case 82: banks = 72; romsize = "1.1 MB"; break;
+		    case 83: banks = 80; romsize = "1.2 MB"; break;
+		    case 84: banks = 96; romsize = "1.5 MB"; break;
+		    default: cout << "MMU::Error - Unrecognzied ROM quantity given in cartridge" << endl; exit(1); break;
+		}
+
+		return banks;
+	    }
+
+	    inline int getrambanks(vector<uint8_t>& rom)
+	    {
+		int banks = 0;
+
+		switch (rom[0x0149])
+		{
+		    case 0: banks = 0; mbcramsize = 0; ramsize = "None"; break;
+		    case 1: banks = 0; mbcramsize = 2; ramsize = "2 KB"; break;
+		    case 2: banks = 0; mbcramsize = 8; ramsize = "8 KB"; break;
+		    case 3: banks = 4; mbcramsize = 32; ramsize = "32 KB"; break; 
+	    	    default: cout << "MMU::Error - Unrecognzied RAM quantity given in cartridge" << endl; exit(1); break;
+		}
+
+		return banks;
+	    }
+
+	    inline string determinegametitle(vector<uint8_t>& rom)
+	    {
+		stringstream temp;
+	
+		for (int i = 0x134; i < 0x0143; i++)
+		{
+		    temp << ((char)(int)(rom[i]));
+		}
+
+		return temp.str();
+    	    }
+
 	    string mbctype;
+	    string romsize;
+	    string ramsize;
 
 	    bool loadBIOS(string filename);
 	    bool loadROM(string filename);
@@ -91,6 +168,9 @@ namespace gb
 	    void writeByte(uint16_t addr, uint8_t value);
 	    uint16_t readWord(uint16_t addr);
 	    void writeWord(uint16_t addr, uint16_t value);
+
+	    uint8_t mbc1read(uint16_t addr);
+	    void mbc1write(uint16_t addr, uint8_t value);
 
 	    uint8_t readIO(uint16_t addr);
 	    void writeIO(uint16_t addr, uint8_t value);

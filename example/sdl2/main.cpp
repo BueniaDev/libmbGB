@@ -5,6 +5,7 @@
 #include <libmbGB/timers.h>
 #include <SDL2/SDL.h>
 #include <iostream>
+#include <sstream>
 using namespace gb;
 using namespace std;
 
@@ -20,6 +21,9 @@ SDL_Surface *surface;
 int screenwidth = 160;
 int screenheight = 144;
 int scale = 3;
+
+int fpscount = 0;
+Uint32 fpstime = 0;
 
 bool init()
 {
@@ -111,10 +115,8 @@ int main(int argc, char* argv[])
     if (argc < 2)
     {
 	cout << "Usage: " << argv[0] << " ROM" << endl;
-	return 1;
+	exit(1);
     }
-
-
 
     coremmu.init();
     coremmu.biosload = false;
@@ -139,6 +141,9 @@ int main(int argc, char* argv[])
 
     int overspentcycles = 0;
 
+    Uint32 framecurrenttime;
+    Uint32 framestarttime;
+
     while (!quit)
     {
 	while (SDL_PollEvent(&event))
@@ -152,6 +157,26 @@ int main(int argc, char* argv[])
 
 	overspentcycles = runcore(overspentcycles);
 	drawpixels();
+
+	framecurrenttime = SDL_GetTicks();
+
+	if ((framecurrenttime - framestarttime) < (1000 / 60))
+	{
+	    SDL_Delay((1000 / 60) - (framecurrenttime - framestarttime));
+	}
+
+	framestarttime = SDL_GetTicks();
+
+	fpscount++;
+
+	if (((SDL_GetTicks() - fpstime) >= 1000))
+	{
+	    fpstime = SDL_GetTicks();
+	    stringstream title;
+	    title << "mbGB-SDL2-" << fpscount << " FPS";
+	    SDL_SetWindowTitle(window, title.str().c_str());
+	    fpscount = 0;
+	}
     }
 
     coreinput.shutdown();

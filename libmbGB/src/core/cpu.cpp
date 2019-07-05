@@ -118,37 +118,51 @@ namespace gb
 	{
 	    if (mem.requestedenabledinterrupts())
 	    {
-		hardwaretick(12);
+		hardwaretick(8);
+		mem.writeByte(--sp, (pc >> 8));
+		hardwaretick(8);
 
 		// printregs();
 
 		interruptmasterenable = false;
 
+		uint16_t interruptvector = 0x0000;
+
 		if (mem.ispending(0))
 		{
 		    mem.clearinterrupt(0);
-		    serviceinterrupt(0x40);
+		    interruptvector = 0x0040;
+		    // serviceinterrupt(0x40);
 		}
 		else if (mem.ispending(1))
 		{
 		    mem.clearinterrupt(1);
-		    serviceinterrupt(0x48);
+		    interruptvector = 0x0048;
+		    // serviceinterrupt(0x48);
 		}
 		else if (mem.ispending(2))
 		{
 		    mem.clearinterrupt(2);
-		    serviceinterrupt(0x50);
+		    interruptvector = 0x0050;
+		    // serviceinterrupt(0x50);
 		}
 		else if (mem.ispending(3))
 		{
 		    mem.clearinterrupt(3);
-		    serviceinterrupt(0x58);
+		    interruptvector = 0x0058;
+		    // serviceinterrupt(0x58);
 		}
 		else if (mem.ispending(4))
 		{
 		    mem.clearinterrupt(4);
-		    serviceinterrupt(0x60);
+		    interruptvector = 0x0060;
+		    // serviceinterrupt(0x60);
 		}
+
+		mem.writeByte(--sp, (pc & 0xFF));
+		hardwaretick(4);
+
+		pc = interruptvector;
 
 		if (state == CPUState::Halted)
 		{
