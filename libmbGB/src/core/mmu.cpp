@@ -253,7 +253,7 @@ namespace gb
 	    case 0x06: timermodulo = value; break;
 	    case 0x07: timercontrol = (value & 0x07); break;
 	    case 0x0F: writeif(value); break;
-	    case 0x40: writelcdc(value); break;
+	    case 0x40: lcdc = value; break;
 	    case 0x41: writestat(value); break;
 	    case 0x42: scrolly = value; break;
 	    case 0x43: scrollx = value; break;
@@ -316,7 +316,7 @@ namespace gb
 	    numrambanks = getrambanks(cartmem);
 	    cout << "RAM size: " << ramsize << endl;
 
-	    if (size != (numrombanks * 0x4000))
+	    if (gbmbc != MBCType::None && size != (numrombanks * 0x4000))
 	    {
 		cout << "MMU::Warning - Size of ROM does not match size in cartridge header." << endl;
 	    }

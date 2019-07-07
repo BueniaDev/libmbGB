@@ -53,6 +53,7 @@ namespace gb
 
     using poweronfunc = function<void(bool)>;
     using joypadfunc = function<void()>;
+    using statirqfunc = function<bool()>;
 
     class LIBMBGB_API MMU
     {
@@ -177,6 +178,32 @@ namespace gb
 
 	    poweronfunc poweron;
 	    joypadfunc updatep1;
+	    statirqfunc statirq;
+
+	    inline void lcdchecklyc()
+	    {
+		if (!TestBit(lcdc, 7))
+		{
+		    return;
+		}
+
+		if ((lyc && ly == lyc) || (!lyc && ly == 153))
+		{
+		    if (!TestBit(stat, 2))
+		    {
+			stat = BitSet(stat, 2);
+
+			if (TestBit(stat, 6))
+			{
+			    requestinterrupt(1);
+			}
+		    }
+		}
+		else
+		{
+		    stat = BitReset(stat, 2);
+		}
+    	    }
 
 	    inline void dodmatransfer(uint8_t value)
 	    {		
@@ -220,11 +247,7 @@ namespace gb
 
 	    inline void writelcdc(uint8_t value)
 	    {
-		bool lcdwasenabled = islcdenabled();
-
 		lcdc = value;
-
-		poweron(lcdwasenabled);
 	    }
 
 	    inline void writediv()
@@ -240,6 +263,11 @@ namespace gb
 	    void setjoypadcallback(joypadfunc cb)
 	    {
 		updatep1 = cb;
+	    }
+
+	    void setstatirqcallback(statirqfunc cb)
+	    {
+		statirq = cb;
 	    }
 
 	    inline void exitbios()
@@ -288,8 +316,7 @@ namespace gb
 
 	    inline void writestat(uint8_t value)
 	    {
-		int temp = (stat & 0x07);	
-		stat = ((value & 0x78) | temp);
+		stat = ((stat & ~0x7C) | (value & 0x7C));
 	    }
 
 	    inline uint16_t readdiv()
@@ -312,11 +339,6 @@ namespace gb
 		{
 		    stat = BitReset(stat, 2);
 		}
-	    }
-
-	    inline void setstatsignal()
-	    {
-		statinterruptsignal = true;
 	    }
 
 	    bool ifwrittenthiscycle = false;

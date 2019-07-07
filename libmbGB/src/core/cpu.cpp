@@ -93,6 +93,7 @@ namespace gb
 
     void CPU::printregs()
     {
+	uint8_t stat = mem.readByte(0xFF41);	
 	cout << "AF: " << hex << (int)(af.getreg()) << endl;
 	cout << "BC: " << hex << (int)(bc.getreg()) << endl;
 	cout << "DE: " << hex << (int)(de.getreg()) << endl;
@@ -105,8 +106,10 @@ namespace gb
 	cout << "IMA: " << (int)(enableinterruptsdelayed) << endl;
 	cout << "REI: " << (int)(mem.requestedenabledinterrupts()) << endl;
 	cout << "LCD: " << (int)(mem.ispending(1)) << endl;
-	cout << "(FF41): " << hex << (int)(mem.readByte(0xFF41)) << endl;
+	cout << "(FF41): " << hex << (int)(stat) << endl;
 	cout << "STAT IRQ: " << (int)(mem.statinterruptsignal) << endl;
+	cout << "STAT mode: " << (int)(stat & 3) << endl;
+	cout << "LY = LYC: " << (int)(TestBit(stat, 6) && TestBit(stat, 2)) << endl;
 	cout << endl;
     }
 
@@ -164,6 +167,8 @@ namespace gb
 
 		pc = interruptvector;
 
+		// printregs();
+
 		if (state == CPUState::Halted)
 		{
 		    state = CPUState::Running;
@@ -192,7 +197,6 @@ namespace gb
 	hardwaretick(4);
 
 	pc = addr;
-	// printregs();
     }
 
     int CPU::runfor(int cycles)
