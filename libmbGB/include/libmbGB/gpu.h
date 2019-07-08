@@ -150,11 +150,6 @@ namespace gb
 
 		return ((palette & temphi) >> temp);
 	    }
-
-	    inline int getstatmode()
-	    {
-		return (gpumem.stat & 0x3);
-	    }
     };
 };
 

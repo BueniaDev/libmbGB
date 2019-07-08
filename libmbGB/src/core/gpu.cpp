@@ -53,7 +53,7 @@ namespace gb
 
 	uint8_t scanline = gpumem.ly;
 
-	switch (getstatmode())
+	switch (gpumem.getstatmode())
 	{
 	    case 2:
 	    {
@@ -65,6 +65,7 @@ namespace gb
 		    {
 		        lcdstartline();
 		    }
+
 		    gpumem.setstatmode(3);
 
 		    if (!isdotrender())
@@ -88,14 +89,9 @@ namespace gb
 		    }
 		}
 
-		if (scanlinecounter >= (92 + 160))
+		if (scanlinecounter >= 252)
 		{
 		    gpumem.setstatmode(0);
-
-		    if (TestBit(gpumem.stat, 3))
-		    {
-			gpumem.requestinterrupt(1);
-		    }
 		}
 	    }
 	    break;
@@ -104,7 +100,7 @@ namespace gb
 	    {
 		if (scanlinecounter >= 456)
 		{
-		    scanlinecounter = 0;
+		    scanlinecounter -= 456;
 
 		    scanline++;
 
@@ -119,35 +115,28 @@ namespace gb
 			}
 		    }
 
-		    if (gpumem.ly == 144)
+		    if (scanline == 144)
 		    {
+			gpumem.requestinterrupt(0);			
 			gpumem.setstatmode(1);
-			gpumem.requestinterrupt(0);
-
-			if (TestBit(gpumem.stat, 4))
-			{
-			    gpumem.requestinterrupt(1);
-			}
-			else if (TestBit(gpumem.stat, 5))
-			{
-			    gpumem.requestinterrupt(1);
-			}
 		    }
-		    else if (gpumem.ly < 144)
+		    else if (scanline < 144)
 		    {
 			gpumem.setstatmode(2);
-
-			if (TestBit(gpumem.stat, 5))
-			{
-			    gpumem.requestinterrupt(1);
-			}
 		    }
+		    else
+		    {
+
+		    }
+
 		    gpumem.ly = scanline;
 		    gpumem.lcdchecklyc();
 		}
 	    }
 	    break;
 	}
+
+	gpumem.checkstatinterrupt();
     }
 
     bool GPU::coincidence()
@@ -304,9 +293,9 @@ namespace gb
 	uint8_t scanline = gpumem.ly;
 	uint8_t scrolly = gpumem.scrolly;
 	uint8_t scrollx = gpumem.scrollx;
-	uint8_t sx = ((scrollx + pixel) & 0xFF);
-	uint8_t sy = ((scrolly + scanline) & 0xFF);
-	uint8_t tx = ((scrollx + pixel) % 8);
+	int sx = ((scrollx + pixel) & 0xFF);
+	int sy = ((scrolly + scanline) & 0xFF);
+	int tx = ((scrollx + pixel) % 8);
 
 	if (tx == 0 || pixel == 0)
 	{
@@ -314,7 +303,7 @@ namespace gb
 	}
 
 	bgidx = getdmgcolornum(bgdata, tx);
-	bgcolor = getdmgcolor(bgidx, gpumem.bgpalette);
+	bgcolor = getdmgcolor(bgidx, gpumem.readByte(0xFF47));
     }
 
     void GPU::renderwinpixel(int pixel)

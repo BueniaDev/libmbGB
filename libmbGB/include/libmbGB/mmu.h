@@ -195,7 +195,7 @@ namespace gb
 
 			if (TestBit(stat, 6))
 			{
-			    requestinterrupt(1);
+			    checkstatinterrupt();
 			}
 		    }
 		}
@@ -317,6 +317,11 @@ namespace gb
 	    inline void writestat(uint8_t value)
 	    {
 		stat = ((stat & ~0x7C) | (value & 0x7C));
+
+		if (TestBit(lcdc, 7) && !TestBit(stat, 2))
+		{
+		    statinterruptsignal = true;
+		}
 	    }
 
 	    inline uint16_t readdiv()
@@ -339,6 +344,27 @@ namespace gb
 		{
 		    stat = BitReset(stat, 2);
 		}
+	    }
+
+	    inline int getstatmode()
+	    {
+		return (stat & 0x3);
+	    }
+
+	    inline void checkstatinterrupt()
+	    {
+		statinterruptsignal |= (TestBit(stat, 3) && getstatmode() == 0);
+		statinterruptsignal |= (TestBit(stat, 4) && getstatmode() == 1);
+		statinterruptsignal |= (TestBit(stat, 5) && getstatmode() == 2);
+		statinterruptsignal |= (TestBit(stat, 6) && TestBit(stat, 2));
+
+		if (statinterruptsignal && !previnterruptsignal)
+		{
+		    requestinterrupt(1);
+		}
+
+		previnterruptsignal = statinterruptsignal;
+		statinterruptsignal = false;
 	    }
 
 	    bool ifwrittenthiscycle = false;
