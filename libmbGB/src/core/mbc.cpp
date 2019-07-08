@@ -138,4 +138,56 @@ namespace gb
 
 	return;
     }
+
+    uint8_t MMU::mbc2read(uint16_t addr)
+    {
+	uint8_t temp = 0;
+
+	if ((addr >= 0x4000) && (addr < 0x8000))
+	{
+	    temp = cartmem[(addr - 0x4000) + (currentrombank * 0x4000)];
+	}
+	else if ((addr >= 0xA000) && (addr < 0xC000))
+	{
+	    if (ramenabled)
+	    {
+		temp = rambanks[addr - 0xA000];
+	    }
+	    else
+	    {
+		temp = 0xFF;
+	    }
+	}
+
+	return temp;
+    }
+
+    void MMU::mbc2write(uint16_t addr, uint8_t value)
+    {
+	if (addr < 0x2000)
+	{
+	    uint8_t upperbyte = (addr >> 8);
+	    if (!TestBit(upperbyte, 0))
+	    {
+		ramenabled = !ramenabled;
+	    }
+	}
+	else if (addr < 0x4000)
+	{
+	    uint8_t upperbyte = (addr >> 8);
+	    if (TestBit(upperbyte, 0))
+	    {
+		currentrombank = (value & 0x0F);
+	    }
+	}
+	else if ((addr >= 0xA000) && (addr < 0xA200))
+	{
+	    if (ramenabled)
+	    {
+		rambanks[addr - 0xA000] = value;
+	    }
+	}
+
+	return;
+    }
 };

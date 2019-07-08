@@ -99,6 +99,7 @@ namespace gb
 		    case 2: gbmbc = MBCType::MBC1; externalrampres = true; mbctype = "MBC1 + RAM"; break;
 		    case 3: gbmbc = MBCType::MBC1; externalrampres = true; mbctype = "MBC1 + RAM + BATTERY"; break;
 		    case 5: gbmbc = MBCType::MBC2; externalrampres = false; mbctype = "MBC2"; break;
+		    case 6: gbmbc = MBCType::MBC2; externalrampres = false; mbctype = "MBC2 + BATTERY"; break;
 		    case 8: gbmbc = MBCType::None; externalrampres = true; mbctype = "ROM + RAM"; break;
 		    case 9: gbmbc = MBCType::None; externalrampres = true; mbctype = "ROM + RAM + BATTERY"; break;
 		    default: cout << "MMU::Error - Unrecognized MBC type" << endl; exit(1); break;
@@ -172,6 +173,8 @@ namespace gb
 
 	    uint8_t mbc1read(uint16_t addr);
 	    void mbc1write(uint16_t addr, uint8_t value);
+	    uint8_t mbc2read(uint16_t addr);
+	    void mbc2write(uint16_t addr, uint8_t value);
 
 	    uint8_t readIO(uint16_t addr);
 	    void writeIO(uint16_t addr, uint8_t value);

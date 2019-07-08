@@ -87,7 +87,7 @@ namespace gb
 	    {
 		case MBCType::None: temp = rom[addr]; break;
 		case MBCType::MBC1: temp = mbc1read(addr); break;
-		case MBCType::MBC2: temp = 0xFF; break;
+		case MBCType::MBC2: temp = mbc2read(addr); break;
 	    }
 
 	    return temp;
@@ -104,7 +104,7 @@ namespace gb
 	    {
 		case MBCType::None: temp = 0xFF; break;
 		case MBCType::MBC1: temp = mbc1read(addr); break;
-		case MBCType::MBC2: temp = 0xFF; break;
+		case MBCType::MBC2: temp = mbc2read(addr); break;
 	    }
 
 	    return temp;
@@ -151,7 +151,7 @@ namespace gb
 	    {
 		case MBCType::None: return; break;
 		case MBCType::MBC1: mbc1write(addr, value); break;
-		case MBCType::MBC2: return; break;
+		case MBCType::MBC2: mbc2write(addr, value); break;
 	    }
 	}
 	else if (addr < 0xA000)
@@ -164,7 +164,7 @@ namespace gb
 	    {
 		case MBCType::None: return; break;
 		case MBCType::MBC1: mbc1write(addr, value); break;
-		case MBCType::MBC2: return; break;
+		case MBCType::MBC2: mbc2write(addr, value); break;
 	    }
 	}
 	else if (addr < 0xD000)
