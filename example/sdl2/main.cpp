@@ -1,19 +1,12 @@
-#include <libmbGB/cpu.h>
-#include <libmbGB/mmu.h>
-#include <libmbGB/gpu.h>
-#include <libmbGB/input.h>
-#include <libmbGB/timers.h>
+#include <libmbGB/libmbgb.h>
 #include <SDL2/SDL.h>
 #include <iostream>
 #include <sstream>
 using namespace gb;
 using namespace std;
 
-MMU coremmu;
-GPU coregpu(coremmu);
-Timers coretimers(coremmu);
-CPU corecpu(coremmu, coregpu, coretimers);
-Input coreinput(coremmu);
+
+GBCore core;
 
 SDL_Window *window;
 SDL_Surface *surface;
@@ -62,9 +55,9 @@ void drawpixels()
 	for (int j = 0; j < screenheight; j++)
 	{
 	    pixel.y = (j * scale);
-	    uint8_t red = coregpu.framebuffer[i + (j * screenwidth)].red;
-	    uint8_t green = coregpu.framebuffer[i + (j * screenwidth)].green;
-	    uint8_t blue = coregpu.framebuffer[i + (j * screenwidth)].blue;
+	    uint8_t red = core.getpixel(i, j).red;
+	    uint8_t green = core.getpixel(i, j).green;
+	    uint8_t blue = core.getpixel(i, j).blue;
 
 	    SDL_FillRect(surface, &pixel, SDL_MapRGBA(surface->format, red, green, blue, 255));
 	}
@@ -73,63 +66,61 @@ void drawpixels()
     SDL_UpdateWindowSurface(window);
 }
 
-int runcore(int spentcycles)
-{
-    return corecpu.runfor(70224 + spentcycles);
-}
-
 void handleinput(SDL_Event event)
 {
     if (event.type == SDL_KEYDOWN)
     {
 	switch (event.key.keysym.sym)
 	{
-	    case SDLK_UP: coreinput.keypressed(Button::Up); break;
-	    case SDLK_DOWN: coreinput.keypressed(Button::Down); break;
-	    case SDLK_LEFT: coreinput.keypressed(Button::Left); break;
-	    case SDLK_RIGHT: coreinput.keypressed(Button::Right); break;
-	    case SDLK_a: coreinput.keypressed(Button::A); break;
-	    case SDLK_b: coreinput.keypressed(Button::B); break;
-	    case SDLK_RETURN: coreinput.keypressed(Button::Start); break;
-	    case SDLK_SPACE: coreinput.keypressed(Button::Select); break;
+	    case SDLK_UP: core.keypressed(Button::Up); break;
+	    case SDLK_DOWN: core.keypressed(Button::Down); break;
+	    case SDLK_LEFT: core.keypressed(Button::Left); break;
+	    case SDLK_RIGHT: core.keypressed(Button::Right); break;
+	    case SDLK_a: core.keypressed(Button::A); break;
+	    case SDLK_b: core.keypressed(Button::B); break;
+	    case SDLK_RETURN: core.keypressed(Button::Start); break;
+	    case SDLK_SPACE: core.keypressed(Button::Select); break;
 	}
     }
     else if (event.type == SDL_KEYUP)
     {
 	switch (event.key.keysym.sym)
 	{
-	    case SDLK_UP: coreinput.keyreleased(Button::Up); break;
-	    case SDLK_DOWN: coreinput.keyreleased(Button::Down); break;
-	    case SDLK_LEFT: coreinput.keyreleased(Button::Left); break;
-	    case SDLK_RIGHT: coreinput.keyreleased(Button::Right); break;
-	    case SDLK_a: coreinput.keyreleased(Button::A); break;
-	    case SDLK_b: coreinput.keyreleased(Button::B); break;
-	    case SDLK_RETURN: coreinput.keyreleased(Button::Start); break;
-	    case SDLK_SPACE: coreinput.keyreleased(Button::Select); break;
+	    case SDLK_UP: core.keyreleased(Button::Up); break;
+	    case SDLK_DOWN: core.keyreleased(Button::Down); break;
+	    case SDLK_LEFT: core.keyreleased(Button::Left); break;
+	    case SDLK_RIGHT: core.keyreleased(Button::Right); break;
+	    case SDLK_a: core.keyreleased(Button::A); break;
+	    case SDLK_b: core.keyreleased(Button::B); break;
+	    case SDLK_RETURN: core.keyreleased(Button::Start); break;
+	    case SDLK_SPACE: core.keyreleased(Button::Select); break;
 	}
     }
 }
 
 int main(int argc, char* argv[])
 {
-    if (argc < 2)
+    if (!core.getoptions(argc, argv))
     {
-	cout << "Usage: " << argv[0] << " ROM" << endl;
 	exit(1);
     }
 
-    coremmu.init();
-    coremmu.biosload = false;
-    
-    if(!coremmu.loadROM(argv[1]))
+    core.preinit();
+
+    if (core.biosload())
     {
-	return 1;
+	if (!core.loadBIOS(core.biosname))
+	{
+	    exit(1);
+	}
+    }
+    
+    if(!core.loadROM(core.romname))
+    {
+	exit(1);
     }
 
-    corecpu.init();
-    coregpu.init();
-    coretimers.init();
-    coreinput.init();
+    core.init();
 
     if (!init())
     {
@@ -138,8 +129,6 @@ int main(int argc, char* argv[])
 
     SDL_Event event;
     bool quit = false;
-
-    int overspentcycles = 0;
 
     Uint32 framecurrenttime;
     Uint32 framestarttime;
@@ -155,7 +144,7 @@ int main(int argc, char* argv[])
 	    }
 	}
 
-	overspentcycles = runcore(overspentcycles);
+	core.runcore();
 	drawpixels();
 
 	framecurrenttime = SDL_GetTicks();
@@ -179,11 +168,7 @@ int main(int argc, char* argv[])
 	}
     }
 
-    coreinput.shutdown();
-    coretimers.shutdown();
-    coregpu.shutdown();
-    corecpu.shutdown();
-    coremmu.shutdown();
+    core.shutdown();
     stop();
     exit(0);
 }
