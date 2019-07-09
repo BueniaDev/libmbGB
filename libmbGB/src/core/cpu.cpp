@@ -18,7 +18,7 @@ using namespace gb;
 
 namespace gb
 {
-    CPU::CPU(MMU& memory, GPU& graphics, Timers& timers) : mem(memory), gpu(graphics), timer(timers)
+    CPU::CPU(MMU& memory, GPU& graphics, Timers& timers, Serial& serial) : mem(memory), gpu(graphics), timer(timers), link(serial)
     {
 
     }
@@ -266,6 +266,7 @@ namespace gb
 	{
 	    enabledelayedinterrupts();
 	    timer.updatetimer();
+	    link.updateserial();
 	    gpu.updatelcd();
 	    mem.ifwrittenthiscycle = false;
 	}
@@ -276,6 +277,7 @@ namespace gb
 	for (; cycles != 0; cycles -= 4)
 	{
 	    timer.updatetimer();
+	    link.updateserial();
 	    gpu.updatelcd();
 	}
     }

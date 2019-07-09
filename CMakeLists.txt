@@ -24,6 +24,7 @@ set(LIBMBGB_API_HEADERS
 	libmbGB/include/libmbGB/cpu.h
 	libmbGB/include/libmbGB/gpu.h
 	libmbGB/include/libmbGB/timers.h
+	libmbGB/include/libmbGB/serial.h
 	libmbGB/include/libmbGB/input.h
 	libmbGB/include/libmbGB/libmbgb.h)
 
@@ -33,6 +34,7 @@ set(LIBMBGB
 	libmbGB/src/core/cpu.cpp
 	libmbGB/src/core/gpu.cpp
 	libmbGB/src/core/timers.cpp
+	libmbGB/src/core/serial.cpp
 	libmbGB/src/core/input.cpp
 	libmbGB/src/core/ops.cpp
 	libmbGB/src/core/libmbgb.cpp)

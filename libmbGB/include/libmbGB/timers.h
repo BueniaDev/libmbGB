@@ -71,4 +71,4 @@ namespace gb
     };
 };
 
-#endif // LIBMBGB_GPU
+#endif // LIBMBGB_TIMERS

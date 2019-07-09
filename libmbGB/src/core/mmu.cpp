@@ -223,6 +223,8 @@ namespace gb
 	switch ((addr & 0xFF))
 	{
 	    case 0x00: temp = (joypad | 0xC0); break;
+	    case 0x01: temp = sb; break;
+	    case 0x02: temp = readsc(); break;
 	    case 0x04: temp = (divider >> 8); break;
 	    case 0x05: temp = tima; break;
 	    case 0x06: temp = tma; break;

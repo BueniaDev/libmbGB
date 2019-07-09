@@ -19,6 +19,7 @@
 #include "mmu.h"
 #include "gpu.h"
 #include "timers.h"
+#include "serial.h"
 #include "libmbgb_api.h"
 #include <cstdint>
 #include <iostream>
@@ -73,7 +74,7 @@ namespace gb
     class LIBMBGB_API CPU
     {
 	public:
-	    CPU(MMU& memory, GPU& graphics, Timers& timers);
+	    CPU(MMU& memory, GPU& graphics, Timers& timers, Serial& serial);
 	    ~CPU();
 
 	    CPUState state = CPUState::Running;
@@ -86,6 +87,7 @@ namespace gb
 	    MMU& mem;
 	    GPU& gpu;
 	    Timers& timer;
+	    Serial& link;
 
 	    Register af;
 	    Register bc;

@@ -90,6 +90,21 @@ namespace gb
 	    int numrambanks;
 	    int mbcramsize;
 
+	    bool isdmgconsole()
+	    {
+		return (gameboy == Console::DMG);
+	    }
+
+	    bool isdmgmode()
+	    {
+		return (gbmode == Mode::DMG);
+	    }
+
+	    bool isgbcconsole()
+	    {
+		return (gameboy == Console::CGB);
+	    }
+
 	    inline void determinembctype(vector<uint8_t>& rom)
 	    {
 		switch (rom[0x0147])
@@ -102,8 +117,6 @@ namespace gb
 		    case 6: gbmbc = MBCType::MBC2; externalrampres = false; mbctype = "MBC2 + BATTERY"; break;
 		    case 8: gbmbc = MBCType::None; externalrampres = true; mbctype = "ROM + RAM"; break;
 		    case 9: gbmbc = MBCType::None; externalrampres = true; mbctype = "ROM + RAM + BATTERY"; break;
-		    case 15: gbmbc= MBCType::MBC3; externalrampres = false; mbctype = "MBC3 + TIMER + BATTERY"; break;
-		    case 16: gbmbc= MBCType::MBC3; externalrampres = true; mbctype = "MBC3 + TIMER + RAM + BATTERY"; break;
 		    case 17: gbmbc = MBCType::MBC3; externalrampres = false; mbctype = "MBC3"; break;
 		    case 18: gbmbc = MBCType::MBC3; externalrampres = true; mbctype = "MBC3 + RAM"; break;
 		    case 19: gbmbc = MBCType::MBC3; externalrampres = true; mbctype = "MBC3 + RAM + BATTERY"; break;
@@ -314,9 +327,14 @@ namespace gb
 		return (interruptflags & interruptenabled);
 	    }
 
+	    inline uint8_t readsc()
+	    {
+		return (sc & 0x7E);
+	    }
+
 	    inline void writesc(uint8_t value)
 	    {
-		sc = value;
+		sc = (value & 0x81);
 	    }
 
 	    inline void writeif(uint8_t value)

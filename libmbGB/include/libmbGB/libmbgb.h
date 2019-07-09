@@ -30,6 +30,7 @@
 #include <array>
 #include "enums.h"
 #include "mmu.h"
+#include "serial.h"
 #include "cpu.h"
 #include "gpu.h"
 #include "input.h"
@@ -50,6 +51,7 @@ namespace gb
 	    unique_ptr<Timers> coretimers;
 	    unique_ptr<Input> coreinput;
 	    unique_ptr<CPU> corecpu;
+	    unique_ptr<Serial> coreserial;
 
 	    void preinit();
 	    void init();

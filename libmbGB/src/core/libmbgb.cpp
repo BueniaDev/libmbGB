@@ -26,7 +26,8 @@ namespace gb
 	coregpu = make_unique<GPU>(*coremmu);
 	coretimers = make_unique<Timers>(*coremmu);
 	coreinput = make_unique<Input>(*coremmu);
-	corecpu = make_unique<CPU>(*coremmu, *coregpu, *coretimers);
+	coreserial = make_unique<Serial>(*coremmu);
+	corecpu = make_unique<CPU>(*coremmu, *coregpu, *coretimers, *coreserial);
     }
 
     GBCore::~GBCore()
@@ -45,11 +46,13 @@ namespace gb
 	coregpu->init();
 	coretimers->init();
 	coreinput->init();
+	coreserial->init();
 	cout << "mbGB::Initialized" << endl;
     }
 
     void GBCore::shutdown()
     {
+	coreserial->shutdown();
 	coreinput->shutdown();
 	coretimers->shutdown();
 	coregpu->shutdown();
