@@ -88,6 +88,7 @@ namespace gb
 		case MBCType::None: temp = rom[addr]; break;
 		case MBCType::MBC1: temp = mbc1read(addr); break;
 		case MBCType::MBC2: temp = mbc2read(addr); break;
+		case MBCType::MBC3: temp = mbc3read(addr); break;
 	    }
 
 	    return temp;
@@ -105,6 +106,7 @@ namespace gb
 		case MBCType::None: temp = 0xFF; break;
 		case MBCType::MBC1: temp = mbc1read(addr); break;
 		case MBCType::MBC2: temp = mbc2read(addr); break;
+		case MBCType::MBC3: temp = mbc3read(addr); break;
 	    }
 
 	    return temp;
@@ -152,6 +154,7 @@ namespace gb
 		case MBCType::None: return; break;
 		case MBCType::MBC1: mbc1write(addr, value); break;
 		case MBCType::MBC2: mbc2write(addr, value); break;
+		case MBCType::MBC3: mbc3write(addr, value); break;
 	    }
 	}
 	else if (addr < 0xA000)
@@ -165,6 +168,7 @@ namespace gb
 		case MBCType::None: return; break;
 		case MBCType::MBC1: mbc1write(addr, value); break;
 		case MBCType::MBC2: mbc2write(addr, value); break;
+		case MBCType::MBC3: mbc3write(addr, value); break;
 	    }
 	}
 	else if (addr < 0xD000)
@@ -220,9 +224,9 @@ namespace gb
 	{
 	    case 0x00: temp = (joypad | 0xC0); break;
 	    case 0x04: temp = (divider >> 8); break;
-	    case 0x05: temp = timercounter; break;
-	    case 0x06: temp = timermodulo; break;
-	    case 0x07: temp = (timercontrol | 0xF8); break;
+	    case 0x05: temp = tima; break;
+	    case 0x06: temp = tma; break;
+	    case 0x07: temp = (tac | 0xF8); break;
 	    case 0x0F: temp = (interruptflags | 0xE0); break;
 	    case 0x40: temp = lcdc; break;
 	    case 0x41: temp = (stat | 0x80); break;
@@ -249,9 +253,9 @@ namespace gb
 	    case 0x01: sb = value; break;
 	    case 0x02: writesc(value); break;
 	    case 0x04: writediv(); break;
-	    case 0x05: timercounter = value; break;
-	    case 0x06: timermodulo = value; break;
-	    case 0x07: timercontrol = (value & 0x07); break;
+	    case 0x05: tima = value; break;
+	    case 0x06: tma = value; break;
+	    case 0x07: tac = (value & 0x07); break;
 	    case 0x0F: writeif(value); break;
 	    case 0x40: lcdc = value; break;
 	    case 0x41: writestat(value); break;

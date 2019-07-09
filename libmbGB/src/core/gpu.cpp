@@ -43,6 +43,10 @@ namespace gb
     {
 	if (!gpumem.islcdenabled())
 	{
+	    gpumem.ly = 0;
+	    gpumem.setstatmode(0);
+	    gpumem.statinterruptsignal = false;
+	    gpumem.previnterruptsignal = false;
 	    return;
 	}
 
@@ -76,7 +80,7 @@ namespace gb
 	    }
 	}
 
-	checkstatinterrupt();
+	gpumem.checkstatinterrupt();
     }
 
     void GPU::updatelycomparesignal()
@@ -137,22 +141,6 @@ namespace gb
 		currentscanline = ++gpumem.ly;
 	    }
 	}
-    }
-
-    void GPU::checkstatinterrupt()
-    {
-	gpumem.statinterruptsignal |= (mode0check() && statmode() == 0);
-	gpumem.statinterruptsignal |= (mode1check() && statmode() == 1);
-	gpumem.statinterruptsignal |= (mode2check() && statmode() == 2);
-	gpumem.statinterruptsignal |= (lycompcheck() && lycompequal());
-
-	if (gpumem.statinterruptsignal && !gpumem.previnterruptsignal)
-	{
-	    gpumem.requestinterrupt(1);
-	}
-
-	gpumem.previnterruptsignal = gpumem.statinterruptsignal;
-	gpumem.statinterruptsignal = false;
     }
 
     void GPU::renderscanline()

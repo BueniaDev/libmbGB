@@ -19,7 +19,7 @@
 
 enum class Console {Default, DMG, CGB};
 enum class Mode {DMG, CGB};
-enum class MBCType {None, MBC1, MBC2};
+enum class MBCType {None, MBC1, MBC2, MBC3};
 enum class CPUState {Running, Stopped, Halted, HaltBug};
 
 #endif // LIBMBGB_ENUMS

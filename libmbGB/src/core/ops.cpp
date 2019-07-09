@@ -351,7 +351,7 @@ namespace gb
 	    case 0x43: bit(de.getlo(), 0); cycles = 8; break;
 	    case 0x44: bit(hl.gethi(), 0); cycles = 8; break;
 	    case 0x45: bit(hl.getlo(), 0); cycles = 8; break;
-	    case 0x46: bit(store8frommem(hl.getreg()), 0); cycles = 16; break;
+	    case 0x46: bit(store8frommem(hl.getreg()), 0); cycles = 12; break;
 	    case 0x47: bit(af.gethi(), 0); cycles = 8; break;
 	    case 0x48: bit(bc.gethi(), 1); cycles = 8; break;
 	    case 0x49: bit(bc.getlo(), 1); cycles = 8; break;
@@ -359,7 +359,7 @@ namespace gb
 	    case 0x4B: bit(de.getlo(), 1); cycles = 8; break;
 	    case 0x4C: bit(hl.gethi(), 1); cycles = 8; break;
 	    case 0x4D: bit(hl.getlo(), 1); cycles = 8; break;
-	    case 0x4E: bit(store8frommem(hl.getreg()), 1); cycles = 16; break;
+	    case 0x4E: bit(store8frommem(hl.getreg()), 1); cycles = 12; break;
 	    case 0x4F: bit(af.gethi(), 1); cycles = 8; break;
 	    case 0x50: bit(bc.gethi(), 2); cycles = 8; break;
 	    case 0x51: bit(bc.getlo(), 2); cycles = 8; break;
@@ -367,7 +367,7 @@ namespace gb
 	    case 0x53: bit(de.getlo(), 2); cycles = 8; break;
 	    case 0x54: bit(hl.gethi(), 2); cycles = 8; break;
 	    case 0x55: bit(hl.getlo(), 2); cycles = 8; break;
-	    case 0x56: bit(store8frommem(hl.getreg()), 2); cycles = 16; break;
+	    case 0x56: bit(store8frommem(hl.getreg()), 2); cycles = 12; break;
 	    case 0x57: bit(af.gethi(), 2); cycles = 8; break;
 	    case 0x58: bit(bc.gethi(), 3); cycles = 8; break;
 	    case 0x59: bit(bc.getlo(), 3); cycles = 8; break;
@@ -375,7 +375,7 @@ namespace gb
 	    case 0x5B: bit(de.getlo(), 3); cycles = 8; break;
 	    case 0x5C: bit(hl.gethi(), 3); cycles = 8; break;
 	    case 0x5D: bit(hl.getlo(), 3); cycles = 8; break;
-	    case 0x5E: bit(store8frommem(hl.getreg()), 3); cycles = 16; break;
+	    case 0x5E: bit(store8frommem(hl.getreg()), 3); cycles = 12; break;
 	    case 0x5F: bit(af.gethi(), 3); cycles = 8; break;
 	    case 0x60: bit(bc.gethi(), 4); cycles = 8; break;
 	    case 0x61: bit(bc.getlo(), 4); cycles = 8; break;
@@ -383,7 +383,7 @@ namespace gb
 	    case 0x63: bit(de.getlo(), 4); cycles = 8; break;
 	    case 0x64: bit(hl.gethi(), 4); cycles = 8; break;
 	    case 0x65: bit(hl.getlo(), 4); cycles = 8; break;
-	    case 0x66: bit(store8frommem(hl.getreg()), 4); cycles = 16; break;
+	    case 0x66: bit(store8frommem(hl.getreg()), 4); cycles = 12; break;
 	    case 0x67: bit(af.gethi(), 4); cycles = 8; break;
 	    case 0x68: bit(bc.gethi(), 5); cycles = 8; break;
 	    case 0x69: bit(bc.getlo(), 5); cycles = 8; break;
@@ -391,7 +391,7 @@ namespace gb
 	    case 0x6B: bit(de.getlo(), 5); cycles = 8; break;
 	    case 0x6C: bit(hl.gethi(), 5); cycles = 8; break;
 	    case 0x6D: bit(hl.getlo(), 5); cycles = 8; break;
-	    case 0x6E: bit(store8frommem(hl.getreg()), 5); cycles = 16; break;
+	    case 0x6E: bit(store8frommem(hl.getreg()), 5); cycles = 12; break;
 	    case 0x6F: bit(af.gethi(), 5); cycles = 8; break;
 	    case 0x70: bit(bc.gethi(), 6); cycles = 8; break;
 	    case 0x71: bit(bc.getlo(), 6); cycles = 8; break;
@@ -399,7 +399,7 @@ namespace gb
 	    case 0x73: bit(de.getlo(), 6); cycles = 8; break;
 	    case 0x74: bit(hl.gethi(), 6); cycles = 8; break;
 	    case 0x75: bit(hl.getlo(), 6); cycles = 8; break;
-	    case 0x76: bit(store8frommem(hl.getreg()), 6); cycles = 16; break;
+	    case 0x76: bit(store8frommem(hl.getreg()), 6); cycles = 12; break;
 	    case 0x77: bit(af.gethi(), 6); cycles = 8; break;
 	    case 0x78: bit(bc.gethi(), 7); cycles = 8; break;
 	    case 0x79: bit(bc.getlo(), 7); cycles = 8; break;
@@ -407,7 +407,7 @@ namespace gb
 	    case 0x7B: bit(de.getlo(), 7); cycles = 8; break;
 	    case 0x7C: bit(hl.gethi(), 7); cycles = 8; break;
 	    case 0x7D: bit(hl.getlo(), 7); cycles = 8; break;
-	    case 0x7E: bit(store8frommem(hl.getreg()), 7); cycles = 16; break;
+	    case 0x7E: bit(store8frommem(hl.getreg()), 7); cycles = 12; break;
 	    case 0x7F: bit(af.gethi(), 7); cycles = 8; break;
 	    case 0x80: bc.sethi(res(bc.gethi(), 0)); cycles = 8; break;
 	    case 0x81: bc.setlo(res(bc.getlo(), 0)); cycles = 8; break;

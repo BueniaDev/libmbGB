@@ -45,18 +45,21 @@ namespace gb
 
 	if (timaoverflownotinterrupted)
 	{
-	    loadtmaintotima();
-
+	    timermem.tima = timermem.tma;
 	    timaoverflownotinterrupted = false;
 	}
 
 	if (timaoverflow)
 	{
-	    if (timawasnotwritten(timermem.readByte(0xFF05)))
+	    if (prevtimaval == timermem.tima)
 	    {
 		timaoverflownotinterrupted = true;
 		loadtmaintotima();
-		timermem.requestinterrupt(2);
+		if (timermem.isdivinterrupt)
+		{
+		    timermem.requestinterrupt(2);
+		    timermem.isdivinterrupt = true;
+		}
 	    }
 	    else
 	    {
@@ -66,17 +69,15 @@ namespace gb
 	    timaoverflow = false;
 	}
 
-	bool divtickbit = (divbit[tacfreq()] & timermem.divider);
-	bool timainc = (divtickbit && tacenable());
-	uint8_t timaval = timermem.readByte(0xFF05);
+	bool divtickbit = (divbit[timermem.tac & 0x3] & timermem.divider);
+	bool timainc = (divtickbit && TestBit(timermem.tac, 2));
 
-	if (timaincwentlow(timainc))
+	if (!timainc && prevtimainc)
 	{
-	    timaoverflow = (++timaval == 0x00);
-	    timermem.writeByte(0xFF05, timaval);
+	    timaoverflow = (++timermem.tima == 0x00);
 	}
 
-	prevtimaval = timaval;
+	prevtimaval = timermem.tima;
 	prevtimainc = timainc;
     }
 };

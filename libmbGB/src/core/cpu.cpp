@@ -182,8 +182,9 @@ namespace gb
 	    if (mem.requestedenabledinterrupts())
 	    {
 		state = CPUState::Running;
-		temp = 0;
 	    }
+
+	    temp = 0;
 	}
 
 	return temp;

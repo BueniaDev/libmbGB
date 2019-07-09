@@ -102,6 +102,11 @@ namespace gb
 		    case 6: gbmbc = MBCType::MBC2; externalrampres = false; mbctype = "MBC2 + BATTERY"; break;
 		    case 8: gbmbc = MBCType::None; externalrampres = true; mbctype = "ROM + RAM"; break;
 		    case 9: gbmbc = MBCType::None; externalrampres = true; mbctype = "ROM + RAM + BATTERY"; break;
+		    case 15: gbmbc= MBCType::MBC3; externalrampres = false; mbctype = "MBC3 + TIMER + BATTERY"; break;
+		    case 16: gbmbc= MBCType::MBC3; externalrampres = true; mbctype = "MBC3 + TIMER + RAM + BATTERY"; break;
+		    case 17: gbmbc = MBCType::MBC3; externalrampres = false; mbctype = "MBC3"; break;
+		    case 18: gbmbc = MBCType::MBC3; externalrampres = true; mbctype = "MBC3 + RAM"; break;
+		    case 19: gbmbc = MBCType::MBC3; externalrampres = true; mbctype = "MBC3 + RAM + BATTERY"; break;
 		    default: cout << "MMU::Error - Unrecognized MBC type" << endl; exit(1); break;
 		}
 	    }
@@ -175,6 +180,8 @@ namespace gb
 	    void mbc1write(uint16_t addr, uint8_t value);
 	    uint8_t mbc2read(uint16_t addr);
 	    void mbc2write(uint16_t addr, uint8_t value);
+	    uint8_t mbc3read(uint16_t addr);
+	    void mbc3write(uint16_t addr, uint8_t value);
 
 	    uint8_t readIO(uint16_t addr);
 	    void writeIO(uint16_t addr, uint8_t value);
@@ -256,6 +263,7 @@ namespace gb
 	    inline void writediv()
 	    {
 		divider = 0x0000;
+		isdivinterrupt = false;
 	    }
 
 	    void setpoweroncallback(poweronfunc cb)
@@ -319,11 +327,11 @@ namespace gb
 
 	    inline void writestat(uint8_t value)
 	    {
-		stat = ((stat & ~0x7C) | (value & 0x7C));
-
-		if (TestBit(lcdc, 7) && !TestBit(stat, 2))
+		stat = ((value & 0x78) | (stat & 0x07));
+		if (TestBit(lcdc, 7) && !TestBit(stat, 1))
 		{
 		    statinterruptsignal = true;
+		    checkstatinterrupt();
 		}
 	    }
 
@@ -375,15 +383,15 @@ namespace gb
 
      	    bool statinterruptsignal = false;
 	    bool previnterruptsignal = false;
-	    bool bgpchanged = false;
+	    bool isdivinterrupt = true;
 
 	    uint8_t joypad = 0x00;
 	    uint8_t sb = 0x00;
 	    uint8_t sc = 0x00;
 	    uint16_t divider = 0x0000;
-	    uint8_t timercounter = 0x00;
-	    uint8_t timermodulo = 0x00;
-	    uint8_t timercontrol = 0x00;
+	    uint8_t tima = 0x00;
+	    uint8_t tma = 0x00;
+	    uint8_t tac = 0x00;
 	    uint8_t interruptflags = 0xE1;
 	    uint8_t lcdc = 0x91;
 	    uint8_t stat = 0x01;
