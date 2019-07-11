@@ -272,7 +272,9 @@ namespace gb
 
 	    inline void writelcdc(uint8_t value)
 	    {
+		bool wasenabled = islcdenabled();		
 		lcdc = value;
+		poweron(wasenabled);
 	    }
 
 	    inline void writediv()
@@ -351,7 +353,6 @@ namespace gb
 		if (TestBit(lcdc, 7) && !TestBit(stat, 1))
 		{
 		    statinterruptsignal = true;
-		    checkstatinterrupt();
 		}
 	    }
 
@@ -424,7 +425,6 @@ namespace gb
 	    uint8_t bgpalette = 0xFC;
 	    uint8_t objpalette0 = 0xFF;
 	    uint8_t objpalette1 = 0xFF;
-	    uint8_t lastbgp = 0x00;
 	    uint8_t interruptenabled = 0x00;
 
 	    uint8_t lylastcycle = 0xFF;

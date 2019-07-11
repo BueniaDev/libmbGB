@@ -29,7 +29,19 @@ namespace gb
 	uint8_t red;
 	uint8_t green;
 	uint8_t blue;
-    };    
+    };
+
+
+    struct Sprites
+    {
+	uint8_t x;
+	uint8_t y;
+	uint8_t patternnum;
+	bool priority;
+	bool yflip;
+	bool xflip;
+	bool palette;
+    };  
 
 
     class LIBMBGB_API GPU
@@ -47,6 +59,28 @@ namespace gb
 	    void updately();
 	    void updatelycomparesignal();
 	    void checkstatinterrupt();
+
+	    bool dotrender = false;
+
+
+	    inline bool isdotrender()
+	    {
+		return dotrender;
+	    }
+
+	    inline void setdotrender(bool val)
+	    {
+		dotrender = val;
+	    }
+
+	    void copydmgbuffer();
+
+	    void dmgscanline();
+	    void renderdmgpixel();
+	    void renderdmgbgpixel();
+	    void renderdmgwinpixel();
+	    void renderdmgobjpixel();
+
 	    void renderscanline();
 	    void renderbg();
 	    void renderwin();
@@ -62,9 +96,41 @@ namespace gb
 	    void updatepoweronstate(bool wasenabled);
 
 	    RGB framebuffer[160 * 144];
+	    uint8_t screenbuffer[144][160];
+
+	    int pixelx = 0;
+
+	    uint16_t bgdata = 0;
+	    uint16_t windata = 0;
+	    uint16_t objdata = 0;
+	    int bgcolor = 0;
+	    int bgpalette = 0;
+	    int objcolor = 0;
+	    int objpalette = 0;
+	    bool objprior = false;
+
+	    Sprites sprite[10];
+	    int sprites;
+
+	    uint16_t readtiledmg(bool select, int x, int y);
 
 	    uint8_t bgscanline[160];
 	    uint8_t winscanline[160];
+
+	    inline uint16_t readvram16(uint16_t addr)
+	    {
+		uint8_t lo = gpumem.vram[addr];
+		uint8_t hi = gpumem.vram[addr + 1];
+		return ((hi << 8) | lo);
+	    }
+
+	    inline int getdmgcolornum(uint16_t data, int num)
+	    {
+		int index = 0;
+		index |= (data & (0x80 >> num)) ? 1 : 0;
+		index |= (data & (0x8000 >> num)) ? 2 : 0;
+		return index;
+	    }
 
 	    inline int getdmgcolor(int id, uint8_t palette)
 	    {

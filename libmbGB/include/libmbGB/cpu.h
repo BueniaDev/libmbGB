@@ -627,6 +627,21 @@ namespace gb
 		}
 	    }
 
+	    inline void stop()
+	    {
+		++pc;
+		haltedtick(4);
+
+		state = CPUState::Stopped;
+	    }
+
+	    inline void stoppedtick()
+	    {
+		haltedtick(4);
+
+		state = CPUState::Running;
+	    }
+
 	    void setzero(bool val)
 	    {
 		uint8_t temp = af.getlo();

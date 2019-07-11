@@ -259,7 +259,7 @@ namespace gb
 	    case 0x06: tma = value; break;
 	    case 0x07: tac = (value & 0x07); break;
 	    case 0x0F: writeif(value); break;
-	    case 0x40: lcdc = value; break;
+	    case 0x40: writelcdc(value); break;
 	    case 0x41: writestat(value); break;
 	    case 0x42: scrolly = value; break;
 	    case 0x43: scrollx = value; break;

@@ -22,6 +22,7 @@ namespace gb
     GPU::GPU(MMU& memory) : gpumem(memory)
     {
 	gpumem.setpoweroncallback(bind(&GPU::updatepoweronstate, this, placeholders::_1));
+	setdotrender(true);
     }
 
     GPU::~GPU()
@@ -39,14 +40,104 @@ namespace gb
 	cout << "GPU::Shutting down..." << endl;
     }
 
+    /*
     void GPU::updatelcd()
     {
 	if (!gpumem.islcdenabled())
 	{
-	    gpumem.ly = 0;
-	    gpumem.setstatmode(0);
-	    gpumem.statinterruptsignal = false;
-	    gpumem.previnterruptsignal = false;
+	    return;
+	}
+
+	scanlinecounter += 4;
+
+	updatelycomparesignal();
+
+	uint8_t scanline = gpumem.ly;
+
+	switch (gpumem.getstatmode())
+	{
+	    case 2:
+	    {
+		pixelx = 0;
+
+		if (scanlinecounter >= 92)
+		{
+		    if (isdotrender())
+		    {
+		        dmgscanline();
+		    }
+
+		    gpumem.setstatmode(3);
+
+		    if (!isdotrender())
+		    {
+			renderscanline();
+		    }
+		}
+	    }
+	    break;
+	    case 3:
+	    {
+		if (scanlinecounter >= 252)
+		{
+		    gpumem.setstatmode(0);
+		}
+	    }
+	    break;
+	    case 0:
+	    case 1:
+	    {
+		if (scanlinecounter >= 456)
+		{
+		    scanlinecounter -= 456;
+
+		    scanline++;
+
+		    if (scanline == 154)
+		    {
+			scanline = 0;
+		    }
+
+		    if (scanline == 144)
+		    {
+			gpumem.requestinterrupt(0);			
+			gpumem.setstatmode(1);
+		    }
+		    else if (scanline < 144)
+		    {
+			gpumem.setstatmode(2);
+		    }
+		    else
+		    {
+
+		    }
+
+		    gpumem.ly = scanline;
+		}
+	    }
+	    break;
+	}
+
+	    		if (isdotrender())
+		{
+		    while ((scanlinecounter - 84) >= pixelx)
+		    {
+		        renderdmgpixel();
+		        if (pixelx >= 160)
+		        {
+			    break;
+		        }
+		    }
+		}
+
+	gpumem.checkstatinterrupt();
+    }
+    */
+
+    void GPU::updatelcd()
+    {
+	if (!gpumem.islcdenabled())
+	{
 	    return;
 	}
 
@@ -55,16 +146,26 @@ namespace gb
 	updately();
 	updatelycomparesignal();
 
+
 	if (currentscanline <= 143)
 	{
 	    if (scanlinecounter == 4)
-	    {
+	    {		
 		gpumem.setstatmode(2);
+
+		if (isdotrender())
+		{		
+		    dmgscanline();
+		}
 	    }
 	    else if (scanlinecounter == 84)
-	    {
+	    {		
 		gpumem.setstatmode(3);
-		renderscanline();
+
+		if (!isdotrender())
+		{
+		    renderscanline();
+		}
 	    }
 	    else if (scanlinecounter == mode3cycles())
 	    {
@@ -77,6 +178,18 @@ namespace gb
 	    {
 		gpumem.requestinterrupt(0);
 		gpumem.setstatmode(1);
+	    }
+	}
+
+	if (isdotrender())
+	{
+	    while ((scanlinecounter - 91) >= pixelx)
+	    {
+	        renderdmgpixel();
+	        if (pixelx >= 160)
+	        {
+		    break;
+	        }
 	    }
 	}
 
@@ -129,7 +242,7 @@ namespace gb
 
 	if (scanlinecounter == 456)
 	{
-	    scanlinecounter = 0;
+	    scanlinecounter -= 456;
 
 	    if (currentscanline == 153)
 	    {
@@ -140,6 +253,231 @@ namespace gb
 	    {
 		currentscanline = ++gpumem.ly;
 	    }
+	}
+    }
+
+    void GPU::dmgscanline()
+    {
+	pixelx = 0;
+	int height = ((TestBit(gpumem.lcdc, 2)) ? 16 : 8);
+	sprites = 0;
+
+	for (int addr = 0; addr < (40 * 4); addr += 4)
+	{
+	    Sprites& obj = sprite[sprites];
+
+	    obj.y = gpumem.oam[addr];
+	    obj.x = gpumem.oam[addr + 1];
+	    obj.patternnum = gpumem.oam[addr + 2];
+	    uint8_t temp = gpumem.oam[addr + 3];
+	    obj.priority = TestBit(temp, 7);
+	    obj.yflip = TestBit(temp, 6);
+	    obj.xflip = TestBit(temp, 5);
+	    obj.palette = TestBit(temp, 4);
+
+	    uint8_t tempy = (gpumem.ly - (obj.y - 16));
+
+	    if (tempy >= height)
+	    {
+		continue;
+	    }
+
+	    if (obj.y == 0 || obj.y >= 160)
+	    {
+		continue;
+	    }
+
+	    if (++sprites == 10)
+	    {
+		break;
+	    }
+	}
+
+	for (int lo = 0; lo < sprites; lo++)
+	{
+	    for (int hi = (lo + 1); hi < sprites; hi++)
+	    {
+		if (sprite[hi].x < sprite[lo].x)
+		{
+		    swap(sprite[lo], sprite[hi]);
+		}
+	    }
+	}
+    }
+
+    uint16_t GPU::readtiledmg(bool select, int x, int y)
+    {	
+	int map = (select) ? 1 : 0;	
+
+	uint16_t tmaddr = (0x1800 + (map << 10));
+	uint16_t tileaddr = 0;
+
+	tmaddr += ((((y >> 3) << 5) + (x >> 3)) & 0x03FF);
+
+	if (TestBit(gpumem.lcdc, 4))
+	{
+	    tileaddr = (gpumem.vram[tmaddr] << 4);
+	}
+	else
+	{
+	    tileaddr = (0x1000 + ((int8_t)(gpumem.vram[tmaddr]) << 4));
+	}
+
+	tileaddr += ((y & 7) << 1);
+	
+	return readvram16(tileaddr);
+    }
+
+    void GPU::renderdmgpixel()
+    {
+	bgcolor = 0;
+	bgpalette = 0;
+	objcolor = 0;
+	objpalette = 0;
+
+	if (gpumem.isbgenabled())
+	{
+	    renderdmgbgpixel();
+
+	    if (gpumem.iswinenabled())
+	    {
+		renderdmgwinpixel();
+	    }
+	}
+
+	if (gpumem.isobjenabled())
+	{
+	    renderdmgobjpixel();
+	}
+
+	int color = 0;
+
+	if (objpalette == 0)
+	{
+	    color = bgcolor;
+	}
+	else if (bgpalette == 0)
+	{
+	    color = objcolor;
+	}
+	else if (!objprior)
+	{
+	    color = objcolor;
+	}
+	else
+	{
+	    color = bgcolor;
+	}
+
+	int gbcolor = 0;
+
+	switch (color)
+	{
+	    case 0: gbcolor = 0xFF; break;
+	    case 1: gbcolor = 0xCC; break;
+	    case 2: gbcolor = 0x77; break;
+	    case 3: gbcolor = 0x00; break;
+	}
+
+	if ((pixelx < 0) || (pixelx >= 160))
+	{
+	    return;
+	}
+
+	int index = (pixelx + (gpumem.ly * 160));
+	framebuffer[index].red = gbcolor;
+	framebuffer[index].green = gbcolor;
+	framebuffer[index].blue = gbcolor;
+	pixelx += 1;
+    }
+
+    void GPU::renderdmgbgpixel()
+    {
+	int scrolly = ((gpumem.ly + gpumem.scrolly) & 0xFF);
+	int scrollx = ((pixelx + gpumem.scrollx) & 0xFF);
+	int tx = (scrollx & 7);
+
+	if (tx == 0 || pixelx == 0)
+	{
+	    bgdata = readtiledmg(TestBit(gpumem.lcdc, 3), scrollx, scrolly);
+	}
+
+	bgpalette = getdmgcolornum(bgdata, tx);
+	bgcolor = getdmgcolor(bgpalette, gpumem.bgpalette);
+    }
+
+    void GPU::renderdmgwinpixel()
+    {
+	int windowy = gpumem.windowy;
+	int windowx = gpumem.windowx;
+	int sx = (pixelx - windowx + 7);
+	int sy = (gpumem.ly - windowy);
+
+	if (sx < 0)
+	{
+	    return;
+	}
+
+	if (sy < 0)
+	{
+	    return;
+	}
+
+	int tx = (sx % 8);
+
+	if (tx == 0 || pixelx == 0)
+	{
+	    windata = readtiledmg(TestBit(gpumem.lcdc, 6), sx, sy);
+	}
+
+	bgpalette = getdmgcolornum(windata, tx);
+	bgcolor = getdmgcolor(bgpalette, gpumem.bgpalette);
+    }
+
+    void GPU::renderdmgobjpixel()
+    {
+	int height = (TestBit(gpumem.lcdc, 2) ? 16 : 8);
+
+	objpalette = 0;
+	objcolor = 0;
+	
+	for (int i = (sprites - 1); i >= 0; i--)
+	{
+	    Sprites& obj = sprite[i];
+
+	    int tx = (pixelx - (obj.x - 8));
+	    uint8_t ty = (gpumem.ly - (obj.y - 16));
+
+	    if (tx < 0 || tx > 7)
+	    {
+		continue;
+	    }
+
+	    if (obj.xflip)
+	    {
+		tx = (7 - tx);
+	    }
+
+	    if (obj.yflip)
+	    {
+		ty = ((height - 1) - ty);
+	    }
+
+	    uint16_t tileaddr = ((obj.patternnum << 4) + (ty << 1));
+	    objdata = readvram16(tileaddr);
+
+	    int temp = getdmgcolornum(objdata, tx);
+
+	    if (temp == 0)
+	    {
+		continue;
+	    }
+
+	    objpalette = temp;
+
+	    uint8_t palette = (obj.palette) ? gpumem.objpalette1 : gpumem.objpalette0;
+	    objcolor = getdmgcolor(objpalette, palette);
+	    objprior = obj.priority;
 	}
     }
 

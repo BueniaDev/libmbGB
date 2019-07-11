@@ -206,7 +206,7 @@ namespace gb
 	{
 	    if (state == CPUState::Stopped)
 	    {
-		// TODO: CPU stopping
+		stoppedtick();
 		cycles -= 4;
 		continue;
 	    }
