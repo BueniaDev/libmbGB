@@ -67,6 +67,9 @@ namespace gb
 	cout << endl;
 	cout << "Options:" << endl;
 	cout << "-b [FILE], --bios [FILE] \t\t Loads and uses a BIOS file." << endl;
+	cout << "--sys-dmg \t\t Plays ROMs in DMG mode." << endl;
+	cout << "--sys-gbc \t\t Plays ROMs in GBC mode (HUGE WIP)." << endl;
+	cout << "--sys-hybrid \t\t Plays ROMs in hybrid DMG/GBC mode (HUGE WIP)." << endl;
 	cout << "-h, --help \t\t Displays this help message." << endl;
 	cout << endl;
     }
@@ -110,6 +113,23 @@ namespace gb
 		    biosname = argv[i + 1];
 		}
 	    }
+
+	    if ((strncmp(argv[i], "--sys-dmg", 9) == 0))
+	    {
+		coremmu->ismanual = true;
+		coremmu->gameboy = Console::DMG;
+	    }
+
+	    if ((strncmp(argv[i], "--sys-gbc", 9) == 0))
+	    {
+		coremmu->ismanual = true;
+		coremmu->gameboy = Console::CGB;
+	    }
+
+	    if ((strncmp(argv[i], "--sys-hybrid", 12) == 0))
+	    {
+		coremmu->hybrid = true;
+	    }
 	}
 
 	return true;
@@ -138,6 +158,25 @@ namespace gb
     void GBCore::keyreleased(Button button)
     {
 	coreinput->keyreleased(button);
+    }
+
+    bool GBCore::dumpvram(string filename)
+    {
+	fstream file(filename.c_str(), ios::out | ios::binary);
+
+	if (file.is_open())
+	{
+	    file.seekp(0, ios::beg);
+	    file.write((char*)&coremmu->vram[0], 0x2000);
+	    file.close();
+	    cout << "mbGB::VRAM dumped" << endl;
+	    return true;
+	}
+	else
+	{
+	    cout << "mbGB::Error - VRAM could not be dumped" << endl;
+	    return false;
+	}
     }
 
     void GBCore::runcore()

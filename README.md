@@ -4,6 +4,14 @@ Game Boy (Color) emulation library, sorta
 
 The goal here is to do things right and fast (like melonDS). But, also, you know, to have a fun challenge... :)
 
+# Features
+
+Able to run most commercial Game Boy (and some commercial Game Boy Color) titles
+
+Exclusive "hybrid mode" that combines the Game Boy Color's DMG mode with emulation of some of the Game Boy's DMG-exclusive bugs, including the STAT IRQ bug that Legend of Zerd (aka. Zerd no Densetsu) relies on
+
+And more to come!
+
 # Plans
 
 ## Near-term

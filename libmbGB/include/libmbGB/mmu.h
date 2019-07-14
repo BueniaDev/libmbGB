@@ -54,6 +54,7 @@ namespace gb
     using poweronfunc = function<void(bool)>;
     using joypadfunc = function<void()>;
     using statirqfunc = function<bool()>;
+    using screenfunc = function<void()>;
 
     class LIBMBGB_API MMU
     {
@@ -89,6 +90,18 @@ namespace gb
 	    int numrombanks;
 	    int numrambanks;
 	    int mbcramsize;
+	    int biossize = 0;
+	    bool ismanual = false;
+	    bool hybrid = false;
+
+	    bool dump = false;
+
+	    int vrambank = 0;
+	    int wrambank = 1;
+
+	    int gbcbgpaletteindex = 0;
+	    uint8_t gbcbgpalette[0x40];
+	    bool gbcbgpalinc = false;
 
 	    bool isdmgconsole()
 	    {
@@ -103,6 +116,11 @@ namespace gb
 	    bool isgbcconsole()
 	    {
 		return (gameboy == Console::CGB);
+	    }
+
+	    bool ishybridconsole()
+	    {
+		return hybrid;
 	    }
 
 	    inline void determinembctype(vector<uint8_t>& rom)
@@ -204,6 +222,7 @@ namespace gb
 	    poweronfunc poweron;
 	    joypadfunc updatep1;
 	    statirqfunc statirq;
+	    screenfunc screen;
 
 	    inline void lcdchecklyc()
 	    {
@@ -298,10 +317,16 @@ namespace gb
 		statirq = cb;
 	    }
 
+	    void setscreencallback(screenfunc cb)
+	    {
+		screen = cb;
+	    }
+
 	    inline void exitbios()
 	    {
 		biosload = false;
 		cout << "MMU::Exiting BIOS..." << endl;
+		screen();
 	    }
 
 	    inline void requestinterrupt(int id)
@@ -350,7 +375,7 @@ namespace gb
 	    inline void writestat(uint8_t value)
 	    {
 		stat = ((value & 0x78) | (stat & 0x07));
-		if (TestBit(lcdc, 7) && !TestBit(stat, 1))
+		if ((isdmgconsole() || ishybridconsole()) && TestBit(lcdc, 7) && !TestBit(stat, 1))
 		{
 		    statinterruptsignal = true;
 		}

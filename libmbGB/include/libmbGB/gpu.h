@@ -26,9 +26,9 @@ namespace gb
 {
     struct RGB
     {
-	uint8_t red;
-	uint8_t green;
-	uint8_t blue;
+	uint8_t red = 255;
+	uint8_t green = 255;
+	uint8_t blue = 255;
     };
 
 
@@ -54,6 +54,16 @@ namespace gb
 
 	    void init();
 	    void shutdown();
+
+	    inline void clearscreen()
+	    {
+		for (int i = 0; i < (160 * 144); i++)
+		{
+		    framebuffer[i].red = 255;
+		    framebuffer[i].green = 255;
+		    framebuffer[i].blue = 255;
+		}
+	    }
 
 	    void updatelcd();
 	    void updately();
@@ -98,6 +108,34 @@ namespace gb
 	    RGB framebuffer[160 * 144];
 	    uint8_t screenbuffer[144][160];
 
+	    inline RGB getdmgpalette(int color)
+	    {
+		RGB temp;
+
+		int tempc = (2 * color);
+
+		int tmpr = (gpumem.gbcbgpalette[tempc] | (gpumem.gbcbgpalette[tempc + 1] << 8));
+
+		int tempred = (tmpr & 0x1F);
+		int tempgreen = ((tmpr >> 5) & 0x1F);
+		int tempblue = ((tmpr >> 10) & 0x1F);
+
+		int red = ((tempred << 3) | (tempred >> 2));
+		int green = ((tempgreen << 3) | (tempgreen >> 2));
+		int blue = ((tempblue << 3) | (tempblue >> 2));
+
+		temp.red = red;
+		temp.green = green;
+		temp.blue = blue;
+
+		return temp;
+	    }
+
+	    inline bool isdmgmode()
+	    {
+		return (gpumem.isdmgmode() && !gpumem.biosload);
+	    }
+
 	    int pixelx = 0;
 
 	    uint16_t bgdata = 0;
@@ -139,6 +177,12 @@ namespace gb
 	        int bit1 = ((palette >> hi) & 1);
 	        int bit0 = ((palette >> lo) & 1);
 	        return ((bit1 << 1) | bit0);
+	    }
+
+	    inline int getgbccolor(int id, int color)
+	    {
+		uint8_t idx = ((id * 8) + (color * 2));
+		return (gpumem.gbcbgpalette[idx] | (gpumem.gbcbgpalette[idx + 1] << 8));
 	    }
 
 	    inline int line153cycles()

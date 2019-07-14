@@ -22,7 +22,8 @@ namespace gb
     GPU::GPU(MMU& memory) : gpumem(memory)
     {
 	gpumem.setpoweroncallback(bind(&GPU::updatepoweronstate, this, placeholders::_1));
-	setdotrender(true);
+	gpumem.setscreencallback(bind(&GPU::clearscreen, this));
+	setdotrender(false);
     }
 
     GPU::~GPU()
@@ -149,7 +150,7 @@ namespace gb
 
 	if (currentscanline <= 143)
 	{
-	    if (scanlinecounter == 4)
+	    if (scanlinecounter == (gpumem.isdmgmode() ? 4 : 0))
 	    {		
 		gpumem.setstatmode(2);
 
@@ -158,7 +159,7 @@ namespace gb
 		    dmgscanline();
 		}
 	    }
-	    else if (scanlinecounter == 84)
+	    else if (scanlinecounter == (gpumem.isdmgmode() ? 84 : 80))
 	    {		
 		gpumem.setstatmode(3);
 
@@ -174,10 +175,19 @@ namespace gb
 	}
 	else if (currentscanline == 144)
 	{
-	    if (scanlinecounter == 4)
+	    if (scanlinecounter == 0 && gpumem.isgbcconsole())
+	    {
+		gpumem.statinterruptsignal |= TestBit(gpumem.stat, 5);
+	    }
+	    else if (scanlinecounter == 4)
 	    {
 		gpumem.requestinterrupt(0);
 		gpumem.setstatmode(1);
+
+		if (gpumem.isdmgconsole())
+		{
+		    gpumem.statinterruptsignal |= TestBit(gpumem.stat, 5);
+		}
 	    }
 	}
 
@@ -197,23 +207,43 @@ namespace gb
     }
 
     void GPU::updatelycomparesignal()
-    {
-	if (lycomparezero)
+    {	
+	if (gpumem.isdmgconsole())
 	{
-	    gpumem.setlycompare(gpumem.lyc == gpumem.lylastcycle);
+	    if (lycomparezero)
+	    {
+	        gpumem.setlycompare(gpumem.lyc == gpumem.lylastcycle);
 
-	    lycomparezero = false;
-	}
-	else if (gpumem.ly != gpumem.lylastcycle)
-	{
-	    gpumem.setlycompare(false);
-	    lycomparezero = true;
-	    gpumem.lylastcycle = gpumem.ly;
+	        lycomparezero = false;
+	    }
+	    else if (gpumem.ly != gpumem.lylastcycle)
+	    {
+	        gpumem.setlycompare(false);
+	        lycomparezero = true;
+	        gpumem.lylastcycle = gpumem.ly;
+	    }
+	    else
+	    {
+	        gpumem.setlycompare(gpumem.lyc == gpumem.ly);
+	        gpumem.lylastcycle = gpumem.ly;
+	    }
 	}
 	else
 	{
-	    gpumem.setlycompare(gpumem.lyc == gpumem.ly);
-	    gpumem.lylastcycle = gpumem.ly;
+	    if (scanlinecounter == 452)
+	    {
+	        gpumem.setlycompare(gpumem.lyc == gpumem.lylastcycle);
+	    }
+	    else if (currentscanline == 153)
+	    {
+	        gpumem.setlycompare(gpumem.lyc == gpumem.lylastcycle);
+	        gpumem.lylastcycle = gpumem.ly;
+	    }
+	    else
+	    {
+	        gpumem.setlycompare(gpumem.lyc == gpumem.ly);
+	        gpumem.lylastcycle = gpumem.ly;
+	    }
 	}
     }
 
@@ -230,6 +260,7 @@ namespace gb
 	    gpumem.setstatmode(0);
 	    gpumem.statinterruptsignal = false;
 	    gpumem.previnterruptsignal = false;
+	    clearscreen();
 	}
     }
 
@@ -483,15 +514,36 @@ namespace gb
 
     void GPU::renderscanline()
     {	
-	if (gpumem.isbgenabled())
+	if (gpumem.isdmgmode())
+	{
+	    if (gpumem.isbgenabled())
+	    {
+		renderbg();
+	    }
+	}
+	else
 	{
 	    renderbg();
+	}
+
+	if (gpumem.isgbcconsole() && gpumem.isdmgmode())
+	{
+	    if (gpumem.isbgenabled() && gpumem.iswinenabled())
+	    {
+		if (currentscanline >= gpumem.windowy)
+		{
+		    renderwin();
+		}
+	    }
+	}
+	else
+	{
 	    if (gpumem.iswinenabled())
 	    {
-	        if (currentscanline >= gpumem.windowy)
-	        {
+		if (currentscanline >= gpumem.windowy)
+		{
 		    renderwin();
-	        }
+		}
 	    }
 	}
 
@@ -522,6 +574,8 @@ namespace gb
 
    	    uint16_t tileaddr = (tilemap + tilerow + tilecol);
 
+	    uint8_t mapattrib = 0;
+
 	    if (unsig)
 	    {
 	        tilenum = (uint8_t)(gpumem.vram[tileaddr - 0x8000]);
@@ -529,6 +583,11 @@ namespace gb
 	    else
 	    {
 	        tilenum = (int8_t)(gpumem.vram[tileaddr - 0x8000]);
+	    }
+
+	    if (gpumem.isgbcconsole() && !isdmgmode())
+	    {
+		mapattrib = gpumem.vram[tileaddr - 0x6000];
 	    }
 
 	    uint16_t tileloc = tiledata;
@@ -546,9 +605,21 @@ namespace gb
 
 	    uint8_t line = (ypos % 8);
 
+	    if (gpumem.isgbcconsole() && !isdmgmode())
+	    {
+		banknum = TestBit(mapattrib, 3) ? 0x6000 : 0x8000;
+
+		line = TestBit(mapattrib, 6) ? (7 - (ypos % 8)) : (ypos % 8);
+	    }
+
 	    line *= 2;
 	    uint8_t data1 = gpumem.vram[(tileloc + line) - banknum];
 	    uint8_t data2 = gpumem.vram[(tileloc + line + 1) - banknum];
+
+	    if (gpumem.isgbcconsole() && !isdmgmode())
+	    {
+		xpos = TestBit(mapattrib, 5) ? (7 - xpos) : xpos;
+	    }
 
 	    int colorbit = (xpos % 8);
 	    colorbit -= 7;
@@ -562,14 +633,38 @@ namespace gb
 	    int green = 0;
 	    int blue = 0;
 
-	    int color = getdmgcolor(colornum, gpumem.readByte(0xFF47));
 
-	    switch (color)
+	    if (gpumem.isdmgconsole())
 	    {
-	        case 0: red = green = blue = 0xFF; break;
-	        case 1: red = green = blue = 0xCC; break;
-	        case 2: red = green = blue = 0x77; break;
-	        case 3: red = green = blue = 0x00; break;
+	        int color = getdmgcolor(colornum, gpumem.readByte(0xFF47));
+
+	        switch (color)
+	        {
+	            case 0: red = green = blue = 0xFF; break;
+	            case 1: red = green = blue = 0xCC; break;
+	            case 2: red = green = blue = 0x77; break;
+	            case 3: red = green = blue = 0x00; break;
+	        }
+	    }
+	    else if (gpumem.isgbcconsole() && gpumem.isdmgmode() && !gpumem.biosload)
+	    {
+		int color = getdmgcolor(colornum, gpumem.readByte(0xFF47));
+
+		red = getdmgpalette(color).red;
+		green = getdmgpalette(color).green;
+		blue = getdmgpalette(color).blue;
+	    }
+	    else
+	    {
+		int color = getgbccolor((mapattrib & 0x7), colornum);
+
+		int tempred = (color & 0x1F);
+		int tempgreen = ((color >> 5) & 0x1F);
+		int tempblue = ((color >> 10) & 0x1F);
+
+		red = ((tempred << 3) | (tempred >> 2));
+		green = ((tempgreen << 3) | (tempgreen >> 2));
+		blue = ((tempblue << 3) | (tempblue >> 2));
 	    }
 
 	    uint8_t scanline = currentscanline;
@@ -623,6 +718,8 @@ namespace gb
 
 	 	uint16_t tileaddr = (bgmem + tilerow + tilecol);
 
+		uint8_t mapattrib = 0;
+
 	 	if (unsig)
 		{
 		    tilenum = (uint8_t)(gpumem.vram[tileaddr - 0x8000]);
@@ -643,10 +740,31 @@ namespace gb
 		    tileloc += ((tilenum + 128) * 16);
 	        }
 
+		if (gpumem.isgbcconsole())
+		{
+	    	    mapattrib = gpumem.vram[tileaddr - 0x6000];
+		}
+
+		uint16_t banknum = 0x8000;
+
 	        uint8_t line = (ypos % 8);
+
+		if (gpumem.isgbcconsole() && gpumem.biosload)
+		{
+		    banknum = TestBit(mapattrib, 3) ? 0x6000 : 0x8000;
+
+		    line = TestBit(mapattrib, 6) ? (7 - (ypos % 8)) : (ypos % 8);
+		}
+
+
 	        line *= 2;
 	        uint8_t data1 = gpumem.readByte(tileloc + line);
 	        uint8_t data2 = gpumem.readByte(tileloc + line + 1);
+
+		if (gpumem.isgbcconsole() && gpumem.isdmgmode() && !gpumem.biosload)
+		{
+		    xpos = TestBit(mapattrib, 5) ? (7 - xpos) : xpos;
+		}
 
 	        int colorbit = (xpos % 8);
 	        colorbit -= 7;
@@ -660,15 +778,38 @@ namespace gb
 	        int green = 0;
 	        int blue = 0;
 
-	        int color = getdmgcolor(colornum, gpumem.readByte(0xFF47));
+		if (gpumem.isdmgconsole())
+		{
+	            int color = getdmgcolor(colornum, gpumem.readByte(0xFF47));
 
-	        switch (color)
-	        {
-	            case 0: red = green = blue = 0xFF; break;
-	            case 1: red = green = blue = 0xCC; break;
-	            case 2: red = green = blue = 0x77; break;
-	            case 3: red = green = blue = 0x00; break;
-	        }
+	            switch (color)
+	            {
+	        	case 0: red = green = blue = 0xFF; break;
+	        	case 1: red = green = blue = 0xCC; break;
+	        	case 2: red = green = blue = 0x77; break;
+	        	case 3: red = green = blue = 0x00; break;
+	    	    }
+		}
+		else if (gpumem.isgbcconsole() && gpumem.isdmgmode() && !gpumem.biosload)
+		{
+		    int color = getdmgcolor(colornum, gpumem.readByte(0xFF47));
+
+		    red = getdmgpalette(color).red;
+		    green = getdmgpalette(color).green;
+		    blue = getdmgpalette(color).blue;
+		}
+		else
+		{
+		    int color = getgbccolor((mapattrib & 0x7), colornum);
+
+		    int tempred = (color & 0x1F);
+		    int tempgreen = ((color >> 5) & 0x1F);
+		    int tempblue = ((color >> 10) & 0x1F);
+
+		    red = ((tempred << 3) | (tempred >> 2));
+	 	    green = ((tempgreen << 3) | (tempgreen >> 2));
+		    blue = ((tempblue << 3) | (tempblue >> 2));
+		}
 
 	        uint8_t scanline = currentscanline;
 
@@ -710,6 +851,11 @@ namespace gb
 	    int bank = 0;
 
 	    uint8_t line = (yflip) ? ((((scanline - ypos - ysize) + 1) * -1)) : ((scanline - ypos));
+
+	    if (gpumem.isgbcconsole())
+	    {
+		bank = ((flags & 0x08) >> 3);
+	    }
 
 
 	    if (TestBit(gpumem.lcdc, 2))

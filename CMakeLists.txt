@@ -3,6 +3,7 @@ project(libmbGB)
 
 option(BUILD_EXAMPLE "Enables the example renderer (requires SDL2)." OFF)
 option(BUILD_HEADLESS "Enables the headless renderer." OFF)
+option(BUILD_GUI "Enables the ImGUI renderer (requires SDL2)." OFF)
 
 if (WIN32)
 	message(STATUS "Operating system is Windows.")
@@ -45,6 +46,10 @@ endif()
 
 if (BUILD_HEADLESS STREQUAL "ON")
 	add_subdirectory(example/headless)
+endif()
+
+if (BUILD_GUI STREQUAL "ON")
+	add_subdirectory(example/sdl2-imgui)
 endif()
 
 if (WIN32)

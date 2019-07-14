@@ -106,10 +106,7 @@ namespace gb
 	cout << "IMA: " << (int)(enableinterruptsdelayed) << endl;
 	cout << "REI: " << (int)(mem.requestedenabledinterrupts()) << endl;
 	cout << "LCD: " << (int)(mem.ispending(1)) << endl;
-	cout << "(FF41): " << hex << (int)(stat) << endl;
-	cout << "STAT IRQ: " << (int)(mem.statinterruptsignal) << endl;
-	cout << "STAT mode: " << (int)(stat & 3) << endl;
-	cout << "LY = LYC: " << (int)(TestBit(stat, 6) && TestBit(stat, 2)) << endl;
+	cout << "(9800) : " << hex << (int)(mem.readByte(0x9800)) << endl;
 	cout << endl;
     }
 
@@ -167,6 +164,8 @@ namespace gb
 
 		pc = interruptvector;
 
+		hardwaretick(16);
+
 		// printregs();
 
 		if (state == CPUState::Halted)
@@ -174,7 +173,7 @@ namespace gb
 		    state = CPUState::Running;
 		}
 
-		temp = 20;
+		temp = 36;
 	    }
 	}
 	else if (state == CPUState::Halted)
@@ -239,16 +238,11 @@ namespace gb
 		cycles -= 4;
 	    }
 
-	    
-	    // printregs();
-
-	    /*
-	    if (pc == 0x01DA)
+	    if (mem.dump == true)
 	    {
 		printregs();
 		exit(1);
 	    }
-	    */
 	}
 
 	return cycles;

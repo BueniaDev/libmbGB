@@ -64,6 +64,7 @@ namespace gb
 	    void printusage(char *argv);
 	    void keypressed(Button button);
 	    void keyreleased(Button button);
+	    bool dumpvram(string filename);
 
 	    int overspentcycles = 0;
 	    void runcore();

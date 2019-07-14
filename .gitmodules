@@ -1,0 +1,6 @@
+[submodule "example/sdl2-imgui/external/imgui"]
+	path = example/sdl2-imgui/external/imgui
+	url = https://github.com/ocornut/imgui.git
+[submodule "example/sdl2-imgui/external/imgui_sdl"]
+	path = example/sdl2-imgui/external/imgui_sdl
+	url = https://github.com/Tyyppi77/imgui_sdl.git

@@ -38,8 +38,25 @@ namespace gb
 	hram.resize(0x7F, 0);
 	rambanks.resize(0x8000, 0);
 
-	joypad = 0xCF;
-	divider = 0xABCC;
+
+	if (isdmgmode())
+	{
+	    if (isdmgconsole())
+	    {
+		joypad = 0xCF;
+		divider = 0xABCC;
+	    }
+	    else
+	    {
+		joypad = 0xFF;
+		divider = 0x267C;
+	    }
+	}
+	else
+	{
+	    joypad = 0xFF;
+	    divider = 0x1EA0;
+	}
 
 	cout << "MMU::Initialized" << endl;
     }
@@ -61,18 +78,25 @@ namespace gb
     {
 	if (addr < 0x4000)
 	{
-	    if ((biosload) && (addr < 0x100))
+	    if (biosload == true)
 	    {
-		return bios[addr];
-	    }
-	    else if ((biosload) && (gameboy == Console::CGB) && ((addr >= 0x200) && (addr < 0x900)))
-	    {
-		return bios[addr];
-	    }
-	    else if (biosload && addr == 0x100)
-	    {
-		exitbios();
-		return rom[addr];
+		if ((biossize == 0x900) && (addr > 0x100) && (addr < 0x200))
+		{
+		    return rom[addr];
+		}
+		else if (addr == 0x100)
+		{
+		    exitbios();
+		    return rom[addr];
+		}
+		else if (addr < biossize)
+		{
+		    return bios[addr];
+		}
+		else
+		{
+		    return rom[addr];
+		}
 	    }
 	    else
 	    {
@@ -95,7 +119,7 @@ namespace gb
 	}
 	else if (addr < 0xA000)
 	{
-	    return vram[addr - 0x8000];
+	    return vram[(addr - 0x8000) + (vrambank * 0x2000)];
 	}
 	else if (addr < 0xC000)
 	{
@@ -117,11 +141,15 @@ namespace gb
 	}
 	else if (addr < 0xE000)
 	{
-	    return wram[addr - 0xC000];
+	    return wram[addr - 0xD000 + (wrambank * 0x1000)];
+	}
+	else if (addr < 0xF000)
+	{
+	    return wram[addr - 0xE000];
 	}
 	else if (addr < 0xFE00)
 	{
-	    return wram[addr - 0xE000];
+	    return wram[addr - 0xF000 + (wrambank * 0x1000)];
 	}
 	else if (addr < 0xFEA0)
 	{
@@ -159,7 +187,15 @@ namespace gb
 	}
 	else if (addr < 0xA000)
 	{
-	    vram[addr - 0x8000] = value;
+	    vram[(addr - 0x8000) + (vrambank * 0x2000)] = value;
+
+	    if (addr == 0x9800)
+	    {
+		if (value == 0x05)
+		{
+		    dump = true;
+		}
+	    }
 	}
 	else if (addr < 0xC000)
 	{
@@ -177,11 +213,17 @@ namespace gb
 	}
 	else if (addr < 0xE000)
 	{
-	    wram[addr - 0xC000] = value;
+	    wram[addr - 0xD000 + (wrambank * 0x1000)] = value;
+	}
+	else if (addr < 0xF000)
+	{
+	    wram[addr - 0xE000] = value;
+	    writeByte((addr - 0x2000), value);
 	}
 	else if (addr < 0xFE00)
 	{
-	    wram[addr - 0xE000] = value;
+	    wram[addr - 0xF000 + (wrambank * 0x1000)] = value;
+	    writeByte((addr - 0x2000), value);
 	}
 	else if (addr < 0xFEA0)
 	{
@@ -241,6 +283,10 @@ namespace gb
 	    case 0x49: temp = objpalette1; break;
 	    case 0x4A: temp = windowy; break;
 	    case 0x4B: temp = windowx; break;
+	    case 0x4F: temp = vrambank; break;
+	    case 0x68: temp = gbcbgpaletteindex; break;
+	    case 0x69: temp = gbcbgpalette[gbcbgpaletteindex]; break;
+	    case 0x70: temp = wrambank; break;
 	    default: temp = 0xFF; break;
 	}
 	
@@ -271,6 +317,37 @@ namespace gb
 	    case 0x49: objpalette1 = value; break;
 	    case 0x4A: windowy = value; break;
 	    case 0x4B: windowx = value; break;
+	    case 0x4F: 
+	    {
+		vrambank = (isgbcconsole()) ? BitGetVal(value, 0) : 0;
+	    }
+	    break;
+	    case 0x68:
+	    {
+		gbcbgpaletteindex = (value & 0x3F);
+		gbcbgpalinc = TestBit(value, 7);
+	    }
+	    break;
+	    case 0x69:
+	    {
+		gbcbgpalette[gbcbgpaletteindex] = value;
+
+		if (gbcbgpalinc)
+		{
+		    gbcbgpaletteindex = ((gbcbgpaletteindex + 1) & 0x3F);
+		}
+	    }
+	    break;
+	    case 0x70: 
+	    {
+		if (!isgbcconsole())
+		{
+		    return;
+		}		
+
+		wrambank = ((value & 0x07) != 0) ? (value & 0x07) : 1;
+	    }
+	    break;
 	    default: break;
 	}
     }
@@ -294,7 +371,7 @@ namespace gb
 
 	    if (gameboy == Console::Default)
 	    {
-		if (cgbflag)
+		if (cgbflag && !ismanual)
 		{
 		    gameboy = Console::CGB;
 		}
@@ -366,6 +443,8 @@ namespace gb
 		cout << "MMU::Error - BIOS size does not match sizes of the official BIOS." << endl;
 		return false;
 	    }
+
+	    biossize = size;
 
 	    file.seekg(0, ios::beg);
 	    file.read((char*)&bios[0], size);

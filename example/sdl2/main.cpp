@@ -80,6 +80,7 @@ void handleinput(SDL_Event event)
 	    case SDLK_b: core.keypressed(Button::B); break;
 	    case SDLK_RETURN: core.keypressed(Button::Start); break;
 	    case SDLK_SPACE: core.keypressed(Button::Select); break;
+	    case SDLK_d: core.dumpvram("vram.bin"); break;
 	}
     }
     else if (event.type == SDL_KEYUP)
