@@ -113,9 +113,24 @@ namespace gb
 		return (gbmode == Mode::DMG);
 	    }
 
+	    bool isgbcmode()
+	    {
+		return (gbmode == Mode::CGB);
+	    }
+
 	    bool isgbcconsole()
 	    {
 		return (gameboy == Console::CGB);
+	    }
+
+	    bool isgbcdmgmode()
+	    {
+		return (isgbcconsole() && isdmgmode());
+	    }
+
+	    bool isgbcgame()
+	    {
+		return (isgbcconsole() && isgbcmode());
 	    }
 
 	    bool ishybridconsole()
@@ -140,6 +155,10 @@ namespace gb
 		    case 17: gbmbc = MBCType::MBC3; externalrampres = false; mbctype = "MBC3"; break;
 		    case 18: gbmbc = MBCType::MBC3; externalrampres = true; mbctype = "MBC3 + RAM"; break;
 		    case 19: gbmbc = MBCType::MBC3; externalrampres = true; mbctype = "MBC3 + RAM + BATTERY"; break;
+		    case 25: gbmbc = MBCType::MBC5; externalrampres = false; mbctype = "MBC5"; break;
+		    case 26: gbmbc = MBCType::MBC5; externalrampres = true; mbctype = "MBC5 + RAM"; break;
+		    case 27: gbmbc = MBCType::MBC5; externalrampres = true; mbctype = "MBC5 + RAM + BATTERY"; break;
+		    case 30: gbmbc = MBCType::MBC5; externalrampres = true; mbctype = "MBC5 + RUMBLE + RAM + BATTERY"; break;
 		    default: cout << "MMU::Error - Unrecognized MBC type" << endl; exit(1); break;
 		}
 	    }
@@ -215,6 +234,8 @@ namespace gb
 	    void mbc2write(uint16_t addr, uint8_t value);
 	    uint8_t mbc3read(uint16_t addr);
 	    void mbc3write(uint16_t addr, uint8_t value);
+	    uint8_t mbc5read(uint16_t addr);
+	    void mbc5write(uint16_t addr, uint8_t value);
 
 	    uint8_t readIO(uint16_t addr);
 	    void writeIO(uint16_t addr, uint8_t value);

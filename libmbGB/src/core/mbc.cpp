@@ -255,4 +255,66 @@ namespace gb
 
 	return;
     }
+
+    uint8_t MMU::mbc5read(uint16_t addr)
+    {
+	uint8_t temp = 0;
+
+	if ((addr >= 0x4000) && (addr < 0x8000))
+	{
+	    temp = cartmem[(addr - 0x4000) + (currentrombank * 0x4000)];
+	}
+	else if ((addr >= 0xA000) && (addr < 0xC000))
+	{
+	    if (ramenabled)
+	    {
+		int ramaddr = 0;
+		if (currentrambank != 0)
+		{
+		    ramaddr = (currentrambank * 0x2000);
+		}
+
+		temp = rambanks[(addr - 0xA000) + ramaddr];
+	    }
+	    else
+	    {
+		temp = 0xFF;
+	    }
+	}
+
+	return temp;
+    }
+
+    void MMU::mbc5write(uint16_t addr, uint8_t value)
+    {
+	if (addr < 0x2000)
+	{
+	    if (mbcramsize != 0)
+	    {
+		ramenabled = ((value & 0x0F) == 0x0A);
+	    }
+	}
+	else if (addr < 0x3000)
+	{
+	    currentrombank = ((currentrombank & 0x100) | value);
+	}
+	else if (addr < 0x4000)
+	{
+	    currentrombank = ((currentrombank & 0xFF) | ((value & 0x1) << 9));
+	}
+	else if (addr < 0x6000)
+	{
+	    currentrambank = (value & 0x0F);
+	}
+	else if ((addr >= 0xA000) && (addr < 0xC000))
+	{
+	    if (ramenabled && mbcramsize > 0)
+	    {
+		uint16_t ramaddr = (currentrambank * 0x2000);
+		rambanks[(addr - 0xA000) + ramaddr] = value;
+	    }
+	}
+
+	return;
+    }
 };

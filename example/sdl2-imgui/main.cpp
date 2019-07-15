@@ -1,9 +1,10 @@
 #include <SDL2/SDL.h>
-
 #include <imgui.h>
 #include <imgui_sdl.h>
+#include <libmbGB/libmbgb.h>
 #include <iostream>
 using namespace std;
+using namespace gb;
 
 int screenwidth = 160;
 int screenheight = 144;
@@ -14,6 +15,11 @@ int height = (screenheight * scale);
 
 SDL_Window *window;
 SDL_Renderer *render;
+
+GBCore core;
+
+bool playing = false;
+bool disabled = false;
 
 bool init()
 {
@@ -42,20 +48,57 @@ bool init()
     ImGui::CreateContext();
     ImGuiSDL::Initialize(render, width, height);
 
-    SDL_SetRenderDrawColor(render, 139, 172, 15, 255);
+    SDL_SetRenderDrawColor(render, 255, 255, 255, 255);
     SDL_RenderClear(render);
     SDL_RenderPresent(render);
 
     return true;
 }
 
+void blankscreen()
+{
+    SDL_SetRenderDrawColor(render, 255, 255, 255, 255);
+    SDL_RenderClear(render);
+}
+
 void shutdown()
 {
+    core.shutdown();
     ImGuiSDL::Deinitialize();
     SDL_DestroyRenderer(render);
     SDL_DestroyWindow(window);
     ImGui::DestroyContext();
     SDL_Quit();
+}
+
+void initcore()
+{
+    core.preinit();
+
+    if (core.biosload())
+    {
+	if (!core.loadBIOS(core.biosname))
+	{
+	    exit(1);
+	}
+    }
+
+    if (!core.loadROM("tetris.gb"))
+    {
+	exit(1);
+    }
+
+    core.init();
+}
+
+void stopcore()
+{
+    core.shutdown();
+}
+
+void vramviewer()
+{
+
 }
 
 void menubar()
@@ -66,12 +109,22 @@ void menubar()
 	{
 	    if (ImGui::MenuItem("Load ROM..."))
 	    {
-
+		if (!disabled)
+		{		
+		    initcore();		
+		    playing = true;
+		    disabled = true;
+		}
 	    }
 
 	    if (ImGui::MenuItem("Close ROM..."))
 	    {
-
+		if (disabled)
+		{		
+		    stopcore();		
+		    playing = false;
+		    disabled = false;
+		}
 	    }
 
 	    if (ImGui::MenuItem("Quit..."))
@@ -82,17 +135,91 @@ void menubar()
 	    ImGui::EndMenu();
 	}
 
+	if (ImGui::BeginMenu("Emulation"))
+	{
+	    if (ImGui::MenuItem("Pause"))
+	    {
+
+	    }
+
+	    if (ImGui::MenuItem("Reset"))
+	    {
+		if (disabled)
+		{		
+		    stopcore();		
+		    playing = false;		
+		    initcore();
+		    playing = true;
+		}
+	    } 
+
+
+	    ImGui::EndMenu();
+	}
+
+	if (ImGui::BeginMenu("Debug"))
+	{
+	    if (ImGui::MenuItem("VRAM Viewer..."))
+	    {
+
+	    }
+
+	    ImGui::EndMenu();
+	}
+
+	if (ImGui::BeginMenu("Help"))
+	{
+	    if (ImGui::MenuItem("About..."))
+	    {
+
+	    }
+
+	    ImGui::EndMenu();
+	}
+
 	ImGui::EndMainMenuBar();
     } 
+}
+
+void renderpixels()
+{
+    SDL_Rect pixel = {0, 0, scale, scale};
+    for (int i = 0; i < 160; i++)
+    {
+	pixel.x = (i * scale);
+	for (int j = 0; j < 144; j++)
+	{
+	    pixel.y = (j * scale);
+	    uint8_t red = core.getpixel(i, j).red;
+	    uint8_t green = core.getpixel(i, j).green;
+	    uint8_t blue = core.getpixel(i, j).blue;
+
+	    SDL_SetRenderDrawColor(render, red, green, blue, 255);
+	    SDL_RenderFillRect(render, &pixel);
+	}
+    }
+}
+
+void runcore()
+{
+    if (playing)
+    {
+	core.runcore();	
+	renderpixels();
+    }
+    else
+    {      
+	blankscreen();
+    }
 }
 
 void guistuff()
 {
     ImGui::NewFrame();
+
     menubar();
 
-    SDL_SetRenderDrawColor(render, 139, 172, 15, 255);
-    SDL_RenderClear(render);
+    runcore();
 
     ImGui::Render();
     ImGuiSDL::Render(ImGui::GetDrawData());

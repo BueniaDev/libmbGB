@@ -113,6 +113,7 @@ namespace gb
 		case MBCType::MBC1: temp = mbc1read(addr); break;
 		case MBCType::MBC2: temp = mbc2read(addr); break;
 		case MBCType::MBC3: temp = mbc3read(addr); break;
+		case MBCType::MBC5: temp = mbc5read(addr); break;
 	    }
 
 	    return temp;
@@ -131,6 +132,7 @@ namespace gb
 		case MBCType::MBC1: temp = mbc1read(addr); break;
 		case MBCType::MBC2: temp = mbc2read(addr); break;
 		case MBCType::MBC3: temp = mbc3read(addr); break;
+		case MBCType::MBC5: temp = mbc5read(addr); break;
 	    }
 
 	    return temp;
@@ -141,7 +143,8 @@ namespace gb
 	}
 	else if (addr < 0xE000)
 	{
-	    return wram[addr - 0xD000 + (wrambank * 0x1000)];
+	    uint16_t offset = (0x1000 * ((wrambank == 0) ? 0 : (wrambank -1)));
+	    return wram[addr - 0xC000 + offset];
 	}
 	else if (addr < 0xF000)
 	{
@@ -149,7 +152,8 @@ namespace gb
 	}
 	else if (addr < 0xFE00)
 	{
-	    return wram[addr - 0xF000 + (wrambank * 0x1000)];
+	    uint16_t offset = (0x1000 * ((wrambank == 0) ? 0 : (wrambank -1)));
+	    return wram[addr - 0xE000 + offset];
 	}
 	else if (addr < 0xFEA0)
 	{
@@ -183,6 +187,7 @@ namespace gb
 		case MBCType::MBC1: mbc1write(addr, value); break;
 		case MBCType::MBC2: mbc2write(addr, value); break;
 		case MBCType::MBC3: mbc3write(addr, value); break;
+		case MBCType::MBC5: mbc5write(addr, value); break;
 	    }
 	}
 	else if (addr < 0xA000)
@@ -205,6 +210,7 @@ namespace gb
 		case MBCType::MBC1: mbc1write(addr, value); break;
 		case MBCType::MBC2: mbc2write(addr, value); break;
 		case MBCType::MBC3: mbc3write(addr, value); break;
+		case MBCType::MBC5: mbc5write(addr, value); break;
 	    }
 	}
 	else if (addr < 0xD000)
@@ -213,17 +219,17 @@ namespace gb
 	}
 	else if (addr < 0xE000)
 	{
-	    wram[addr - 0xD000 + (wrambank * 0x1000)] = value;
+	    uint16_t offset = (0x1000 * ((wrambank == 0) ? 0 : (wrambank -1)));
+	    wram[addr - 0xC000 + offset] = value;
 	}
 	else if (addr < 0xF000)
 	{
 	    wram[addr - 0xE000] = value;
-	    writeByte((addr - 0x2000), value);
 	}
 	else if (addr < 0xFE00)
 	{
-	    wram[addr - 0xF000 + (wrambank * 0x1000)] = value;
-	    writeByte((addr - 0x2000), value);
+	    uint16_t offset = (0x1000 * ((wrambank == 0) ? 0 : (wrambank -1)));
+	    wram[addr - 0xE000 + offset] = value;
 	}
 	else if (addr < 0xFEA0)
 	{
@@ -345,7 +351,7 @@ namespace gb
 		    return;
 		}		
 
-		wrambank = ((value & 0x07) != 0) ? (value & 0x07) : 1;
+		wrambank = (value & 0x07);
 	    }
 	    break;
 	    default: break;

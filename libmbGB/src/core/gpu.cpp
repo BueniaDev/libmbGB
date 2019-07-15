@@ -513,18 +513,8 @@ namespace gb
     }
 
     void GPU::renderscanline()
-    {	
-	if (gpumem.isdmgmode())
-	{
-	    if (gpumem.isbgenabled())
-	    {
-		renderbg();
-	    }
-	}
-	else
-	{
-	    renderbg();
-	}
+    {
+	renderbg();
 
 	if (gpumem.isgbcconsole() && gpumem.isdmgmode())
 	{
@@ -532,7 +522,7 @@ namespace gb
 	    {
 		if (currentscanline >= gpumem.windowy)
 		{
-		    renderwin();
+		    // renderwin();
 		}
 	    }
 	}
@@ -542,32 +532,39 @@ namespace gb
 	    {
 		if (currentscanline >= gpumem.windowy)
 		{
-		    renderwin();
+		    // renderwin();
 		}
 	    }
 	}
 
 	if (gpumem.isobjenabled())
 	{
-	    renderobj();
+	    // renderobj();
 	}
     }
 
     void GPU::renderbg()
     {
+	if (!gpumem.isbgenabled())
+	{
+	    return;
+	}	
+	
+	uint8_t scrolly = gpumem.scrolly;
+	uint8_t scrollx = gpumem.scrollx;
 	uint16_t tilemap = TestBit(gpumem.lcdc, 3) ? 0x9C00 : 0x9800;
 	uint16_t tiledata = TestBit(gpumem.lcdc, 4) ? 0x8000 : 0x8800;
 	bool unsig = TestBit(gpumem.lcdc, 4);
 
 	uint8_t ypos = 0;
 
-	ypos = gpumem.scrolly + currentscanline;
+	ypos = scrolly + currentscanline;
 
 	uint16_t tilerow = (((uint8_t)(ypos / 8)) * 32);
 
 	for (int pixel = 0; pixel < 160; pixel++)
 	{
-	    uint8_t xpos = (pixel + gpumem.scrollx);	    
+	    uint8_t xpos = (pixel + scrollx);	    
 
 	    uint16_t tilecol = (xpos / 8);
 	    int16_t tilenum = 0;
@@ -578,11 +575,11 @@ namespace gb
 
 	    if (unsig)
 	    {
-	        tilenum = (uint8_t)(gpumem.vram[tileaddr - 0x8000]);
+	        tilenum = (int16_t)(gpumem.vram[tileaddr - 0x8000]);
 	    }
 	    else
 	    {
-	        tilenum = (int8_t)(gpumem.vram[tileaddr - 0x8000]);
+	        tilenum = (int16_t)(int8_t)(gpumem.vram[tileaddr - 0x8000]);
 	    }
 
 	    if (gpumem.isgbcconsole() && !isdmgmode())
@@ -598,7 +595,7 @@ namespace gb
 	    }
 	    else
 	    {
-	        tileloc += (int16_t)(((tilenum + 128) * 16));
+	        tileloc += (uint32_t)(int32_t)(((tilenum + 128) * 16));
 	    }
 
 	    uint16_t banknum = 0x8000;
@@ -758,8 +755,8 @@ namespace gb
 
 
 	        line *= 2;
-	        uint8_t data1 = gpumem.readByte(tileloc + line);
-	        uint8_t data2 = gpumem.readByte(tileloc + line + 1);
+	        uint8_t data1 = gpumem.vram[(tileloc + line) - banknum];
+	        uint8_t data2 = gpumem.vram[(tileloc + line + 1) - banknum];
 
 		if (gpumem.isgbcconsole() && gpumem.isdmgmode() && !gpumem.biosload)
 		{
