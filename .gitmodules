@@ -4,3 +4,6 @@
 [submodule "example/sdl2-imgui/external/imgui_sdl"]
 	path = example/sdl2-imgui/external/imgui_sdl
 	url = https://github.com/Tyyppi77/imgui_sdl.git
+[submodule "example/sdl2-imgui/external/tinyfiledialogs"]
+	path = example/sdl2-imgui/external/tinyfiledialogs
+	url = https://github.com/native-toolkit/tinyfiledialogs.git

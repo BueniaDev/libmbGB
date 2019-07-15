@@ -1,25 +1,41 @@
 #include <SDL2/SDL.h>
 #include <imgui.h>
 #include <imgui_sdl.h>
+#include <tinyfiledialogs.h>
 #include <libmbGB/libmbgb.h>
 #include <iostream>
 using namespace std;
-using namespace gb;
+#undef main
 
 int screenwidth = 160;
 int screenheight = 144;
 int scale = 4;
 
-int width = (screenwidth * scale);
-int height = (screenheight * scale);
+RGB tilebuffer[128 * 192];
+
+int fpscount = 0;
+Uint32 fpstime = 0;
+
+int width = 800;
+int height = 600;
+
+int tempwidth = (screenwidth * 2);
+int tempheight = (screenheight * 2);
 
 SDL_Window *window;
 SDL_Renderer *render;
+SDL_Surface *surface;
+SDL_Texture *texture;
+
+SDL_Surface *tilesurface;
+SDL_Texture *tiletex;
 
 GBCore core;
 
 bool playing = false;
 bool disabled = false;
+bool screenenabled = false;
+bool tilesenabled = false;
 
 bool init()
 {
@@ -37,7 +53,7 @@ bool init()
 	return false;
     }
 
-    render = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    render = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
 
     if (render == NULL)
     {
@@ -45,14 +61,99 @@ bool init()
 	return false;
     }
 
+    surface = SDL_CreateRGBSurface(0, tempwidth, tempheight, 32, 0, 0, 0, 0);
+
+    tilesurface = SDL_CreateRGBSurface(0, (128 * 2), (192 * 2), 32, 0, 0, 0, 0);
+
+    texture = SDL_CreateTextureFromSurface(render, surface);
+
+    tiletex = SDL_CreateTextureFromSurface(render, tilesurface);
+
     ImGui::CreateContext();
     ImGuiSDL::Initialize(render, width, height);
 
-    SDL_SetRenderDrawColor(render, 255, 255, 255, 255);
+    SDL_SetRenderDrawColor(render, 114, 144, 154, 255);
     SDL_RenderClear(render);
     SDL_RenderPresent(render);
 
     return true;
+}
+
+bool selectrom()
+{
+    const char *validextensions[4] = {"*.gb", "*.GB", "*.gbc", "*.GBC"};
+    const char *filepath = tinyfd_openFileDialog("Select ROM...", "", 4, validextensions, NULL, 0);
+    core.romname = filepath;
+
+    if (filepath != NULL)
+    {
+	return core.loadROM(core.romname);
+    }
+
+    return false;
+}
+
+uint8_t getcolor(uint8_t hibyte, uint8_t lobyte, uint8_t pos)
+{
+    uint8_t color = 0;
+    if (TestBit(hibyte, pos))
+    {
+	color = BitSet(color, 1);
+    }
+
+    if (TestBit(lobyte, pos))
+    {
+	color = BitSet(color, 0);
+    }
+
+    return color;
+}
+
+RGB getcurrentpalette(uint8_t color)
+{
+    int gbcolor = 0;
+
+    RGB temp;
+
+    switch (color)
+    {
+	case 0: gbcolor = 0xFF; break;
+	case 1: gbcolor = 0xCC; break;
+	case 2: gbcolor = 0x77; break;
+	case 3: gbcolor = 0x00; break;
+    }
+
+    temp.red = gbcolor;
+    temp.green = gbcolor;
+    temp.blue = gbcolor;
+
+    return temp;
+}
+
+void updatetiles()
+{
+    uint16_t tiledata = 0x8000;
+    for (int row = 0; row < 24; row++)
+    {
+	for (int column = 0; column < 16; column++)
+	{
+	    uint16_t start = (tiledata + (16 * column));
+
+	    for (int line = (row * 8); line < (8 + (row * 8)); line++, start += 2)
+	    {
+		uint8_t upperbyte = core.coremmu->readByte(start);
+		uint8_t lowerbyte = core.coremmu->readByte(start + 1);
+
+		for (int tilecolumn = (column * 8), position = 7; tilecolumn < (8 + (column * 8)); tilecolumn++, position--)
+		{
+		    int index = (tilecolumn + (line * 128));
+		    tilebuffer[index] = getcurrentpalette(getcolor(upperbyte, lowerbyte, position));
+		}
+	    }
+	}
+
+	tiledata += 0x100;
+    }
 }
 
 void blankscreen()
@@ -65,6 +166,7 @@ void shutdown()
 {
     core.shutdown();
     ImGuiSDL::Deinitialize();
+    SDL_DestroyTexture(texture);
     SDL_DestroyRenderer(render);
     SDL_DestroyWindow(window);
     ImGui::DestroyContext();
@@ -82,8 +184,7 @@ void initcore()
 	    exit(1);
 	}
     }
-
-    if (!core.loadROM("tetris.gb"))
+    else if (!selectrom())
     {
 	exit(1);
     }
@@ -91,14 +192,50 @@ void initcore()
     core.init();
 }
 
+void resetcore()
+{
+    core.preinit();
+
+    if (core.biosload())
+    {
+	if (!core.loadBIOS(core.biosname))
+	{
+	    exit(1);
+	}
+    }
+    else if (!core.loadROM(core.romname))
+    {
+	exit(1);
+    }
+
+    core.init();
+
+    cout << hex << (int)(core.corecpu->pc) << endl;
+}
+
 void stopcore()
 {
     core.shutdown();
 }
 
+void tiles()
+{
+    ImGui::Begin("Tiles");
+    ImGui::Image(tiletex, ImVec2((128 * 2), (192 * 2)));
+    ImGui::End();
+}
+
+void screen()
+{
+    ImGui::Begin("Screen");
+    ImGui::Image(texture, ImVec2(tempwidth, tempheight));
+    ImGui::End();
+}
+
 void vramviewer()
 {
-
+    ImGui::Begin("VRAM Viewer");
+    ImGui::End();
 }
 
 void menubar()
@@ -124,6 +261,7 @@ void menubar()
 		    stopcore();		
 		    playing = false;
 		    disabled = false;
+		    screenenabled = false;
 		}
 	    }
 
@@ -148,11 +286,11 @@ void menubar()
 		{		
 		    stopcore();		
 		    playing = false;		
-		    initcore();
+		    resetcore();
 		    playing = true;
+		    cout << "True" << endl;
 		}
-	    } 
-
+	    }
 
 	    ImGui::EndMenu();
 	}
@@ -161,7 +299,17 @@ void menubar()
 	{
 	    if (ImGui::MenuItem("VRAM Viewer..."))
 	    {
+		vramviewer();
+	    }
 
+	    if (ImGui::MenuItem("Screen"))
+	    {
+		screenenabled = !screenenabled;
+	    }
+
+	    if (ImGui::MenuItem("Tiles"))
+	    {
+		tilesenabled = !tilesenabled;
 	    }
 
 	    ImGui::EndMenu();
@@ -181,21 +329,88 @@ void menubar()
     } 
 }
 
+void rendertiles()
+{
+    SDL_LockSurface(tilesurface);    
+
+    SDL_Rect pixel = {0, 0, 2, 2};
+
+    for (int i = 0; i < 128; i++)
+    {
+	pixel.x = (i * 2);
+	for (int j = 0; j < 192; j++)
+	{
+	    pixel.y = (j * 2);
+	    uint8_t red = tilebuffer[i + (j * 128)].red;
+	    uint8_t green = tilebuffer[i + (j * 128)].green;
+	    uint8_t blue = tilebuffer[i + (j * 128)].blue;
+
+	    SDL_FillRect(tilesurface, &pixel, SDL_MapRGBA(tilesurface->format, red, green, blue, 255));
+	}
+    }
+
+    SDL_UnlockSurface(tilesurface);
+
+    SDL_UpdateTexture(tiletex, NULL, tilesurface->pixels, tilesurface->pitch);
+}
+
 void renderpixels()
 {
-    SDL_Rect pixel = {0, 0, scale, scale};
-    for (int i = 0; i < 160; i++)
+    SDL_LockSurface(surface);
+
+    SDL_Rect pixel = {0, 0, 2, 2};
+
+    for (int i = 0; i < screenwidth; i++)
     {
-	pixel.x = (i * scale);
-	for (int j = 0; j < 144; j++)
+	pixel.x = (i * 2);
+	for (int j = 0; j < screenheight; j++)
 	{
-	    pixel.y = (j * scale);
+	    pixel.y = (j * 2);
 	    uint8_t red = core.getpixel(i, j).red;
 	    uint8_t green = core.getpixel(i, j).green;
 	    uint8_t blue = core.getpixel(i, j).blue;
 
-	    SDL_SetRenderDrawColor(render, red, green, blue, 255);
-	    SDL_RenderFillRect(render, &pixel);
+	    SDL_FillRect(surface, &pixel, SDL_MapRGBA(surface->format, red, green, blue, 255));
+	}
+    }
+
+    SDL_UnlockSurface(surface);
+
+    SDL_UpdateTexture(texture, NULL, surface->pixels, surface->pitch);
+
+    updatetiles();
+    rendertiles();
+}
+
+void handleinput(SDL_Event event)
+{
+    if (event.type == SDL_KEYDOWN)
+    {
+	switch (event.key.keysym.sym)
+	{
+	    case SDLK_UP: core.keypressed(Button::Up); break;
+	    case SDLK_DOWN: core.keypressed(Button::Down); break;
+	    case SDLK_LEFT: core.keypressed(Button::Left); break;
+	    case SDLK_RIGHT: core.keypressed(Button::Right); break;
+	    case SDLK_a: core.keypressed(Button::A); break;
+	    case SDLK_b: core.keypressed(Button::B); break;
+	    case SDLK_RETURN: core.keypressed(Button::Start); break;
+	    case SDLK_SPACE: core.keypressed(Button::Select); break;
+	    case SDLK_d: core.dumpvram("vram.bin"); break;
+	}
+    }
+    else if (event.type == SDL_KEYUP)
+    {
+	switch (event.key.keysym.sym)
+	{
+	    case SDLK_UP: core.keyreleased(Button::Up); break;
+	    case SDLK_DOWN: core.keyreleased(Button::Down); break;
+	    case SDLK_LEFT: core.keyreleased(Button::Left); break;
+	    case SDLK_RIGHT: core.keyreleased(Button::Right); break;
+	    case SDLK_a: core.keyreleased(Button::A); break;
+	    case SDLK_b: core.keyreleased(Button::B); break;
+	    case SDLK_RETURN: core.keyreleased(Button::Start); break;
+	    case SDLK_SPACE: core.keyreleased(Button::Select); break;
 	}
     }
 }
@@ -207,10 +422,6 @@ void runcore()
 	core.runcore();	
 	renderpixels();
     }
-    else
-    {      
-	blankscreen();
-    }
 }
 
 void guistuff()
@@ -220,6 +431,19 @@ void guistuff()
     menubar();
 
     runcore();
+
+    if (screenenabled && disabled)
+    {
+	screen();
+    }
+
+    if (tilesenabled && disabled)
+    {
+	tiles();
+    }
+
+    SDL_SetRenderDrawColor(render, 114, 144, 154, 255);
+    SDL_RenderClear(render);
 
     ImGui::Render();
     ImGuiSDL::Render(ImGui::GetDrawData());
@@ -237,6 +461,9 @@ int main()
     bool quit = false;
     SDL_Event event;
 
+    Uint32 framecurrenttime;
+    Uint32 framestarttime;
+
     while (!quit)
     {
 	ImGuiIO& io = ImGui::GetIO();
@@ -245,6 +472,8 @@ int main()
 
 	while (SDL_PollEvent(&event))
 	{
+	    handleinput(event);	    
+
 	    if (event.type == SDL_QUIT)
 	    {
 		quit = true;
@@ -266,6 +495,26 @@ int main()
 	io.MouseWheel = (float)(wheel);
 
 	guistuff();
+
+	framecurrenttime = SDL_GetTicks();
+
+	if ((framecurrenttime - framestarttime) < (1000 / 60))
+	{
+	    SDL_Delay((1000 / 60) - (framecurrenttime - framestarttime));
+	}
+
+	framestarttime = SDL_GetTicks();
+
+	fpscount++;
+
+	if (((SDL_GetTicks() - fpstime) >= 1000))
+	{
+	    fpstime = SDL_GetTicks();
+	    stringstream title;
+	    title << "mbGB-imgui-" << fpscount << " FPS";
+	    SDL_SetWindowTitle(window, title.str().c_str());
+	    fpscount = 0;
+	}
     }
 
     shutdown();

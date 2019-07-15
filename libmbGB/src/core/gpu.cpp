@@ -522,7 +522,7 @@ namespace gb
 	    {
 		if (currentscanline >= gpumem.windowy)
 		{
-		    // renderwin();
+		    renderwin();
 		}
 	    }
 	}
@@ -532,14 +532,14 @@ namespace gb
 	    {
 		if (currentscanline >= gpumem.windowy)
 		{
-		    // renderwin();
+		    renderwin();
 		}
 	    }
 	}
 
 	if (gpumem.isobjenabled())
 	{
-	    // renderobj();
+	    renderobj();
 	}
     }
 
@@ -575,11 +575,11 @@ namespace gb
 
 	    if (unsig)
 	    {
-	        tilenum = (int16_t)(gpumem.vram[tileaddr - 0x8000]);
+	        tilenum = (uint8_t)(gpumem.vram[tileaddr - 0x8000]);
 	    }
 	    else
 	    {
-	        tilenum = (int16_t)(int8_t)(gpumem.vram[tileaddr - 0x8000]);
+	        tilenum = (int8_t)(gpumem.vram[tileaddr - 0x8000]);
 	    }
 
 	    if (gpumem.isgbcconsole() && !isdmgmode())
@@ -595,7 +595,7 @@ namespace gb
 	    }
 	    else
 	    {
-	        tileloc += (uint32_t)(int32_t)(((tilenum + 128) * 16));
+	        tileloc += (int16_t)(((tilenum + 128) * 16));
 	    }
 
 	    uint16_t banknum = 0x8000;
@@ -818,9 +818,9 @@ namespace gb
 	        bgscanline[pixel] = colornum;
 
 	        int index = (pixel + (scanline * 160));
-	        framebuffer[index].red = red;
-	        framebuffer[index].green = green;
-	        framebuffer[index].blue = blue;
+		framebuffer[index].red = red;
+		framebuffer[index].green = green;
+		framebuffer[index].blue = blue;
 	    }
 	}
     }

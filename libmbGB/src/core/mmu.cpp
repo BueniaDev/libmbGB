@@ -290,8 +290,8 @@ namespace gb
 	    case 0x4A: temp = windowy; break;
 	    case 0x4B: temp = windowx; break;
 	    case 0x4F: temp = vrambank; break;
-	    case 0x68: temp = gbcbgpaletteindex; break;
-	    case 0x69: temp = gbcbgpalette[gbcbgpaletteindex]; break;
+	    case 0x68: temp = (isgbcconsole()) ? gbcbgpaletteindex : 0xFF; break;
+	    case 0x69: temp = (isgbcconsole()) ? gbcbgpalette[gbcbgpaletteindex] : 0xFF; break;
 	    case 0x70: temp = wrambank; break;
 	    default: temp = 0xFF; break;
 	}
@@ -330,12 +330,22 @@ namespace gb
 	    break;
 	    case 0x68:
 	    {
+		if (!isgbcconsole())
+		{
+		    return;
+		}	
+
 		gbcbgpaletteindex = (value & 0x3F);
 		gbcbgpalinc = TestBit(value, 7);
 	    }
 	    break;
 	    case 0x69:
 	    {
+		if (!isgbcconsole())
+		{
+		    return;
+		}		
+
 		gbcbgpalette[gbcbgpaletteindex] = value;
 
 		if (gbcbgpalinc)
