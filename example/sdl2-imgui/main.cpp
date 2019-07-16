@@ -12,12 +12,13 @@ int screenheight = 144;
 int scale = 4;
 
 RGB tilebuffer[128 * 192];
+RGB tilebuffer1[128 * 192];
 
 int fpscount = 0;
 Uint32 fpstime = 0;
 
-int width = 800;
-int height = 600;
+int width = 1200;
+int height = 800;
 
 int tempwidth = (screenwidth * 2);
 int tempheight = (screenheight * 2);
@@ -34,8 +35,10 @@ GBCore core;
 
 bool playing = false;
 bool disabled = false;
+bool regenabled = false;
 bool screenenabled = false;
 bool tilesenabled = false;
+bool paused = false;
 
 bool init()
 {
@@ -63,7 +66,7 @@ bool init()
 
     surface = SDL_CreateRGBSurface(0, tempwidth, tempheight, 32, 0, 0, 0, 0);
 
-    tilesurface = SDL_CreateRGBSurface(0, (128 * 2), (192 * 2), 32, 0, 0, 0, 0);
+    tilesurface = SDL_CreateRGBSurface(0, (256 * 2), (192 * 2), 32, 0, 0, 0, 0);
 
     texture = SDL_CreateTextureFromSurface(render, surface);
 
@@ -98,12 +101,12 @@ uint8_t getcolor(uint8_t hibyte, uint8_t lobyte, uint8_t pos)
     uint8_t color = 0;
     if (TestBit(hibyte, pos))
     {
-	color = BitSet(color, 1);
+	color = BitSet(color, 0);
     }
 
     if (TestBit(lobyte, pos))
     {
-	color = BitSet(color, 0);
+	color = BitSet(color, 1);
     }
 
     return color;
@@ -141,13 +144,17 @@ void updatetiles()
 
 	    for (int line = (row * 8); line < (8 + (row * 8)); line++, start += 2)
 	    {
-		uint8_t upperbyte = core.coremmu->readByte(start);
-		uint8_t lowerbyte = core.coremmu->readByte(start + 1);
+		uint8_t upperbyte = core.coremmu->vram[start - 0x8000];
+		uint8_t lowerbyte = core.coremmu->vram[(start + 1) - 0x8000];
+
+		uint8_t upperbyte2 = core.coremmu->vram[start - 0x6000];
+		uint8_t lowerbyte2 = core.coremmu->vram[(start + 1) - 0x6000];
 
 		for (int tilecolumn = (column * 8), position = 7; tilecolumn < (8 + (column * 8)); tilecolumn++, position--)
 		{
 		    int index = (tilecolumn + (line * 128));
 		    tilebuffer[index] = getcurrentpalette(getcolor(upperbyte, lowerbyte, position));
+		    tilebuffer1[index] = getcurrentpalette(getcolor(upperbyte2, lowerbyte2, position));
 		}
 	    }
 	}
@@ -181,12 +188,12 @@ void initcore()
     {
 	if (!core.loadBIOS(core.biosname))
 	{
-	    exit(1);
+	    return;
 	}
     }
     else if (!selectrom())
     {
-	exit(1);
+	return;
     }
 
     core.init();
@@ -200,17 +207,15 @@ void resetcore()
     {
 	if (!core.loadBIOS(core.biosname))
 	{
-	    exit(1);
+	    return;
 	}
     }
     else if (!core.loadROM(core.romname))
     {
-	exit(1);
+	return;
     }
 
     core.init();
-
-    cout << hex << (int)(core.corecpu->pc) << endl;
 }
 
 void stopcore()
@@ -221,7 +226,7 @@ void stopcore()
 void tiles()
 {
     ImGui::Begin("Tiles");
-    ImGui::Image(tiletex, ImVec2((128 * 2), (192 * 2)));
+    ImGui::Image(tiletex, ImVec2((256 * 2), (192 * 2)));
     ImGui::End();
 }
 
@@ -235,6 +240,49 @@ void screen()
 void vramviewer()
 {
     ImGui::Begin("VRAM Viewer");
+    ImGui::End();
+}
+
+void regview()
+{
+    bool flagz = core.corecpu->iszero();
+    bool flagn = core.corecpu->issubtract();
+    bool flagh = core.corecpu->ishalf();
+    bool flagc = core.corecpu->iscarry();
+
+    ImGui::Begin("Registers");
+    ImGui::Text("AF: %04x", core.corecpu->af.getreg());
+    ImGui::SameLine();
+    ImGui::Indent(80.f);
+    ImGui::Text("BC: %04x", core.corecpu->bc.getreg());
+    ImGui::SameLine();
+    ImGui::Indent(80.f);
+    ImGui::NewLine();
+    ImGui::Unindent(160.f);
+    ImGui::Text("DE: %04x", core.corecpu->de.getreg());
+    ImGui::SameLine();
+    ImGui::Indent(80.f);
+    ImGui::Text("HL: %04x", core.corecpu->hl.getreg());
+    ImGui::SameLine();
+    ImGui::Indent(80.f);
+    ImGui::NewLine();
+    ImGui::Unindent(160.f);
+    ImGui::Text("SP: %04x", core.corecpu->sp);
+    ImGui::SameLine();
+    ImGui::Indent(80.f);
+    ImGui::Text("PC: %04x", core.corecpu->pc);
+    ImGui::SameLine();
+    ImGui::Indent(80.f);
+    ImGui::NewLine();
+    ImGui::Unindent(160.f);
+    ImGui::Checkbox("Z", &flagz);
+    ImGui::SameLine();
+    ImGui::Checkbox("N", &flagn);
+    ImGui::SameLine();
+    ImGui::Checkbox("H", &flagh);
+    ImGui::SameLine();
+    ImGui::Checkbox("C", &flagc);
+    ImGui::SameLine();
     ImGui::End();
 }
 
@@ -277,7 +325,7 @@ void menubar()
 	{
 	    if (ImGui::MenuItem("Pause"))
 	    {
-
+		paused = !paused;
 	    }
 
 	    if (ImGui::MenuItem("Reset"))
@@ -292,14 +340,55 @@ void menubar()
 		}
 	    }
 
+	    if (ImGui::BeginMenu("Set Mode..."))
+	    {
+		if (ImGui::MenuItem("Auto"))
+		{
+		    if (!disabled)
+		    {
+			core.coremmu->gameboy = Console::Default;
+			cout << "Mode set to Default" << endl;
+		    }
+		}
+
+		if (ImGui::MenuItem("DMG"))
+		{
+		    if (!disabled)
+		    {
+			core.coremmu->ismanual = true;
+			core.coremmu->gameboy = Console::DMG;
+			cout << "Mode set to DMG" << endl;
+		    }
+		}
+
+		if (ImGui::MenuItem("CGB"))
+		{
+		    if (!disabled)
+		    {
+			core.coremmu->ismanual = true;
+			core.coremmu->gameboy = Console::CGB;
+			cout << "Mode set to CGB" << endl;
+		    }
+		}
+
+		ImGui::EndMenu();
+	    }
+
 	    ImGui::EndMenu();
 	}
 
 	if (ImGui::BeginMenu("Debug"))
 	{
-	    if (ImGui::MenuItem("VRAM Viewer..."))
+	    if (ImGui::MenuItem("Step"))
 	    {
-		vramviewer();
+		paused = false;
+		core.corecpu->executenextopcode(core.coremmu->readByte(core.corecpu->pc++));
+		paused = true;
+	    }	    
+
+	    if (ImGui::MenuItem("Registers..."))
+	    {
+		regenabled = !regenabled;
 	    }
 
 	    if (ImGui::MenuItem("Screen"))
@@ -334,6 +423,7 @@ void rendertiles()
     SDL_LockSurface(tilesurface);    
 
     SDL_Rect pixel = {0, 0, 2, 2};
+    SDL_Rect pixel2 = {0, 0, 2, 2};
 
     for (int i = 0; i < 128; i++)
     {
@@ -346,6 +436,20 @@ void rendertiles()
 	    uint8_t blue = tilebuffer[i + (j * 128)].blue;
 
 	    SDL_FillRect(tilesurface, &pixel, SDL_MapRGBA(tilesurface->format, red, green, blue, 255));
+	}
+    }
+
+    for (int i = 128; i < 256; i++)
+    {
+	pixel2.x = (i * 2);
+	for (int j = 0; j < 192; j++)
+	{
+	    pixel2.y = (j * 2);
+	    uint8_t red = tilebuffer1[(i - 128) + (j * 128)].red;
+	    uint8_t green = tilebuffer1[(i - 128) + (j * 128)].green;
+	    uint8_t blue = tilebuffer1[(i - 128) + (j * 128)].blue;
+
+	    SDL_FillRect(tilesurface, &pixel2, SDL_MapRGBA(tilesurface->format, red, green, blue, 255));
 	}
     }
 
@@ -419,7 +523,14 @@ void runcore()
 {
     if (playing)
     {
-	core.runcore();	
+	if (!paused)
+	{
+	    core.runcore();
+    	    if (core.corecpu->pc == 0x101)
+	    {
+		paused = true;
+	    }
+	}
 	renderpixels();
     }
 }
@@ -440,6 +551,11 @@ void guistuff()
     if (tilesenabled && disabled)
     {
 	tiles();
+    }
+
+    if (regenabled && disabled)
+    {
+	regview();
     }
 
     SDL_SetRenderDrawColor(render, 114, 144, 154, 255);

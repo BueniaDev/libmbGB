@@ -58,6 +58,11 @@ namespace gb
 	    divider = 0x1EA0;
 	}
 
+	interruptenabled = 0x00;
+	bgpalette = 0xFC;
+	interruptflags = 0xE0;
+	ly = 0x90;
+
 	cout << "MMU::Initialized" << endl;
     }
 
@@ -289,6 +294,7 @@ namespace gb
 	    case 0x49: temp = objpalette1; break;
 	    case 0x4A: temp = windowy; break;
 	    case 0x4B: temp = windowx; break;
+	    case 0x4D: temp = key1; break;
 	    case 0x4F: temp = vrambank; break;
 	    case 0x68: temp = (isgbcconsole()) ? gbcbgpaletteindex : 0xFF; break;
 	    case 0x69: temp = (isgbcconsole()) ? gbcbgpalette[gbcbgpaletteindex] : 0xFF; break;
@@ -323,6 +329,7 @@ namespace gb
 	    case 0x49: objpalette1 = value; break;
 	    case 0x4A: windowy = value; break;
 	    case 0x4B: windowx = value; break;
+	    case 0x4D: key1 = (value & 0x01); break;
 	    case 0x4F: 
 	    {
 		vrambank = (isgbcconsole()) ? BitGetVal(value, 0) : 0;

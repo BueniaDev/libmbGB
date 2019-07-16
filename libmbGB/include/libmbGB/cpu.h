@@ -111,6 +111,20 @@ namespace gb
 
 	    void printregs();
 
+	    inline void doubleexec()
+	    {
+		uint8_t key1 = mem.key1;
+
+		if (TestBit(key1, 0))
+		{
+		    mem.doublespeed = !mem.doublespeed;
+		}
+
+		uint8_t doubletemp = (key1 & 0x7E) | (((mem.doublespeed) ? 1 : 0) << 7);
+		mem.key1 = doubletemp;
+		pc++;
+	    }
+
 	    uint8_t getimmbyte()
 	    {
 		uint8_t temp = mem.readByte(pc++);

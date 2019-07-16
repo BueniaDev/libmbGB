@@ -33,6 +33,7 @@ namespace gb
 
     void GPU::init()
     {
+	clearscreen();
 	cout << "GPU::Initialized" << endl;
     }
 
@@ -514,7 +515,17 @@ namespace gb
 
     void GPU::renderscanline()
     {
-	renderbg();
+	if (gpumem.isdmgconsole())
+	{
+	    if (gpumem.isbgenabled())
+	    {
+		renderbg();
+	    }
+	}
+	else
+	{
+	    renderbg();
+	}
 
 	if (gpumem.isgbcconsole() && gpumem.isdmgmode())
 	{
@@ -522,7 +533,7 @@ namespace gb
 	    {
 		if (currentscanline >= gpumem.windowy)
 		{
-		    renderwin();
+		    // renderwin();
 		}
 	    }
 	}
@@ -532,46 +543,37 @@ namespace gb
 	    {
 		if (currentscanline >= gpumem.windowy)
 		{
-		    renderwin();
+		    // renderwin();
 		}
 	    }
 	}
 
 	if (gpumem.isobjenabled())
 	{
-	    renderobj();
+	    // renderobj();
 	}
     }
 
     void GPU::renderbg()
     {
-	if (!gpumem.isbgenabled())
-	{
-	    return;
-	}	
-	
-	uint8_t scrolly = gpumem.scrolly;
-	uint8_t scrollx = gpumem.scrollx;
 	uint16_t tilemap = TestBit(gpumem.lcdc, 3) ? 0x9C00 : 0x9800;
 	uint16_t tiledata = TestBit(gpumem.lcdc, 4) ? 0x8000 : 0x8800;
 	bool unsig = TestBit(gpumem.lcdc, 4);
 
 	uint8_t ypos = 0;
 
-	ypos = scrolly + currentscanline;
+	ypos = gpumem.scrolly + currentscanline;
 
-	uint16_t tilerow = (((uint8_t)(ypos / 8)) * 32);
+	uint16_t tilerow = (((uint16_t)(ypos / 8)) * 32);
 
 	for (int pixel = 0; pixel < 160; pixel++)
 	{
-	    uint8_t xpos = (pixel + scrollx);	    
+	    uint8_t xpos = (pixel + gpumem.scrollx);	    
 
 	    uint16_t tilecol = (xpos / 8);
 	    int16_t tilenum = 0;
 
    	    uint16_t tileaddr = (tilemap + tilerow + tilecol);
-
-	    uint8_t mapattrib = 0;
 
 	    if (unsig)
 	    {
@@ -580,11 +582,6 @@ namespace gb
 	    else
 	    {
 	        tilenum = (int8_t)(gpumem.vram[tileaddr - 0x8000]);
-	    }
-
-	    if (gpumem.isgbcconsole() && !isdmgmode())
-	    {
-		mapattrib = gpumem.vram[tileaddr - 0x6000];
 	    }
 
 	    uint16_t tileloc = tiledata;
@@ -602,21 +599,9 @@ namespace gb
 
 	    uint8_t line = (ypos % 8);
 
-	    if (gpumem.isgbcconsole() && !isdmgmode())
-	    {
-		banknum = TestBit(mapattrib, 3) ? 0x6000 : 0x8000;
-
-		line = TestBit(mapattrib, 6) ? (7 - (ypos % 8)) : (ypos % 8);
-	    }
-
 	    line *= 2;
 	    uint8_t data1 = gpumem.vram[(tileloc + line) - banknum];
 	    uint8_t data2 = gpumem.vram[(tileloc + line + 1) - banknum];
-
-	    if (gpumem.isgbcconsole() && !isdmgmode())
-	    {
-		xpos = TestBit(mapattrib, 5) ? (7 - xpos) : xpos;
-	    }
 
 	    int colorbit = (xpos % 8);
 	    colorbit -= 7;
@@ -630,38 +615,14 @@ namespace gb
 	    int green = 0;
 	    int blue = 0;
 
+	    int color = getdmgcolor(colornum, gpumem.readByte(0xFF47));
 
-	    if (gpumem.isdmgconsole())
+	    switch (color)
 	    {
-	        int color = getdmgcolor(colornum, gpumem.readByte(0xFF47));
-
-	        switch (color)
-	        {
-	            case 0: red = green = blue = 0xFF; break;
-	            case 1: red = green = blue = 0xCC; break;
-	            case 2: red = green = blue = 0x77; break;
-	            case 3: red = green = blue = 0x00; break;
-	        }
-	    }
-	    else if (gpumem.isgbcconsole() && gpumem.isdmgmode() && !gpumem.biosload)
-	    {
-		int color = getdmgcolor(colornum, gpumem.readByte(0xFF47));
-
-		red = getdmgpalette(color).red;
-		green = getdmgpalette(color).green;
-		blue = getdmgpalette(color).blue;
-	    }
-	    else
-	    {
-		int color = getgbccolor((mapattrib & 0x7), colornum);
-
-		int tempred = (color & 0x1F);
-		int tempgreen = ((color >> 5) & 0x1F);
-		int tempblue = ((color >> 10) & 0x1F);
-
-		red = ((tempred << 3) | (tempred >> 2));
-		green = ((tempgreen << 3) | (tempgreen >> 2));
-		blue = ((tempblue << 3) | (tempblue >> 2));
+	        case 0: red = green = blue = 0xFF; break;
+	        case 1: red = green = blue = 0xCC; break;
+	        case 2: red = green = blue = 0x77; break;
+	        case 3: red = green = blue = 0x00; break;
 	    }
 
 	    uint8_t scanline = currentscanline;
@@ -715,8 +676,6 @@ namespace gb
 
 	 	uint16_t tileaddr = (bgmem + tilerow + tilecol);
 
-		uint8_t mapattrib = 0;
-
 	 	if (unsig)
 		{
 		    tilenum = (uint8_t)(gpumem.vram[tileaddr - 0x8000]);
@@ -737,31 +696,10 @@ namespace gb
 		    tileloc += ((tilenum + 128) * 16);
 	        }
 
-		if (gpumem.isgbcconsole())
-		{
-	    	    mapattrib = gpumem.vram[tileaddr - 0x6000];
-		}
-
-		uint16_t banknum = 0x8000;
-
 	        uint8_t line = (ypos % 8);
-
-		if (gpumem.isgbcconsole() && gpumem.biosload)
-		{
-		    banknum = TestBit(mapattrib, 3) ? 0x6000 : 0x8000;
-
-		    line = TestBit(mapattrib, 6) ? (7 - (ypos % 8)) : (ypos % 8);
-		}
-
-
 	        line *= 2;
-	        uint8_t data1 = gpumem.vram[(tileloc + line) - banknum];
-	        uint8_t data2 = gpumem.vram[(tileloc + line + 1) - banknum];
-
-		if (gpumem.isgbcconsole() && gpumem.isdmgmode() && !gpumem.biosload)
-		{
-		    xpos = TestBit(mapattrib, 5) ? (7 - xpos) : xpos;
-		}
+	        uint8_t data1 = gpumem.readByte(tileloc + line);
+	        uint8_t data2 = gpumem.readByte(tileloc + line + 1);
 
 	        int colorbit = (xpos % 8);
 	        colorbit -= 7;
@@ -775,38 +713,15 @@ namespace gb
 	        int green = 0;
 	        int blue = 0;
 
-		if (gpumem.isdmgconsole())
-		{
-	            int color = getdmgcolor(colornum, gpumem.readByte(0xFF47));
+	        int color = getdmgcolor(colornum, gpumem.readByte(0xFF47));
 
-	            switch (color)
-	            {
-	        	case 0: red = green = blue = 0xFF; break;
-	        	case 1: red = green = blue = 0xCC; break;
-	        	case 2: red = green = blue = 0x77; break;
-	        	case 3: red = green = blue = 0x00; break;
-	    	    }
-		}
-		else if (gpumem.isgbcconsole() && gpumem.isdmgmode() && !gpumem.biosload)
-		{
-		    int color = getdmgcolor(colornum, gpumem.readByte(0xFF47));
-
-		    red = getdmgpalette(color).red;
-		    green = getdmgpalette(color).green;
-		    blue = getdmgpalette(color).blue;
-		}
-		else
-		{
-		    int color = getgbccolor((mapattrib & 0x7), colornum);
-
-		    int tempred = (color & 0x1F);
-		    int tempgreen = ((color >> 5) & 0x1F);
-		    int tempblue = ((color >> 10) & 0x1F);
-
-		    red = ((tempred << 3) | (tempred >> 2));
-	 	    green = ((tempgreen << 3) | (tempgreen >> 2));
-		    blue = ((tempblue << 3) | (tempblue >> 2));
-		}
+	        switch (color)
+	        {
+	            case 0: red = green = blue = 0xFF; break;
+	            case 1: red = green = blue = 0xCC; break;
+	            case 2: red = green = blue = 0x77; break;
+	            case 3: red = green = blue = 0x00; break;
+	        }
 
 	        uint8_t scanline = currentscanline;
 
@@ -818,9 +733,9 @@ namespace gb
 	        bgscanline[pixel] = colornum;
 
 	        int index = (pixel + (scanline * 160));
-		framebuffer[index].red = red;
-		framebuffer[index].green = green;
-		framebuffer[index].blue = blue;
+	        framebuffer[index].red = red;
+	        framebuffer[index].green = green;
+	        framebuffer[index].blue = blue;
 	    }
 	}
     }

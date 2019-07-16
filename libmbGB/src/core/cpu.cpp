@@ -38,6 +38,8 @@ namespace gb
 	{
 	    initbios();
 	}
+
+	printregs();
     }
 
     void CPU::initnobios()
@@ -64,11 +66,15 @@ namespace gb
 	    af.setreg(0x1180);
 	    bc.setreg(0x0000);
 	    de.setreg(0xFF56);
-	    hl.setreg(0x000D);   
+	    hl.setreg(0x000D); 
 	}
 
 	pc = 0x0100;
 	sp = 0xFFFE;
+	interruptmasterenable = false;
+	enableinterruptsdelayed = false;
+
+	state = CPUState::Running;
 
 	cout << "CPU::Initialized" << endl;
     }
@@ -82,6 +88,10 @@ namespace gb
 
 	pc = 0;
 	sp = 0;
+	interruptmasterenable = false;
+	enableinterruptsdelayed = false;
+
+	state = CPUState::Running;
 
 	cout << "CPU::Initialized" << endl;
     }
@@ -92,8 +102,7 @@ namespace gb
     }
 
     void CPU::printregs()
-    {
-	uint8_t stat = mem.readByte(0xFF41);	
+    {	
 	cout << "AF: " << hex << (int)(af.getreg()) << endl;
 	cout << "BC: " << hex << (int)(bc.getreg()) << endl;
 	cout << "DE: " << hex << (int)(de.getreg()) << endl;
@@ -119,94 +128,14 @@ namespace gb
 	    if (mem.requestedenabledinterrupts())
 	    {
 		hardwaretick(8);
-		// mem.writeByte(--sp, (pc >> 8));
-		hardwaretick(8);
-
-		// printregs();
-
-		interruptmasterenable = false;
-
-		uint16_t interruptvector = 0x0000;
-
-		if (mem.ispending(0))
-		{
-		    mem.clearinterrupt(0);
-		    // interruptvector = 0x0040;
-		    serviceinterrupt(0x40);
-		}
-		else if (mem.ispending(1))
-		{
-		    mem.clearinterrupt(1);
-		    // interruptvector = 0x0048;
-		    serviceinterrupt(0x48);
-		}
-		else if (mem.ispending(2))
-		{
-		    mem.clearinterrupt(2);
-		    // interruptvector = 0x0050;
-		    serviceinterrupt(0x50);
-		}
-		else if (mem.ispending(3))
-		{
-		    mem.clearinterrupt(3);
-		    // interruptvector = 0x0058;
-		    serviceinterrupt(0x58);
-		}
-		else if (mem.ispending(4))
-		{
-		    mem.clearinterrupt(4);
-		    // interruptvector = 0x0060;
-		    serviceinterrupt(0x60);
-		}
-
-		// mem.writeByte(--sp, (pc & 0xFF));
-		hardwaretick(4);
-
-		// pc = interruptvector;
-
-		hardwaretick(16);
-
-		// printregs();
-
-		if (state == CPUState::Halted)
-		{
-		    state = CPUState::Running;
-		}
-
-		temp = 36;
-	    }
-	}
-	else if (state == CPUState::Halted)
-	{
-	    if (mem.requestedenabledinterrupts())
-	    {
-		state = CPUState::Running;
-	    }
-
-	    temp = 0;
-	}
-
-	return temp;
-    }
-
-    /*
-    int CPU::handleinterrupts()
-    {
-	int temp = 0;
-
-	if (interruptmasterenable)
-	{
-	    if (mem.requestedenabledinterrupts())
-	    {
-		hardwaretick(8);
 		mem.writeByte(--sp, (pc >> 8));
 		hardwaretick(8);
 
 		// printregs();
 
-		interruptmasterenable = false;
-
 		uint16_t interruptvector = 0x0000;
+
+		interruptmasterenable = false;
 
 		if (mem.ispending(0))
 		{
@@ -268,15 +197,11 @@ namespace gb
 
 	return temp;
     }
-    */
 
     void CPU::serviceinterrupt(uint16_t addr)
     {	
 	sp -= 2;
-	hardwaretick(4);
 	mem.writeWord(sp, pc);
-	hardwaretick(4);
-
 	pc = addr;
     }
 

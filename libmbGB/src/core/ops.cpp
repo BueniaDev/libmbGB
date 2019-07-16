@@ -41,7 +41,20 @@ namespace gb
 	    case 0x0D: bc.setlo(decregbyte(bc.getlo())); cycles = 4; break;
 	    case 0x0E: bc.setlo(getimmbyte()); cycles = 8; break;
 	    case 0x0F: af.sethi(rrc(af.gethi())); setzero(false); cycles = 4; break;
-	    case 0x10: stop(); cycles = 4; break;
+	    case 0x10: 
+	    {
+		if (mem.isgbcmode())
+		{
+		    doubleexec();
+		}
+		else
+		{
+		    stop();
+		}
+		
+	        cycles = 4;
+	    }
+	    break;
 	    case 0x11: de.setreg(getimmword()); cycles = 12; break;
 	    case 0x12: load8intomem(de.getreg(), af.gethi()); cycles = 8; break;
 	    case 0x13: de.setreg(increg(de.getreg())); cycles = 8; break;
