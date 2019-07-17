@@ -151,7 +151,7 @@ namespace gb
 
 	if (currentscanline <= 143)
 	{
-	    if (scanlinecounter == (gpumem.isdmgmode() ? 4 : 0))
+	    if (scanlinecounter == ((gpumem.isdmgmode() || gpumem.doublespeed) ? 4 : 0))
 	    {		
 		gpumem.setstatmode(2);
 
@@ -160,7 +160,7 @@ namespace gb
 		    dmgscanline();
 		}
 	    }
-	    else if (scanlinecounter == (gpumem.isdmgmode() ? 84 : 80))
+	    else if (scanlinecounter == (gpumem.isdmgmode() ? 84 : (80 << gpumem.doublespeed)))
 	    {		
 		gpumem.setstatmode(3);
 
@@ -180,7 +180,7 @@ namespace gb
 	    {
 		gpumem.statinterruptsignal |= TestBit(gpumem.stat, 5);
 	    }
-	    else if (scanlinecounter == 4)
+	    else if (scanlinecounter == (4 << gpumem.doublespeed))
 	    {
 		gpumem.requestinterrupt(0);
 		gpumem.setstatmode(1);
@@ -252,7 +252,15 @@ namespace gb
     {
 	if (!wasenabled && gpumem.islcdenabled())
 	{
-	    scanlinecounter = 452;
+	    if (gpumem.doublespeed)
+	    {
+		scanlinecounter = 908;
+	    }
+	    else
+	    {
+		scanlinecounter = 452;
+	    }
+
 	    currentscanline = 153;
 	}
 	else if (wasenabled && !gpumem.islcdenabled())
@@ -272,13 +280,27 @@ namespace gb
 	    gpumem.ly = 0;
 	}
 
-	if (scanlinecounter == 456)
+	if (gpumem.isgbcmode() && !gpumem.doublespeed && scanlinecounter == 452)
 	{
-	    scanlinecounter -= 456;
+	    strangely();
+	}
+
+	if (scanlinecounter == (456 << gpumem.doublespeed))
+	{
+	    scanlinecounter = 0;
+
+	    if (gpumem.isgbcconsole() && !gpumem.doublespeed && currentscanline != 153)
+	    {
+		gpumem.ly = currentscanline;
+	    }
 
 	    if (currentscanline == 153)
 	    {
-		gpumem.setstatmode(0);
+		if (gpumem.isdmgconsole())
+		{		
+		    gpumem.setstatmode(0);
+		}
+
 		currentscanline = 0;
 	    }
 	    else
@@ -515,7 +537,7 @@ namespace gb
 
     void GPU::renderscanline()
     {
-	if (gpumem.isdmgconsole())
+	if (gpumem.isdmgmode())
 	{
 	    if (gpumem.isbgenabled())
 	    {

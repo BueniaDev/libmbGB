@@ -110,6 +110,7 @@ namespace gb
 	    void enabledelayedinterrupts();
 
 	    void printregs();
+	    bool paused = false;
 
 	    inline void doubleexec()
 	    {
@@ -141,13 +142,10 @@ namespace gb
 
 	    uint16_t getimmword()
 	    {
-		hardwaretick(4);
-		uint16_t temp = mem.readWord(pc);
-		hardwaretick(4);
+		uint8_t lobyte = getimmbyte();
+		uint8_t hibyte = getimmbyte();
 
-		pc += 2;
-
-		return temp;
+		return ((hibyte << 8) | lobyte);
 	    }
 
 	    inline void setcarryflag()

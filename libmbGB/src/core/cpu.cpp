@@ -115,7 +115,7 @@ namespace gb
 	cout << "IMA: " << (int)(enableinterruptsdelayed) << endl;
 	cout << "REI: " << (int)(mem.requestedenabledinterrupts()) << endl;
 	cout << "LCD: " << (int)(mem.ispending(1)) << endl;
-	cout << "(9800) : " << hex << (int)(mem.readByte(0x9800)) << endl;
+	cout << "(FF41) : " << hex << (int)(mem.readByte(0xFF41)) << endl;
 	cout << endl;
     }
 
@@ -242,6 +242,18 @@ namespace gb
 	    {
 		haltedtick(4);
 		cycles -= 4;
+	    }
+
+	    bool print = false;
+
+	    if (pc == 0x34B7)
+	    {
+		for (int i = 0; i < 20; i++)
+		{
+		    executenextopcode(mem.readByte(pc++));
+		    printregs();
+		}
+		exit(1);
 	    }
 	}
 

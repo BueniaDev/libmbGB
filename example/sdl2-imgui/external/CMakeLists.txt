@@ -5,6 +5,7 @@ set(IMGUI_SOURCES
 	imgui/imgui_draw.cpp
 	imgui/imgui_widgets.cpp
 	imgui/imgui_demo.cpp
+	imgui/examples/imgui_impl_sdl.cpp
 	imgui_sdl/imgui_sdl.cpp)
 
 set(TINY_FD_SOURCES

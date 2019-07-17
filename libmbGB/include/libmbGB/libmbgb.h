@@ -65,6 +65,7 @@ namespace gb
 	    void keypressed(Button button);
 	    void keyreleased(Button button);
 	    bool dumpvram(string filename);
+	    bool dumpmemory(string filename);
 
 	    int overspentcycles = 0;
 	    void runcore();

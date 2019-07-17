@@ -14,6 +14,9 @@ int scale = 4;
 RGB tilebuffer[128 * 192];
 RGB tilebuffer1[128 * 192];
 
+uint16_t breakpoints[8];
+int breakpointamount = 0;
+
 int fpscount = 0;
 Uint32 fpstime = 0;
 
@@ -251,6 +254,7 @@ void regview()
     bool flagc = core.corecpu->iscarry();
 
     ImGui::Begin("Registers");
+    ImGui::SetWindowSize("Registers", ImVec2(300, 300));
     ImGui::Text("AF: %04x", core.corecpu->af.getreg());
     ImGui::SameLine();
     ImGui::Indent(80.f);
@@ -284,6 +288,13 @@ void regview()
     ImGui::Checkbox("C", &flagc);
     ImGui::SameLine();
     ImGui::End();
+}
+
+void step()
+{
+    paused = false;
+    core.corecpu->executenextopcode(core.coremmu->readByte(core.corecpu->pc++));
+    paused = true;
 }
 
 void menubar()
@@ -381,10 +392,8 @@ void menubar()
 	{
 	    if (ImGui::MenuItem("Step"))
 	    {
-		paused = false;
-		core.corecpu->executenextopcode(core.coremmu->readByte(core.corecpu->pc++));
-		paused = true;
-	    }	    
+		step();
+	    }
 
 	    if (ImGui::MenuItem("Registers..."))
 	    {
@@ -399,6 +408,16 @@ void menubar()
 	    if (ImGui::MenuItem("Tiles"))
 	    {
 		tilesenabled = !tilesenabled;
+	    }
+
+	    if (ImGui::MenuItem("Dump memory..."))
+	    {
+		core.dumpmemory("memory.bin");
+	    }
+
+	    if (ImGui::MenuItem("Dump VRAM..."))
+	    {
+		core.dumpvram("vram.bin");
 	    }
 
 	    ImGui::EndMenu();
@@ -486,11 +505,11 @@ void renderpixels()
     rendertiles();
 }
 
-void handleinput(SDL_Event event)
+void handleinput(SDL_Event *event)
 {
-    if (event.type == SDL_KEYDOWN)
+    if (event->type == SDL_KEYDOWN)
     {
-	switch (event.key.keysym.sym)
+	switch (event->key.keysym.sym)
 	{
 	    case SDLK_UP: core.keypressed(Button::Up); break;
 	    case SDLK_DOWN: core.keypressed(Button::Down); break;
@@ -500,12 +519,12 @@ void handleinput(SDL_Event event)
 	    case SDLK_b: core.keypressed(Button::B); break;
 	    case SDLK_RETURN: core.keypressed(Button::Start); break;
 	    case SDLK_SPACE: core.keypressed(Button::Select); break;
-	    case SDLK_d: core.dumpvram("vram.bin"); break;
+	    case SDLK_n: step(); break;
 	}
     }
-    else if (event.type == SDL_KEYUP)
+    else if (event->type == SDL_KEYUP)
     {
-	switch (event.key.keysym.sym)
+	switch (event->key.keysym.sym)
 	{
 	    case SDLK_UP: core.keyreleased(Button::Up); break;
 	    case SDLK_DOWN: core.keyreleased(Button::Down); break;
@@ -526,13 +545,36 @@ void runcore()
 	if (!paused)
 	{
 	    core.runcore();
-    	    if (core.corecpu->pc == 0x101)
-	    {
-		paused = true;
-	    }
 	}
 	renderpixels();
     }
+}
+
+void processevent(const SDL_Event* event)
+{
+    ImGuiIO& io = ImGui::GetIO();
+
+    int wheel = 0;
+
+    if (event->type == SDL_MOUSEWHEEL)
+    {
+	wheel = event->wheel.y;
+    }
+    else if (event->type == SDL_TEXTINPUT)
+    {
+	io.AddInputCharactersUTF8(event->text.text);
+    }
+
+    int mousex = 0;
+    int mousey = 0;
+
+    const int buttons = SDL_GetMouseState(&mousex, &mousey);
+
+    io.DeltaTime = (1.0f / 60.0f);
+    io.MousePos = ImVec2((float)(mousex), (float)(mousey));
+    io.MouseDown[0] = buttons & SDL_BUTTON(SDL_BUTTON_LEFT);
+    io.MouseDown[1] = buttons & SDL_BUTTON(SDL_BUTTON_RIGHT);
+    io.MouseWheel = (float)(wheel);
 }
 
 void guistuff()
@@ -556,6 +598,11 @@ void guistuff()
     if (regenabled && disabled)
     {
 	regview();
+    }
+
+    if (core.corecpu->paused)
+    {
+	paused = true;
     }
 
     SDL_SetRenderDrawColor(render, 114, 144, 154, 255);
@@ -584,31 +631,16 @@ int main()
     {
 	ImGuiIO& io = ImGui::GetIO();
 
-	int wheel = 0;
-
 	while (SDL_PollEvent(&event))
 	{
-	    handleinput(event);	    
+	    processevent(&event);
+	    handleinput(&event);    
 
 	    if (event.type == SDL_QUIT)
 	    {
 		quit = true;
 	    }
-	    else if (event.type == SDL_MOUSEWHEEL)
-	    {
-		wheel = event.wheel.y;
-	    }
 	}
-
-	int mousex, mousey;
-
-	int buttons = SDL_GetMouseState(&mousex, &mousey);
-
-	io.DeltaTime = 1.0f / 60.0f;
-	io.MousePos = ImVec2((float)(mousex), (float)(mousey));
-	io.MouseDown[0] = buttons & SDL_BUTTON(SDL_BUTTON_LEFT);
-	io.MouseDown[1] = buttons & SDL_BUTTON(SDL_BUTTON_RIGHT);
-	io.MouseWheel = (float)(wheel);
 
 	guistuff();
 

@@ -187,12 +187,27 @@ namespace gb
 
 	    inline int line153cycles()
 	    {
-	        return 4;
+	        if (gpumem.isdmgconsole())
+		{
+		    return 4;
+		}
+		else if (gpumem.isdmgmode())
+		{
+		    return 8;
+		}
+		else if (gpumem.doublespeed)
+		{
+		    return 12;
+		}
+		else
+		{
+		    return 4;
+		}
 	    }
 
 	    inline int mode3cycles()
 	    {
-	        int cycles = 256;
+	        int cycles = (256 << gpumem.doublespeed);
 
 	        int scxmod = (gpumem.scrollx % 8);
 
@@ -206,6 +221,25 @@ namespace gb
 	        }
 
 	        return cycles;
+	    }
+
+	    inline void strangely()
+	    {
+		if (currentscanline == 153)
+		{
+		    return;
+		}
+
+		array<int, 9> pattern{{0, 0, 2, 0, 4, 4, 6, 0, 8}};
+
+		if ((gpumem.ly & 0x0F) == 0x0F)
+		{
+		    gpumem.ly = (pattern[(gpumem.ly >> 4) & 0x0F] << 4);
+		}
+		else
+		{
+		    gpumem.ly = (pattern[gpumem.ly & 0x07] | (gpumem.ly & 0xF8));
+		}
 	    }
 
 	    inline bool mode2check()

@@ -167,7 +167,7 @@ namespace gb
 	if (file.is_open())
 	{
 	    file.seekp(0, ios::beg);
-	    file.write((char*)&coremmu->vram[0], 0x2000);
+	    file.write((char*)&coremmu->vram[0], 0x4000);
 	    file.close();
 	    cout << "mbGB::VRAM dumped" << endl;
 	    return true;
@@ -175,6 +175,32 @@ namespace gb
 	else
 	{
 	    cout << "mbGB::Error - VRAM could not be dumped" << endl;
+	    return false;
+	}
+    }
+
+    bool GBCore::dumpmemory(string filename)
+    {
+	fstream file(filename.c_str(), ios::out | ios::binary);
+
+	uint8_t memorymap[0x10000];
+
+	for (int i = 0; i < 0x10000; i++)
+	{
+	    memorymap[i] = coremmu->readByte(i);
+	}
+
+	if (file.is_open())
+	{
+	    file.seekp(0, ios::beg);
+	    file.write((char*)&memorymap[0], 0x10000);
+	    file.close();
+	    cout << "mbGB::Memory dumped" << endl;
+	    return true;
+	}
+	else
+	{
+	    cout << "mbGB::Error - Memory could not be dumped" << endl;
 	    return false;
 	}
     }

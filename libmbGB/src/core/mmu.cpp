@@ -201,7 +201,7 @@ namespace gb
 
 	    if (addr == 0x9800)
 	    {
-		if (value == 0x05)
+		if (value == 0x20)
 		{
 		    dump = true;
 		}
@@ -295,10 +295,10 @@ namespace gb
 	    case 0x4A: temp = windowy; break;
 	    case 0x4B: temp = windowx; break;
 	    case 0x4D: temp = key1; break;
-	    case 0x4F: temp = vrambank; break;
+	    case 0x4F: temp = (vrambank | 0xFE); break;
 	    case 0x68: temp = (isgbcconsole()) ? gbcbgpaletteindex : 0xFF; break;
 	    case 0x69: temp = (isgbcconsole()) ? gbcbgpalette[gbcbgpaletteindex] : 0xFF; break;
-	    case 0x70: temp = wrambank; break;
+	    case 0x70: temp = (wrambank | 0xF8); break;
 	    default: temp = 0xFF; break;
 	}
 	
