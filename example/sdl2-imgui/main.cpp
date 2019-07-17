@@ -600,11 +600,6 @@ void guistuff()
 	regview();
     }
 
-    if (core.corecpu->paused)
-    {
-	paused = true;
-    }
-
     SDL_SetRenderDrawColor(render, 114, 144, 154, 255);
     SDL_RenderClear(render);
 

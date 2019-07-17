@@ -26,9 +26,9 @@ namespace gb
 {
     struct RGB
     {
-	uint8_t red = 255;
-	uint8_t green = 255;
-	uint8_t blue = 255;
+	uint8_t red;
+	uint8_t green;
+	uint8_t blue;
     };
 
 
@@ -54,6 +54,7 @@ namespace gb
 
 	    void init();
 	    void shutdown();
+
 
 	    inline void clearscreen()
 	    {
@@ -108,13 +109,22 @@ namespace gb
 	    RGB framebuffer[160 * 144];
 	    uint8_t screenbuffer[144][160];
 
-	    inline RGB getdmgpalette(int color)
+	    inline RGB getdmgpalette(int color, int offset, bool bg)
 	    {
 		RGB temp;
 
-		int tempc = (2 * color);
+		int tempc = ((offset + 2) * color);
+		
+		int tmpr = 0;
 
-		int tmpr = (gpumem.gbcbgpalette[tempc] | (gpumem.gbcbgpalette[tempc + 1] << 8));
+		if (bg)
+		{
+		    tmpr = (gpumem.gbcbgpalette[tempc] | (gpumem.gbcbgpalette[tempc + 1] << 8));
+		}
+		else
+		{
+		    tmpr = (gpumem.gbcobjpalette[tempc] | (gpumem.gbcobjpalette[tempc + 1] << 8));
+		}
 
 		int tempred = (tmpr & 0x1F);
 		int tempgreen = ((tmpr >> 5) & 0x1F);
@@ -179,35 +189,27 @@ namespace gb
 	        return ((bit1 << 1) | bit0);
 	    }
 
-	    inline int getgbccolor(int id, int color)
+	    inline int getgbccolor(int id, int color, bool bg)
 	    {
 		uint8_t idx = ((id * 8) + (color * 2));
-		return (gpumem.gbcbgpalette[idx] | (gpumem.gbcbgpalette[idx + 1] << 8));
+		if (bg)
+		{
+		    return (gpumem.gbcbgpalette[idx] | (gpumem.gbcbgpalette[idx + 1] << 8));
+		}
+		else
+		{
+		    return (gpumem.gbcobjpalette[idx] | (gpumem.gbcobjpalette[idx + 1] << 8));
+		}
 	    }
 
 	    inline int line153cycles()
 	    {
-	        if (gpumem.isdmgconsole())
-		{
-		    return 4;
-		}
-		else if (gpumem.isdmgmode())
-		{
-		    return 8;
-		}
-		else if (gpumem.doublespeed)
-		{
-		    return 12;
-		}
-		else
-		{
-		    return 4;
-		}
+	        return 4;
 	    }
 
 	    inline int mode3cycles()
 	    {
-	        int cycles = (256 << gpumem.doublespeed);
+	        int cycles = 256;
 
 	        int scxmod = (gpumem.scrollx % 8);
 
@@ -221,25 +223,6 @@ namespace gb
 	        }
 
 	        return cycles;
-	    }
-
-	    inline void strangely()
-	    {
-		if (currentscanline == 153)
-		{
-		    return;
-		}
-
-		array<int, 9> pattern{{0, 0, 2, 0, 4, 4, 6, 0, 8}};
-
-		if ((gpumem.ly & 0x0F) == 0x0F)
-		{
-		    gpumem.ly = (pattern[(gpumem.ly >> 4) & 0x0F] << 4);
-		}
-		else
-		{
-		    gpumem.ly = (pattern[gpumem.ly & 0x07] | (gpumem.ly & 0xF8));
-		}
 	    }
 
 	    inline bool mode2check()

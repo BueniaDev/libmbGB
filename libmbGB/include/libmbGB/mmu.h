@@ -102,7 +102,11 @@ namespace gb
 
 	    int gbcbgpaletteindex = 0;
 	    uint8_t gbcbgpalette[0x40];
+	    int gbcobjpaletteindex = 0;
+	    uint8_t gbcobjpalette[0x40];
 	    bool gbcbgpalinc = false;
+	    bool gbcobjpalinc = false;
+	
 
 	    bool isdmgconsole()
 	    {

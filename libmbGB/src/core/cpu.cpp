@@ -38,8 +38,6 @@ namespace gb
 	{
 	    initbios();
 	}
-
-	printregs();
     }
 
     void CPU::initnobios()
@@ -66,15 +64,11 @@ namespace gb
 	    af.setreg(0x1180);
 	    bc.setreg(0x0000);
 	    de.setreg(0xFF56);
-	    hl.setreg(0x000D); 
+	    hl.setreg(0x000D);   
 	}
 
 	pc = 0x0100;
 	sp = 0xFFFE;
-	interruptmasterenable = false;
-	enableinterruptsdelayed = false;
-
-	state = CPUState::Running;
 
 	cout << "CPU::Initialized" << endl;
     }
@@ -88,10 +82,6 @@ namespace gb
 
 	pc = 0;
 	sp = 0;
-	interruptmasterenable = false;
-	enableinterruptsdelayed = false;
-
-	state = CPUState::Running;
 
 	cout << "CPU::Initialized" << endl;
     }
@@ -102,7 +92,8 @@ namespace gb
     }
 
     void CPU::printregs()
-    {	
+    {
+	uint8_t stat = mem.readByte(0xFF41);	
 	cout << "AF: " << hex << (int)(af.getreg()) << endl;
 	cout << "BC: " << hex << (int)(bc.getreg()) << endl;
 	cout << "DE: " << hex << (int)(de.getreg()) << endl;
@@ -115,7 +106,10 @@ namespace gb
 	cout << "IMA: " << (int)(enableinterruptsdelayed) << endl;
 	cout << "REI: " << (int)(mem.requestedenabledinterrupts()) << endl;
 	cout << "LCD: " << (int)(mem.ispending(1)) << endl;
-	cout << "(FF41) : " << hex << (int)(mem.readByte(0xFF41)) << endl;
+	cout << "(FF41): " << hex << (int)(stat) << endl;
+	cout << "STAT IRQ: " << (int)(mem.statinterruptsignal) << endl;
+	cout << "STAT mode: " << (int)(stat & 3) << endl;
+	cout << "LY = LYC: " << (int)(TestBit(stat, 6) && TestBit(stat, 2)) << endl;
 	cout << endl;
     }
 
@@ -133,9 +127,9 @@ namespace gb
 
 		// printregs();
 
-		uint16_t interruptvector = 0x0000;
-
 		interruptmasterenable = false;
+
+		uint16_t interruptvector = 0x0000;
 
 		if (mem.ispending(0))
 		{
@@ -173,8 +167,6 @@ namespace gb
 
 		pc = interruptvector;
 
-		hardwaretick(16);
-
 		// printregs();
 
 		if (state == CPUState::Halted)
@@ -182,7 +174,7 @@ namespace gb
 		    state = CPUState::Running;
 		}
 
-		temp = 36;
+		temp = 20;
 	    }
 	}
 	else if (state == CPUState::Halted)
@@ -201,7 +193,10 @@ namespace gb
     void CPU::serviceinterrupt(uint16_t addr)
     {	
 	sp -= 2;
+	hardwaretick(4);
 	mem.writeWord(sp, pc);
+	hardwaretick(4);
+
 	pc = addr;
     }
 
@@ -244,17 +239,16 @@ namespace gb
 		cycles -= 4;
 	    }
 
-	    bool print = false;
+	    
+	    // printregs();
 
-	    if (pc == 0x34B7)
+	    /*
+	    if (pc == 0x01DA)
 	    {
-		for (int i = 0; i < 20; i++)
-		{
-		    executenextopcode(mem.readByte(pc++));
-		    printregs();
-		}
+		printregs();
 		exit(1);
 	    }
+	    */
 	}
 
 	return cycles;

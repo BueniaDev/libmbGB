@@ -110,21 +110,6 @@ namespace gb
 	    void enabledelayedinterrupts();
 
 	    void printregs();
-	    bool paused = false;
-
-	    inline void doubleexec()
-	    {
-		uint8_t key1 = mem.key1;
-
-		if (TestBit(key1, 0))
-		{
-		    mem.doublespeed = !mem.doublespeed;
-		}
-
-		uint8_t doubletemp = (key1 & 0x7E) | (((mem.doublespeed) ? 1 : 0) << 7);
-		mem.key1 = doubletemp;
-		pc++;
-	    }
 
 	    uint8_t getimmbyte()
 	    {
@@ -142,10 +127,13 @@ namespace gb
 
 	    uint16_t getimmword()
 	    {
-		uint8_t lobyte = getimmbyte();
-		uint8_t hibyte = getimmbyte();
+		hardwaretick(4);
+		uint16_t temp = mem.readWord(pc);
+		hardwaretick(4);
 
-		return ((hibyte << 8) | lobyte);
+		pc += 2;
+
+		return temp;
 	    }
 
 	    inline void setcarryflag()
@@ -644,7 +632,24 @@ namespace gb
 		++pc;
 		haltedtick(4);
 
+		mem.lcdc &= 0x7F;
+
 		state = CPUState::Stopped;
+	    }
+
+	    inline void doubleexec()
+	    {
+		++pc;		
+	
+		uint8_t key1 = mem.key1;
+
+		if (TestBit(key1, 0))
+		{
+		    mem.doublespeed = !mem.doublespeed;
+		}
+
+		uint8_t doubletemp = (key1 & 0x7E) | (((mem.doublespeed) ? 1 : 0) << 7);
+		mem.key1 = doubletemp;
 	    }
 
 	    inline void stoppedtick()

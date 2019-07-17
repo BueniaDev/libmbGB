@@ -41,7 +41,7 @@ namespace gb
 	    case 0x0D: bc.setlo(decregbyte(bc.getlo())); cycles = 4; break;
 	    case 0x0E: bc.setlo(getimmbyte()); cycles = 8; break;
 	    case 0x0F: af.sethi(rrc(af.gethi())); setzero(false); cycles = 4; break;
-	    case 0x10: 
+	    case 0x10:
 	    {
 		if (mem.isgbcmode())
 		{
@@ -51,8 +51,8 @@ namespace gb
 		{
 		    stop();
 		}
-		
-	        cycles = 4;
+
+		cycles = 4;
 	    }
 	    break;
 	    case 0x11: de.setreg(getimmword()); cycles = 12; break;
@@ -273,7 +273,7 @@ namespace gb
 	    case 0xF0: af.sethi(store8frommem((0xFF00 + getimmbyte()))); cycles = 8; break;
 	    case 0xF1: af.setreg(pop()); af.setlo((af.getlo() & 0xF0)); cycles = 12; break;
 	    case 0xF2: af.sethi(store8frommem((0xFF00 + bc.getlo()))); cycles = 8; break;
-	    case 0xF3: enableinterruptsdelayed = false; cycles = 4; break;
+	    case 0xF3: interruptmasterenable = false; cycles = 4; break;
 	    case 0xF5: push(af.getreg()); cycles = 16; break;
 	    case 0xF6: orreg(getimmbyte()); cycles = 8; break;
 	    case 0xF7: call(0x30); cycles = 16; break;

@@ -298,6 +298,8 @@ namespace gb
 	    case 0x4F: temp = (vrambank | 0xFE); break;
 	    case 0x68: temp = (isgbcconsole()) ? gbcbgpaletteindex : 0xFF; break;
 	    case 0x69: temp = (isgbcconsole()) ? gbcbgpalette[gbcbgpaletteindex] : 0xFF; break;
+	    case 0x6A: temp = (isgbcconsole()) ? gbcobjpaletteindex : 0xFF; break;
+	    case 0x6B: temp = (isgbcconsole()) ? gbcobjpalette[gbcobjpaletteindex] : 0xFF; break;
 	    case 0x70: temp = (wrambank | 0xF8); break;
 	    default: temp = 0xFF; break;
 	}
@@ -329,7 +331,7 @@ namespace gb
 	    case 0x49: objpalette1 = value; break;
 	    case 0x4A: windowy = value; break;
 	    case 0x4B: windowx = value; break;
-	    case 0x4D: key1 = (value & 0x01); break;
+	    case 0x4D: key1 = value; break;
 	    case 0x4F: 
 	    {
 		vrambank = (isgbcconsole()) ? BitGetVal(value, 0) : 0;
@@ -358,6 +360,32 @@ namespace gb
 		if (gbcbgpalinc)
 		{
 		    gbcbgpaletteindex = ((gbcbgpaletteindex + 1) & 0x3F);
+		}
+	    }
+	    break;
+	    case 0x6A:
+	    {
+		if (!isgbcconsole())
+		{
+		    return;
+		}	
+
+		gbcobjpaletteindex = (value & 0x3F);
+		gbcobjpalinc = TestBit(value, 7);
+	    }
+	    break;
+	    case 0x6B:
+	    {
+		if (!isgbcconsole())
+		{
+		    return;
+		}		
+
+		gbcobjpalette[gbcobjpaletteindex] = value;
+
+		if (gbcbgpalinc)
+		{
+		    gbcobjpaletteindex = ((gbcobjpaletteindex + 1) & 0x3F);
 		}
 	    }
 	    break;
