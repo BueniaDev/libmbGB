@@ -106,6 +106,22 @@ namespace gb
 	    uint8_t gbcobjpalette[0x40];
 	    bool gbcbgpalinc = false;
 	    bool gbcobjpalinc = false;
+
+	    bool hdmaactive = false;
+	    uint16_t hdmadest = 0;
+	    uint16_t hdmasource = 0;
+	    uint16_t hdmalength = 0;
+
+	    inline void hdmatransfer()
+	    {
+		for (int i = 0; i < 0x10; i++)
+		{
+		    writeByte(hdmadest, readByte(hdmasource));
+
+		    hdmadest += 1;
+		    hdmasource += 1;
+		}
+	    }
 	
 
 	    bool isdmgconsole()

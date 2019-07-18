@@ -296,6 +296,11 @@ namespace gb
 	    case 0x4B: temp = windowx; break;
 	    case 0x4D: temp = key1; break;
 	    case 0x4F: temp = (vrambank | 0xFE); break;
+	    case 0x51: temp = (hdmasource >> 8); break;
+	    case 0x52: temp = (hdmasource & 0xFF); break;
+	    case 0x53: temp = (hdmadest >> 8); break;
+	    case 0x54: temp = (hdmadest & 0xFF); break;
+	    case 0x55: temp = ((hdmalength & 0x7F) | ((hdmaactive ? 0 : 1) << 7)); break;
 	    case 0x68: temp = (isgbcconsole()) ? gbcbgpaletteindex : 0xFF; break;
 	    case 0x69: temp = (isgbcconsole()) ? gbcbgpalette[gbcbgpaletteindex] : 0xFF; break;
 	    case 0x6A: temp = (isgbcconsole()) ? gbcobjpaletteindex : 0xFF; break;
@@ -335,6 +340,75 @@ namespace gb
 	    case 0x4F: 
 	    {
 		vrambank = (isgbcconsole()) ? BitGetVal(value, 0) : 0;
+	    }
+	    break;
+	    case 0x51:
+	    {
+		if (!isgbcconsole())
+		{
+		    return;
+		}	
+
+		hdmasource = ((hdmasource & 0xFF) | (value << 8));
+	    }
+	    break;
+	    case 0x52:
+	    {
+		if (!isgbcconsole())
+		{
+		    return;
+		}	
+
+		hdmasource = ((hdmasource & 0xFF00) | (value & 0xF0));
+	    }
+	    break;
+	    case 0x53:
+	    {
+		if (!isgbcconsole())
+		{
+		    return;
+		}	
+
+		hdmadest = ((hdmadest & 0xFF) | (((value & 0x1F) | 0x80) << 8));
+	    }
+	    break;
+	    case 0x54:
+	    {
+		if (!isgbcconsole())
+		{
+		    return;
+		}	
+
+		hdmadest = ((hdmadest & 0xFF00) | (value & 0xF0));
+	    }
+	    break;
+	    case 0x55:
+	    {
+		if (!isgbcconsole())
+		{
+		    return;
+		}	
+
+		hdmalength = (value & 0x7F);
+
+		if (!TestBit(value, 7) && !hdmaactive)
+		{
+		    for (int i = 0; i <= (hdmalength & 0x7F); i++)
+		    {
+			hdmatransfer();
+		    }
+
+		    hdmalength = 0xFF;
+		    hdmaactive = false;
+		}
+		else if (!TestBit(value, 7) && hdmaactive)
+		{
+		    hdmaactive = false;
+		}
+		else
+		{
+		    hdmaactive = true;
+		}
 	    }
 	    break;
 	    case 0x68:

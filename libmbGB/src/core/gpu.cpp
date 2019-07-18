@@ -171,6 +171,16 @@ namespace gb
 	    else if (scanlinecounter == mode3cycles())
 	    {
 		gpumem.setstatmode(0);
+
+		if (gpumem.isgbcconsole() && gpumem.hdmaactive)
+		{
+		    if ((gpumem.hdmalength & 0x7F) == 0)
+		    {
+			gpumem.hdmaactive = false;
+		    }
+		    gpumem.hdmatransfer();
+		    gpumem.hdmalength -= 1;
+		}
 	    }
 	}
 	else if (currentscanline == 144)
@@ -667,18 +677,8 @@ namespace gb
     void GPU::renderwin()
     {
 	uint8_t windowy = gpumem.windowy;
-	uint8_t windowx = gpumem.windowx;
+	uint8_t windowx = (gpumem.windowx - 7);
 
-	if (windowx <= 0x07)
-	{
-	    windowx -= windowx;
-	}
-	else
-	{
-	    windowx -= 7;
-	}
-
-	
 
 	bool unsig = TestBit(gpumem.lcdc, 4);
 	uint16_t tiledata = (unsig) ? 0x8000 : 0x8800;
@@ -730,7 +730,7 @@ namespace gb
 
 	        uint8_t line = (ypos % 8);
 
-		if (gpumem.isgbcconsole() && gpumem.biosload)
+		if (gpumem.isgbcconsole() && gpumem.isgbcmode())
 		{
 		    banknum = TestBit(mapattrib, 3) ? 0x6000 : 0x8000;
 

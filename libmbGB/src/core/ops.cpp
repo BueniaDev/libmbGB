@@ -283,7 +283,7 @@ namespace gb
 	    case 0xFB: enableinterruptsdelayed = true; cycles = 4; break;
 	    case 0xFE: cmpreg(getimmbyte()); cycles = 8; break;
 	    case 0xFF: call(0x38); cycles = 16; break;
-	    default: cout << "Unrecognized opcode at 0x" << uppercase << hex << (int)(opcode) << endl; exit(1); break;
+	    default: cout << "Unrecognized opcode at 0x" << uppercase << hex << (int)(opcode) << endl; printregs(); exit(1); break;
 	}
 
 	return cycles;
@@ -551,7 +551,7 @@ namespace gb
 	    case 0xFD: hl.setlo(set(hl.getlo(), 7)); cycles = 8; break;
 	    case 0xFE: load8intomem(hl.getreg(), set(store8frommem(hl.getreg()), 7)); cycles = 16; break;
 	    case 0xFF: af.sethi(set(af.gethi(), 7)); cycles = 8; break;
-	    default: cout << "Unrecognized extended opcode at 0xCB" << uppercase << hex << (int)(opcode) << endl; exit(1); break;
+	    default: cout << "Unrecognized extended opcode at 0xCB" << uppercase << hex << (int)(opcode) << endl; printregs(); exit(1); break;
 	}
 
 	return cycles;

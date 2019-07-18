@@ -70,6 +70,12 @@ namespace gb
 	pc = 0x0100;
 	sp = 0xFFFE;
 
+	interruptmasterenable = false;
+	enableinterruptsdelayed = false;
+
+	state = CPUState::Running;
+	
+
 	cout << "CPU::Initialized" << endl;
     }
 
@@ -82,6 +88,11 @@ namespace gb
 
 	pc = 0;
 	sp = 0;
+
+	interruptmasterenable = false;
+	enableinterruptsdelayed = false;
+
+	state = CPUState::Running;
 
 	cout << "CPU::Initialized" << endl;
     }
@@ -110,6 +121,7 @@ namespace gb
 	cout << "STAT IRQ: " << (int)(mem.statinterruptsignal) << endl;
 	cout << "STAT mode: " << (int)(stat & 3) << endl;
 	cout << "LY = LYC: " << (int)(TestBit(stat, 6) && TestBit(stat, 2)) << endl;
+	cout << "Opcode: " << hex << (int)(mem.readByte(pc)) << endl;
 	cout << endl;
     }
 
@@ -124,8 +136,6 @@ namespace gb
 		hardwaretick(8);
 		mem.writeByte(--sp, (pc >> 8));
 		hardwaretick(8);
-
-		// printregs();
 
 		interruptmasterenable = false;
 
@@ -166,8 +176,6 @@ namespace gb
 		hardwaretick(4);
 
 		pc = interruptvector;
-
-		// printregs();
 
 		if (state == CPUState::Halted)
 		{
@@ -238,17 +246,6 @@ namespace gb
 		haltedtick(4);
 		cycles -= 4;
 	    }
-
-	    
-	    // printregs();
-
-	    /*
-	    if (pc == 0x01DA)
-	    {
-		printregs();
-		exit(1);
-	    }
-	    */
 	}
 
 	return cycles;
