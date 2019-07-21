@@ -37,6 +37,8 @@ namespace gb
 	oam.resize(0xA0, 0);
 	hram.resize(0x7F, 0);
 	rambanks.resize(0x8000, 0);
+	gbcbgpalette.resize(0x40, 0);
+	gbcobjpalette.resize(0x40, 0);
 
 
 	if (isdmgmode())
@@ -77,6 +79,40 @@ namespace gb
 	rambanks.clear();
 	
 	cout << "MMU::Shutting down..." << endl;
+    }
+
+    bool MMU::savemmu(string filename)
+    {
+	fstream file(filename.c_str(), ios::out | ios::app);
+
+	if (!file.is_open())
+	{
+	    cout << "CPU::Error opening CPU state" << endl;
+	    return false;
+	}
+
+	vector<uint8_t> memorymap;
+
+	for (int i = 0; i < 0x8000; i++)
+	{
+	    memorymap.push_back(readByte(0x8000 + i));
+	}
+
+	file.write((char*)&memorymap[0], 0x8000);
+	file.write((char*)&cartmem[0], sizeof(cartmem));
+	file.write((char*)&rambanks[0], 0x8000);
+	file.write((char*)&vram[0], 0x4000);
+	file.write((char*)&wram[0], 0x8000);
+	file.write((char*)&gbcbgpalette[0], 0x40);
+	file.write((char*)&gbcobjpalette[0], 0x40);
+	file.write((char*)&doublespeed, sizeof(doublespeed));
+	file.write((char*)&currentrombank, sizeof(currentrombank));
+	file.write((char*)&currentrambank, sizeof(currentrambank));
+	file.write((char*)&higherrombankbits, sizeof(higherrombankbits));
+	file.write((char*)&rommode, sizeof(rommode));
+	file.write((char*)&ramenabled, sizeof(ramenabled));
+	file.close();
+	return true;
     }
 
     uint8_t MMU::readByte(uint16_t addr)
@@ -507,7 +543,7 @@ namespace gb
 	    }
 	    
 
-	    if (gameboy == Console::CGB && cgbflag)
+	    if (gameboy == Console::CGB && cgbflag && gbmode == Mode::Default)
 	    {
 		gbmode = Mode::CGB;
 	    }
@@ -529,11 +565,7 @@ namespace gb
 		cout << "MMU::Warning - Size of ROM does not match size in cartridge header." << endl;
 	    }
 
-	    for (int i = 0; i < 0x8000; i++)
-	    {
-		rom[i] = cartmem[i];
-	    }
-
+	    memcpy(&rom[0], &cartmem[0], 0x8000);
 	    cout << "MMU::" << filename << " succesfully loaded." << endl;
 	    return true;
 	}

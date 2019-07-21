@@ -25,7 +25,7 @@ namespace gb
 	    MMU& serialmem;
 
 	    int serialclock = 0;
-	    int bitstoshift;
+	    int bitstoshift = 0;
 	    bool previnc = false;
 
 	    bool transfersignal = false;

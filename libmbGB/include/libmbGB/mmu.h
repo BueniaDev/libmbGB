@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <cstring>
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -63,11 +64,13 @@ namespace gb
 	    ~MMU();
 
 	    Console gameboy = Console::Default;
-	    Mode gbmode;
+	    Mode gbmode = Mode::Default;
 	    MBCType gbmbc;
 
 	    void init();
 	    void shutdown();
+
+	    bool savemmu(string filename);
 
 	    vector<uint8_t> rom;
 	    vector<uint8_t> vram;
@@ -101,9 +104,9 @@ namespace gb
 	    int wrambank = 1;
 
 	    int gbcbgpaletteindex = 0;
-	    uint8_t gbcbgpalette[0x40];
+	    vector<uint8_t> gbcbgpalette;
 	    int gbcobjpaletteindex = 0;
-	    uint8_t gbcobjpalette[0x40];
+	    vector<uint8_t> gbcobjpalette;
 	    bool gbcbgpalinc = false;
 	    bool gbcobjpalinc = false;
 
@@ -200,6 +203,7 @@ namespace gb
 		    case 5: banks = (ismbc1 ? 63 : 64); romsize = "1 MB"; break;
 		    case 6: banks = (ismbc1 ? 125 : 128); romsize = "2 MB"; break;
 		    case 7: banks = 256; romsize = "4 MB"; break;
+		    case 8: banks = 512; romsize = "8 MB"; break;
 		    case 82: banks = 72; romsize = "1.1 MB"; break;
 		    case 83: banks = 80; romsize = "1.2 MB"; break;
 		    case 84: banks = 96; romsize = "1.5 MB"; break;

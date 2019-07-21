@@ -41,6 +41,8 @@ namespace gb
 	bool yflip;
 	bool xflip;
 	bool palette;
+	bool cgbbank;
+	int cgbpalette;
     };  
 
 
@@ -86,11 +88,43 @@ namespace gb
 
 	    void copydmgbuffer();
 
+	    int pixelx = 0;
+
 	    void dmgscanline();
 	    void renderdmgpixel();
 	    void renderdmgbgpixel();
 	    void renderdmgwinpixel();
 	    void renderdmgobjpixel();
+
+	    void cgbscanline();
+	    void rendercgbpixel();
+	    void rendercgbbgpixel();
+	    void rendercgbwinpixel();
+	    void rendercgbobjpixel();
+
+	    inline void scanline()
+	    {
+		if (gpumem.isdmgconsole())
+		{
+		    dmgscanline();
+		}
+		else
+		{
+		    cgbscanline();
+		}
+	    }
+
+	    inline void renderpixel()
+	    {
+		if (gpumem.isdmgconsole())
+		{
+		    renderdmgpixel();
+		}
+		else
+		{
+		    rendercgbpixel();
+		}
+	    }
 
 	    void renderscanline();
 	    void renderbg();
@@ -146,21 +180,24 @@ namespace gb
 		return (gpumem.isdmgmode() && !gpumem.biosload);
 	    }
 
-	    int pixelx = 0;
+	    int pixelxprev = 0;
 
 	    uint16_t bgdata = 0;
 	    uint16_t windata = 0;
 	    uint16_t objdata = 0;
+	    uint8_t bgattr = 0;
 	    int bgcolor = 0;
 	    int bgpalette = 0;
 	    int objcolor = 0;
 	    int objpalette = 0;
 	    bool objprior = false;
+	    bool objdmgpalette = false;
 
 	    Sprites sprite[10];
 	    int sprites;
 
 	    uint16_t readtiledmg(bool select, int x, int y);
+	    uint16_t readtilecgb(bool select, int x, int y);
 
 	    uint8_t bgscanline[160];
 	    uint8_t winscanline[160];
@@ -204,12 +241,27 @@ namespace gb
 
 	    inline int line153cycles()
 	    {
-	        return 4;
+	        if (gpumem.isdmgconsole())
+		{
+		    return 4;
+		}
+		else if (gpumem.isdmgmode())
+		{
+		    return 8;
+		}
+		else if (gpumem.doublespeed)
+		{
+		    return 12;
+		}
+		else
+		{
+		    return 4;
+		}
 	    }
 
 	    inline int mode3cycles()
 	    {
-	        int cycles = 256;
+	        int cycles = (256 << gpumem.doublespeed);
 
 	        int scxmod = (gpumem.scrollx % 8);
 

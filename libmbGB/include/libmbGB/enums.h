@@ -18,8 +18,14 @@
 #define LIBMBGB_ENUMS
 
 enum class Console {Default, DMG, CGB};
-enum class Mode {DMG, CGB};
+enum class Mode {Default, DMG, CGB};
 enum class MBCType {None, MBC1, MBC2, MBC3, MBC5};
-enum class CPUState {Running, Stopped, Halted, HaltBug};
+enum CPUState : uint8_t
+{
+    Running = 0, 
+    Stopped = 1, 
+    Halted = 2, 
+    HaltBug = 3,
+};
 
 #endif // LIBMBGB_ENUMS

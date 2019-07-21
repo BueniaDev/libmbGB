@@ -102,6 +102,35 @@ namespace gb
 	cout << "CPU::Shutting down..." << endl;
     }
 
+    bool CPU::savecpu(string filename)
+    {
+	fstream file(filename.c_str(), ios::out | ios::trunc);
+
+	if (!file.is_open())
+	{
+	    cout << "CPU::Error opening CPU state" << endl;
+	    return false;
+	}
+
+	file.write((char*)&af.hi, sizeof(af.hi));
+	file.write((char*)&af.lo, sizeof(af.lo));
+	file.write((char*)&bc.hi, sizeof(bc.hi));
+	file.write((char*)&bc.lo, sizeof(bc.lo));
+	file.write((char*)&de.hi, sizeof(de.hi));
+	file.write((char*)&de.lo, sizeof(de.lo));
+	file.write((char*)&hl.hi, sizeof(hl.hi));
+	file.write((char*)&hl.lo, sizeof(hl.lo));
+
+	file.write((char*)&pc, sizeof(pc));
+	file.write((char*)&sp, sizeof(sp));
+	file.write((char*)&state, sizeof(uint8_t));
+	file.write((char*)&interruptmasterenable, sizeof(interruptmasterenable));
+	file.write((char*)&enableinterruptsdelayed, sizeof(enableinterruptsdelayed));
+
+	file.close();
+	return true;
+    }
+
     void CPU::printregs()
     {
 	uint8_t stat = mem.readByte(0xFF41);	

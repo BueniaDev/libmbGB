@@ -118,12 +118,14 @@ namespace gb
 	    {
 		coremmu->ismanual = true;
 		coremmu->gameboy = Console::DMG;
+		coremmu->gbmode = Mode::DMG;
 	    }
 
 	    if ((strncmp(argv[i], "--sys-gbc", 9) == 0))
 	    {
 		coremmu->ismanual = true;
 		coremmu->gameboy = Console::CGB;
+		coremmu->gbmode = Mode::CGB;
 	    }
 
 	    if ((strncmp(argv[i], "--sys-hybrid", 12) == 0))
@@ -143,6 +145,11 @@ namespace gb
     bool GBCore::loadROM(string filename)
     {
 	return coremmu->loadROM(filename);
+    }
+
+    bool GBCore::savestate(string filename)
+    {
+	return corecpu->savecpu(filename);
     }
 
     RGB GBCore::getpixel(int x, int y)
@@ -207,7 +214,7 @@ namespace gb
 
     void GBCore::runcore()
     {
-	overspentcycles = corecpu->runfor(70224 + overspentcycles);
+	overspentcycles = corecpu->runfor((70224 << coremmu->doublespeed) + overspentcycles);
     }
 
 };

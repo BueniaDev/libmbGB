@@ -20,7 +20,7 @@ Uint32 fpstime = 0;
 
 bool init()
 {
-    if (SDL_Init(SDL_INIT_VIDEO) != 0)
+    if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
     {
 	cout << "SDL could not be initialized! SDL_Error: " << SDL_GetError() << endl;
 	return false;
@@ -80,6 +80,7 @@ void handleinput(SDL_Event event)
 	    case SDLK_b: core.keypressed(Button::B); break;
 	    case SDLK_RETURN: core.keypressed(Button::Start); break;
 	    case SDLK_SPACE: core.keypressed(Button::Select); break;
+	    // case SDLK_s: core.savestate("cpu.mbsave"); break;
 	    // case SDLK_d: core.dumpvram("vram.bin"); break;
 	}
     }
@@ -131,8 +132,8 @@ int main(int argc, char* argv[])
     SDL_Event event;
     bool quit = false;
 
-    Uint32 framecurrenttime;
-    Uint32 framestarttime;
+    Uint32 framecurrenttime = 0;
+    Uint32 framestarttime = 0;
 
     while (!quit)
     {
@@ -150,9 +151,9 @@ int main(int argc, char* argv[])
 
 	framecurrenttime = SDL_GetTicks();
 
-	if ((framecurrenttime - framestarttime) < (1000 / 60))
+	if ((framecurrenttime - framestarttime) < 16)
 	{
-	    SDL_Delay((1000 / 60) - (framecurrenttime - framestarttime));
+	    SDL_Delay(16 - (framecurrenttime - framestarttime));
 	}
 
 	framestarttime = SDL_GetTicks();
@@ -162,9 +163,6 @@ int main(int argc, char* argv[])
 	if (((SDL_GetTicks() - fpstime) >= 1000))
 	{
 	    fpstime = SDL_GetTicks();
-	    stringstream title;
-	    title << "mbGB-SDL2-" << fpscount << " FPS";
-	    SDL_SetWindowTitle(window, title.str().c_str());
 	    fpscount = 0;
 	}
     }

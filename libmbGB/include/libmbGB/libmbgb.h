@@ -60,6 +60,7 @@ namespace gb
 	    bool getoptions(int argc, char* argv[]);
 	    bool loadBIOS(string filename);
 	    bool loadROM(string filename);
+	    bool savestate(string filename);
 	    RGB getpixel(int x, int y);
 	    void printusage(char *argv);
 	    void keypressed(Button button);

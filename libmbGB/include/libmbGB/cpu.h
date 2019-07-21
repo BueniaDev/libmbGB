@@ -84,6 +84,28 @@ namespace gb
 	    void initbios();
 	    void shutdown();
 
+	    bool savecpu(string filename);
+	    inline int cpusize()
+	    {
+		int size = 0;
+
+		size += sizeof(af.hi);
+		size += sizeof(af.lo);
+		size += sizeof(bc.hi);
+		size += sizeof(bc.lo);
+		size += sizeof(de.hi);
+		size += sizeof(de.lo);
+		size += sizeof(hl.hi);
+		size += sizeof(hl.lo);
+		size += sizeof(pc);
+		size += sizeof(sp);
+		size += sizeof(uint8_t);
+		size += sizeof(interruptmasterenable);
+		size += sizeof(enableinterruptsdelayed);
+
+		return size;
+	    }
+
 	    MMU& mem;
 	    GPU& gpu;
 	    Timers& timer;
