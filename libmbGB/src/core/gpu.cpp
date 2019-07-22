@@ -203,7 +203,7 @@ namespace gb
 
 	if (isdotrender())
 	{
-	    while ((scanlinecounter - 91) >= pixelx)
+	    while ((scanlinecounter - 92) >= pixelx)
 	    {
 	        renderpixel();
 	        if (pixelx >= 160)
@@ -439,13 +439,13 @@ namespace gb
 
 	    if (gpumem.iswinenabled())
 	    {
-		// renderdmgwinpixel();
+		renderdmgwinpixel();
 	    }
 	}
 
 	if (gpumem.isobjenabled())
 	{
-	    // renderdmgobjpixel();
+	    renderdmgobjpixel();
 	}
 
 	int color = 0;
@@ -482,11 +482,11 @@ namespace gb
 	    return;
 	}
 
-	int index = (pixelx + (gpumem.ly * 160));
+	int index = (pixelx++ + (gpumem.ly * 160));
 	framebuffer[index].red = gbcolor;
 	framebuffer[index].green = gbcolor;
 	framebuffer[index].blue = gbcolor;
-	pixelx += 1;
+	// pixelx += 1;
     }
 
     void GPU::rendercgbpixel()
