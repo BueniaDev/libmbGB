@@ -180,7 +180,7 @@ namespace gb
 		return (gpumem.isdmgmode() && !gpumem.biosload);
 	    }
 
-	    int pixelxprev = 0;
+	    int linexbias = 0;
 
 	    uint16_t bgdata = 0;
 	    uint16_t windata = 0;
@@ -211,10 +211,9 @@ namespace gb
 
 	    inline int getdmgcolornum(uint16_t data, int num)
 	    {
-		int index = 0;
-		index |= (data & (0x80 >> num)) ? 1 : 0;
-		index |= (data & (0x8000 >> num)) ? 2 : 0;
-		return index;
+		int lo = ((data & 0xFF) & (0x80 >> num)) ? 1 : 0;
+		int hi = ((data >> 8) & (0x80 >> num)) ? 2 : 0;
+		return (hi + lo);
 	    }
 
 	    inline int getdmgcolor(int id, uint8_t palette)

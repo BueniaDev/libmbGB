@@ -47,6 +47,7 @@ namespace gb
 	coretimers->init();
 	coreinput->init();
 	coreserial->init();
+	loadbackup();
 	cout << "mbGB::Initialized" << endl;
     }
 
@@ -57,6 +58,7 @@ namespace gb
 	coretimers->shutdown();
 	coregpu->shutdown();
 	corecpu->shutdown();
+	savebackup();
 	coremmu->shutdown();
 	cout << "mbGB::Shutting down..." << endl;
     }
@@ -147,9 +149,82 @@ namespace gb
 	return coremmu->loadROM(filename);
     }
 
-    bool GBCore::savestate(string filename)
+    bool GBCore::loadbackup()
     {
-	return corecpu->savecpu(filename);
+	stringstream saveram;
+
+	saveram << romname << ".sav";
+
+	return coremmu->loadbackup(saveram.str());
+    }
+
+    bool GBCore::savebackup()
+    {
+	stringstream saveram;
+
+	saveram << romname << ".sav";
+
+	return coremmu->savebackup(saveram.str());
+    }
+
+    bool GBCore::loadstate()
+    {
+	stringstream savestate;
+
+	savestate << romname << ".mbsave";
+
+	string savename = savestate.str();
+
+	bool ret = false;
+
+	if (!corecpu->loadcpu(savename))
+	{
+	    cout << "mbGB::Save state could not be loaded." << endl;
+	    ret = false;
+	}
+
+	int offs = corecpu->cpusize();
+
+	if (!coremmu->loadmmu(offs, savename))
+	{
+	    cout << "mbGB::Save state could not be loaded." << endl;
+	    ret = false;
+	}
+
+	cout << "mbGB::Save state succesfully loaded." << endl;
+	ret = true;
+	
+	return ret;
+    }
+
+    bool GBCore::savestate()
+    {
+	stringstream savestate;
+
+	savestate << romname << ".mbsave";
+
+	string savename = savestate.str();
+
+	cout << savename << endl;
+
+	bool ret = false;
+
+	if (!corecpu->savecpu(savename))
+	{
+	    cout << "mbGB::CPU save state could not be written." << endl;
+	    ret = false;
+	}
+
+	if (!coremmu->savemmu(savename))
+	{
+	    cout << "mbGB::MMU save state could not be written." << endl;
+	    ret = false;
+	}
+
+	cout << "mbGB::Save state succesfully written." << endl;
+	ret = true;
+	
+	return ret;
     }
 
     RGB GBCore::getpixel(int x, int y)

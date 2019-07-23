@@ -46,25 +46,25 @@ namespace gb
 	{
 	    if (mem.gameboy == Console::DMG)
 	    {
-		af.setreg(0x01B0);
-		bc.setreg(0x0013);
-		de.setreg(0x00D8);
-		hl.setreg(0x014D);
+		af.reg = (0x01B0);
+		bc.reg = (0x0013);
+		de.reg = (0x00D8);
+		hl.reg = (0x014D);
 	    }
 	    else if (mem.gameboy == Console::CGB)
 	    {
-		af.setreg(0x1180);
-		bc.setreg(0x0000);
-		de.setreg(0x0008);
-		hl.setreg(0x007C);
+		af.reg = (0x1180);
+		bc.reg = (0x0000);
+		de.reg = (0x0008);
+		hl.reg = (0x007C);
 	    }
 	}
 	else if (mem.gbmode == Mode::CGB)
 	{
-	    af.setreg(0x1180);
-	    bc.setreg(0x0000);
-	    de.setreg(0xFF56);
-	    hl.setreg(0x000D);   
+	    af.reg = (0x1180);
+	    bc.reg = (0x0000);
+	    de.reg = (0xFF56);
+	    hl.reg = (0x000D);   
 	}
 
 	pc = 0x0100;
@@ -81,10 +81,10 @@ namespace gb
 
     void CPU::initbios()
     {
-	af.setreg(0x0000);
-	bc.setreg(0x0000);
-	de.setreg(0x0000);
-	hl.setreg(0x0000);   
+	af.reg = (0x0000);
+	bc.reg = (0x0000);
+	de.reg = (0x0000);
+	hl.reg = (0x0000);   
 
 	pc = 0;
 	sp = 0;
@@ -102,15 +102,48 @@ namespace gb
 	cout << "CPU::Shutting down..." << endl;
     }
 
-    bool CPU::savecpu(string filename)
+    bool CPU::loadcpu(string filename)
     {
-	fstream file(filename.c_str(), ios::out | ios::trunc);
+	ifstream file(filename.c_str(), ios::binary);
 
 	if (!file.is_open())
 	{
 	    cout << "CPU::Error opening CPU state" << endl;
 	    return false;
 	}
+
+	file.seekg(0);
+
+	file.read((char*)&af.hi, sizeof(af.hi));
+	file.read((char*)&af.lo, sizeof(af.lo));
+	file.read((char*)&bc.hi, sizeof(bc.hi));
+	file.read((char*)&bc.lo, sizeof(bc.lo));
+	file.read((char*)&de.hi, sizeof(de.hi));
+	file.read((char*)&de.lo, sizeof(de.lo));
+	file.read((char*)&hl.hi, sizeof(hl.hi));
+	file.read((char*)&hl.lo, sizeof(hl.lo));
+
+	file.read((char*)&pc, sizeof(pc));
+	file.read((char*)&sp, sizeof(sp));
+	file.read((char*)&state, sizeof(uint8_t));
+	file.read((char*)&interruptmasterenable, sizeof(interruptmasterenable));
+	file.read((char*)&enableinterruptsdelayed, sizeof(enableinterruptsdelayed));
+
+	file.close();
+	return true;
+    }
+
+    bool CPU::savecpu(string filename)
+    {
+	ofstream file(filename.c_str(), ios::binary | ios::trunc);
+
+	if (!file.is_open())
+	{
+	    cout << "CPU::Error opening CPU state" << endl;
+	    return false;
+	}
+
+	printregs();
 
 	file.write((char*)&af.hi, sizeof(af.hi));
 	file.write((char*)&af.lo, sizeof(af.lo));
@@ -134,10 +167,10 @@ namespace gb
     void CPU::printregs()
     {
 	uint8_t stat = mem.readByte(0xFF41);	
-	cout << "AF: " << hex << (int)(af.getreg()) << endl;
-	cout << "BC: " << hex << (int)(bc.getreg()) << endl;
-	cout << "DE: " << hex << (int)(de.getreg()) << endl;
-	cout << "HL: " << hex << (int)(hl.getreg()) << endl;
+	cout << "AF: " << hex << (int)(af.reg) << endl;
+	cout << "BC: " << hex << (int)(bc.reg) << endl;
+	cout << "DE: " << hex << (int)(de.reg) << endl;
+	cout << "HL: " << hex << (int)(hl.reg) << endl;
 	cout << "PC: " << hex << (int)(pc) << endl;
 	cout << "SP: " << hex << (int)(sp) << endl;
 	cout << "IF: " << hex << (int)(mem.readByte(0xFF0F)) << endl;
@@ -161,7 +194,8 @@ namespace gb
 	if (interruptmasterenable)
 	{
 	    if (mem.requestedenabledinterrupts())
-	    {
+	    {		
+
 		hardwaretick(8);
 		mem.writeByte(--sp, (pc >> 8));
 		hardwaretick(8);
@@ -254,8 +288,6 @@ namespace gb
 		printregs();
 	    }
 	    */
-
-	    // cout << (char)(af.gethi()) << endl;
 	    
 	    // TODO: HDMA transfer stuff
 
@@ -292,6 +324,7 @@ namespace gb
 	{
 	    enabledelayedinterrupts();
 	    timer.updatetimer();
+	    updatedma();
 	    link.updateserial();
 	    gpu.updatelcd();
 	    mem.ifwrittenthiscycle = false;

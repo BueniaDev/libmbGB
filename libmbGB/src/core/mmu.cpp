@@ -40,30 +40,7 @@ namespace gb
 	gbcbgpalette.resize(0x40, 0);
 	gbcobjpalette.resize(0x40, 0);
 
-
-	if (isdmgmode())
-	{
-	    if (isdmgconsole())
-	    {
-		joypad = 0xCF;
-		divider = 0xABCC;
-	    }
-	    else
-	    {
-		joypad = 0xFF;
-		divider = 0x267C;
-	    }
-	}
-	else
-	{
-	    joypad = 0xFF;
-	    divider = 0x1EA0;
-	}
-
-	interruptenabled = 0x00;
-	bgpalette = 0xFC;
-	interruptflags = 0xE0;
-	ly = 0x90;
+	initio();
 
 	cout << "MMU::Initialized" << endl;
     }
@@ -81,9 +58,25 @@ namespace gb
 	cout << "MMU::Shutting down..." << endl;
     }
 
-    bool MMU::savemmu(string filename)
+    bool MMU::loadmmu(int offset, string filename)
     {
-	fstream file(filename.c_str(), ios::out | ios::app);
+	vram.clear();
+	sram.clear();
+	wram.clear();
+	oam.clear();
+	hram.clear();
+	rambanks.clear();
+
+	vram.resize(0x4000, 0);
+	sram.resize(0x2000, 0);
+	wram.resize(0x8000, 0);
+	oam.resize(0xA0, 0);
+	hram.resize(0x7F, 0);
+	rambanks.resize(0x8000, 0);
+	gbcbgpalette.resize(0x40, 0);
+	gbcobjpalette.resize(0x40, 0);
+	
+	ifstream file(filename.c_str(), ios::binary);
 
 	if (!file.is_open())
 	{
@@ -91,18 +84,44 @@ namespace gb
 	    return false;
 	}
 
-	vector<uint8_t> memorymap;
+	file.seekg(offset);
 
-	for (int i = 0; i < 0x8000; i++)
+	file.read((char*)&cartmem[0], sizeof(cartmem));
+	file.read((char*)&rambanks[0], 0x8000);
+	file.read((char*)&vram[0], 0x4000);
+	file.read((char*)&wram[0], 0x8000);
+	file.read((char*)&oam[0], 0xA0);
+	file.read((char*)&hram[0], 0x7F);
+	readio(file);
+	file.read((char*)&gbcbgpalette[0], 0x40);
+	file.read((char*)&gbcobjpalette[0], 0x40);
+	file.read((char*)&doublespeed, sizeof(doublespeed));
+	file.read((char*)&currentrombank, sizeof(currentrombank));
+	file.read((char*)&currentrambank, sizeof(currentrambank));
+	file.read((char*)&higherrombankbits, sizeof(higherrombankbits));
+	file.read((char*)&rommode, sizeof(rommode));
+	file.read((char*)&ramenabled, sizeof(ramenabled));
+	file.close();
+	return true;
+    }
+
+    bool MMU::savemmu(string filename)
+    {
+	ofstream file(filename.c_str(), ios::app);
+
+	if (!file.is_open())
 	{
-	    memorymap.push_back(readByte(0x8000 + i));
+	    cout << "CPU::Error opening CPU state" << endl;
+	    return false;
 	}
 
-	file.write((char*)&memorymap[0], 0x8000);
 	file.write((char*)&cartmem[0], sizeof(cartmem));
 	file.write((char*)&rambanks[0], 0x8000);
 	file.write((char*)&vram[0], 0x4000);
 	file.write((char*)&wram[0], 0x8000);
+	file.write((char*)&oam[0], 0xA0);
+	file.write((char*)&hram[0], 0x7F);
+	writeio(file);
 	file.write((char*)&gbcbgpalette[0], 0x40);
 	file.write((char*)&gbcobjpalette[0], 0x40);
 	file.write((char*)&doublespeed, sizeof(doublespeed));
@@ -113,6 +132,70 @@ namespace gb
 	file.write((char*)&ramenabled, sizeof(ramenabled));
 	file.close();
 	return true;
+    }
+
+    bool MMU::loadbackup(string filename)
+    {
+	bool success = false;	
+
+	if (batteryenabled)
+	{
+	    fstream sram(filename.c_str(), ios::in | ios::binary);
+
+	    if (!sram.is_open())
+	    {
+		cout << "MMU::Save data could not be loaded." << endl;
+		success = false;
+	    }
+	    else
+	    {
+		if (gbmbc != MBCType::None && externalrampres)
+		{
+		    sram.read((char*)&rambanks[0], 0x8000);
+		    cout << "MMU::Save data succesfully loaded." << endl;
+		    sram.close();
+		    success = true;
+		}
+		else
+		{
+		    success = false;
+		}
+	    }
+	}
+
+	return success;
+    }
+
+    bool MMU::savebackup(string filename)
+    {
+	bool success = false;
+	
+	if (batteryenabled)
+	{
+	    fstream sram(filename.c_str(), ios::out | ios::binary);
+
+	    if (!sram.is_open())
+	    {
+		cout << "MMU::Save data could not be written." << endl;
+		success = false;
+	    }
+	    else
+	    {
+		if (gbmbc != MBCType::None && externalrampres)
+		{
+		    sram.write((char*)&rambanks[0], 0x8000);
+		    cout << "MMU::Save data succesfully stored." << endl;
+		    sram.close();
+		    success = true;
+		}
+		else
+		{
+		    success = false;
+		}
+	    }
+	}
+
+	return success;
     }
 
     uint8_t MMU::readByte(uint16_t addr)
@@ -234,14 +317,6 @@ namespace gb
 	else if (addr < 0xA000)
 	{
 	    vram[(addr - 0x8000) + (vrambank * 0x2000)] = value;
-
-	    if (addr == 0x9800)
-	    {
-		if (value == 0x20)
-		{
-		    dump = true;
-		}
-	    }
 	}
 	else if (addr < 0xC000)
 	{
@@ -325,6 +400,7 @@ namespace gb
 	    case 0x43: temp = scrollx; break;
 	    case 0x44: temp = ly; break;
 	    case 0x45: temp = lyc; break;
+	    case 0x46: temp = dma; break;
 	    case 0x47: temp = bgpalette; break;
 	    case 0x48: temp = objpalette0; break;
 	    case 0x49: temp = objpalette1; break;
@@ -366,7 +442,7 @@ namespace gb
 	    case 0x43: scrollx = value; break;
 	    case 0x44: break; // LY should not be written to
 	    case 0x45: lyc = value; break;
-	    case 0x46: dodmatransfer(value); break;
+	    case 0x46: writedma(value); break;
 	    case 0x47: bgpalette = value; break;
 	    case 0x48: objpalette0 = value; break;
 	    case 0x49: objpalette1 = value; break;

@@ -152,6 +152,8 @@ namespace gb
 	    if (scanlinecounter == ((gpumem.isdmgmode() || gpumem.doublespeed) ? 4 : 0))
 	    {
 		gpumem.setstatmode(2);
+		linexbias = (gpumem.scrollx & 7);
+		pixelx = linexbias;
 
 		if (isdotrender())
 		{
@@ -160,7 +162,6 @@ namespace gb
 	    }
 	    else if (scanlinecounter == (gpumem.isdmgmode() ? 84 : (80 << gpumem.doublespeed)))
 	    {		
-		pixelx = 0;		
 		gpumem.setstatmode(3);
 
 		if (!isdotrender())
@@ -203,13 +204,21 @@ namespace gb
 
 	if (isdotrender())
 	{
-	    while ((scanlinecounter - 92) >= pixelx)
+	    int16_t currentpixel = ((((scanlinecounter % 456) - 92) & ~3) - linexbias);
+
+	    for (int i = pixelx; i < currentpixel; i++)
 	    {
-	        renderpixel();
-	        if (pixelx >= 160)
-	        {
-		    break;
-	        }
+		if (pixelx >= 160)
+		{
+		    continue;
+		}
+
+		if (pixelx < 0)
+		{
+		    continue;
+		}
+
+		renderpixel();
 	    }
 	}
 
@@ -239,18 +248,9 @@ namespace gb
 
     void GPU::updatepoweronstate(bool wasenabled)
     {
-	if (!wasenabled && gpumem.islcdenabled())
+	if (wasenabled && !gpumem.islcdenabled())
 	{
-	    scanlinecounter = (gpumem.doublespeed) ? 908 : 452;
-	    currentscanline = 153;
-	}
-	else if (wasenabled && !gpumem.islcdenabled())
-	{
-	    gpumem.ly = 0;
-	    gpumem.setstatmode(0);
 	    scanlinecounter = 0;
-	    gpumem.statinterruptsignal = false;
-	    gpumem.previnterruptsignal = false;
 	}
     }
 
@@ -427,7 +427,7 @@ namespace gb
     }
 
     void GPU::renderdmgpixel()
-    {
+    {	
 	bgcolor = 0;
 	bgpalette = 0;
 	objcolor = 0;
@@ -482,11 +482,11 @@ namespace gb
 	    return;
 	}
 
-	int index = (pixelx++ + (gpumem.ly * 160));
+	int index = (pixelx + (gpumem.ly * 160));
 	framebuffer[index].red = gbcolor;
 	framebuffer[index].green = gbcolor;
 	framebuffer[index].blue = gbcolor;
-	// pixelx += 1;
+	pixelx += 1;
     }
 
     void GPU::rendercgbpixel()
@@ -588,8 +588,8 @@ namespace gb
 
     void GPU::renderdmgbgpixel()
     {
-	int scrolly = ((gpumem.ly + gpumem.scrolly) & 0xFF);
-	int scrollx = ((pixelx + gpumem.scrollx) & 0xFF);
+	uint8_t scrolly = ((gpumem.ly + gpumem.scrolly) & 0xFF);
+	uint8_t scrollx = ((pixelx + gpumem.scrollx) & 0xFF);
 	int tx = (scrollx & 7);
 
 	if (tx == 0 || pixelx == 0)

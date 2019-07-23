@@ -70,7 +70,119 @@ namespace gb
 	    void init();
 	    void shutdown();
 
+	    inline void initio()
+	    {
+		if (isdmgmode())
+		{
+		    if (isdmgconsole())
+		    {
+			joypad = 0xCF;
+			divider = 0xABCC;
+		    }
+		    else
+		    {
+			joypad = 0xFF;
+			divider = 0x267C;
+		    }
+		}
+		else
+		{
+		    joypad = 0xFF;
+		    divider = 0x1EA0;
+		}
+
+		interruptenabled = 0x00;
+		bgpalette = 0xFC;
+		interruptflags = 0xE0;
+		ly = 0x90;
+	    }
+
+	    inline void resetio()
+	    {
+	        joypad = 0x00;
+	        sb = 0x00;
+	    	sc = 0x00;
+	    	divider = 0x0000;
+	    	tima = 0x00;
+	    	tma = 0x00;
+	        tac = 0x00;
+	        interruptflags = 0x00;
+	        lcdc = 0x00;
+	        stat = 0x00;
+	        scrolly = 0x00;
+	        scrollx = 0x00;
+	        windowy = 0x00;
+	        windowx = 0x00;
+	        ly = 0x00;
+	        lyc = 0x00;
+	        dma = 0x00;
+	        bgpalette = 0x00;
+	        objpalette0 = 0x00;
+	        objpalette1 = 0x00;
+	        key1 = 0x00;
+	        interruptenabled = 0x00;
+	    	dmaactive = false;
+	    }
+
+	    inline void readio(ifstream &file)
+	    {
+	        file.read((char*)&joypad, sizeof(joypad));
+	        file.read((char*)&sb, sizeof(sb));
+	    	file.read((char*)&sc, sizeof(sc));
+	    	file.read((char*)&divider, sizeof(divider));
+	    	file.read((char*)&tima, sizeof(tima));
+	    	file.read((char*)&tma, sizeof(tma));
+	        file.read((char*)&tac, sizeof(tac));
+	        file.read((char*)&interruptflags, sizeof(interruptflags));
+	        file.read((char*)&lcdc, sizeof(lcdc));
+	        file.read((char*)&stat, sizeof(stat));
+	        file.read((char*)&scrolly, sizeof(scrolly));
+	        file.read((char*)&scrollx, sizeof(scrollx));
+	        file.read((char*)&windowy, sizeof(windowy));
+	        file.read((char*)&windowx, sizeof(windowx));
+	        file.read((char*)&ly, sizeof(ly));
+	        file.read((char*)&lyc, sizeof(lyc));
+	        file.read((char*)&dma, sizeof(dma));
+	        file.read((char*)&bgpalette, sizeof(bgpalette));
+	        file.read((char*)&objpalette0, sizeof(objpalette0));
+	        file.read((char*)&objpalette1, sizeof(objpalette1));
+	        file.read((char*)&key1, sizeof(key1));
+	        file.read((char*)&interruptenabled, sizeof(interruptenabled));
+	    	file.read((char*)&dmaactive, sizeof(dmaactive));
+	    }
+
+	    inline void writeio(ofstream &file)
+	    {
+	        file.write((char*)&joypad, sizeof(joypad));
+	        file.write((char*)&sb, sizeof(sb));
+	    	file.write((char*)&sc, sizeof(sc));
+	    	file.write((char*)&divider, sizeof(divider));
+	    	file.write((char*)&tima, sizeof(tima));
+	    	file.write((char*)&tma, sizeof(tma));
+	        file.write((char*)&tac, sizeof(tac));
+	        file.write((char*)&interruptflags, sizeof(interruptflags));
+	        file.write((char*)&lcdc, sizeof(lcdc));
+	        file.write((char*)&stat, sizeof(stat));
+	        file.write((char*)&scrolly, sizeof(scrolly));
+	        file.write((char*)&scrollx, sizeof(scrollx));
+	        file.write((char*)&windowy, sizeof(windowy));
+	        file.write((char*)&windowx, sizeof(windowx));
+	        file.write((char*)&ly, sizeof(ly));
+	        file.write((char*)&lyc, sizeof(lyc));
+	        file.write((char*)&dma, sizeof(dma));
+	        file.write((char*)&bgpalette, sizeof(bgpalette));
+	        file.write((char*)&objpalette0, sizeof(objpalette0));
+	        file.write((char*)&objpalette1, sizeof(objpalette1));
+	        file.write((char*)&key1, sizeof(key1));
+	        file.write((char*)&interruptenabled, sizeof(interruptenabled));
+	    	file.write((char*)&dmaactive, sizeof(dmaactive));
+	    }
+
+	    bool loadmmu(int offset, string filename);
 	    bool savemmu(string filename);
+
+	    bool loadbackup(string filename);
+	    bool savebackup(string filename);
 
 	    vector<uint8_t> rom;
 	    vector<uint8_t> vram;
@@ -89,6 +201,7 @@ namespace gb
 	    uint8_t currentrambank = 0;
 	    int higherrombankbits = 0;
 	    bool ramenabled = false;
+	    bool batteryenabled = false;
 	    bool rommode = false;
 	    int numrombanks;
 	    int numrambanks;
@@ -166,23 +279,23 @@ namespace gb
 	    {
 		switch (rom[0x0147])
 		{
-		    case 0: gbmbc = MBCType::None; externalrampres = false; mbctype = "ROM ONLY"; break;
-		    case 1: gbmbc = MBCType::MBC1; externalrampres = false; mbctype = "MBC1"; break;
-		    case 2: gbmbc = MBCType::MBC1; externalrampres = true; mbctype = "MBC1 + RAM"; break;
-		    case 3: gbmbc = MBCType::MBC1; externalrampres = true; mbctype = "MBC1 + RAM + BATTERY"; break;
-		    case 5: gbmbc = MBCType::MBC2; externalrampres = false; mbctype = "MBC2"; break;
-		    case 6: gbmbc = MBCType::MBC2; externalrampres = false; mbctype = "MBC2 + BATTERY"; break;
-		    case 8: gbmbc = MBCType::None; externalrampres = true; mbctype = "ROM + RAM"; break;
-		    case 9: gbmbc = MBCType::None; externalrampres = true; mbctype = "ROM + RAM + BATTERY"; break;
+		    case 0: gbmbc = MBCType::None; externalrampres = false; mbctype = "ROM ONLY"; batteryenabled = false; break;
+		    case 1: gbmbc = MBCType::MBC1; externalrampres = false; mbctype = "MBC1"; batteryenabled = false; break;
+		    case 2: gbmbc = MBCType::MBC1; externalrampres = true; mbctype = "MBC1 + RAM"; batteryenabled = false; break;
+		    case 3: gbmbc = MBCType::MBC1; externalrampres = true; mbctype = "MBC1 + RAM + BATTERY"; batteryenabled = true; break;
+		    case 5: gbmbc = MBCType::MBC2; externalrampres = false; mbctype = "MBC2"; batteryenabled = false; break;
+		    case 6: gbmbc = MBCType::MBC2; externalrampres = false; mbctype = "MBC2 + BATTERY"; batteryenabled = true; break;
+		    case 8: gbmbc = MBCType::None; externalrampres = true; mbctype = "ROM + RAM"; batteryenabled = false; break;
+		    case 9: gbmbc = MBCType::None; externalrampres = true; mbctype = "ROM + RAM + BATTERY"; batteryenabled = true; break;
 		    case 15: gbmbc = MBCType::MBC3; externalrampres = false; mbctype = "MBC3 + TIMER + BATTERY"; break;
-		    case 16: gbmbc = MBCType::MBC3; externalrampres = true; mbctype = "MBC3 + TIMER + RAM + BATTERY"; break;
-		    case 17: gbmbc = MBCType::MBC3; externalrampres = false; mbctype = "MBC3"; break;
-		    case 18: gbmbc = MBCType::MBC3; externalrampres = true; mbctype = "MBC3 + RAM"; break;
-		    case 19: gbmbc = MBCType::MBC3; externalrampres = true; mbctype = "MBC3 + RAM + BATTERY"; break;
-		    case 25: gbmbc = MBCType::MBC5; externalrampres = false; mbctype = "MBC5"; break;
-		    case 26: gbmbc = MBCType::MBC5; externalrampres = true; mbctype = "MBC5 + RAM"; break;
-		    case 27: gbmbc = MBCType::MBC5; externalrampres = true; mbctype = "MBC5 + RAM + BATTERY"; break;
-		    case 30: gbmbc = MBCType::MBC5; externalrampres = true; mbctype = "MBC5 + RUMBLE + RAM + BATTERY"; break;
+		    case 16: gbmbc = MBCType::MBC3; externalrampres = true; mbctype = "MBC3 + TIMER + RAM + BATTERY"; batteryenabled = true; break;
+		    case 17: gbmbc = MBCType::MBC3; externalrampres = false; mbctype = "MBC3"; batteryenabled = false; break;
+		    case 18: gbmbc = MBCType::MBC3; externalrampres = true; mbctype = "MBC3 + RAM"; batteryenabled = false; break;
+		    case 19: gbmbc = MBCType::MBC3; externalrampres = true; mbctype = "MBC3 + RAM + BATTERY"; batteryenabled = true; break;
+		    case 25: gbmbc = MBCType::MBC5; externalrampres = false; mbctype = "MBC5"; batteryenabled = false; break;
+		    case 26: gbmbc = MBCType::MBC5; externalrampres = true; mbctype = "MBC5 + RAM"; batteryenabled = false; break;
+		    case 27: gbmbc = MBCType::MBC5; externalrampres = true; mbctype = "MBC5 + RAM + BATTERY"; batteryenabled = true; break;
+		    case 30: gbmbc = MBCType::MBC5; externalrampres = true; mbctype = "MBC5 + RUMBLE + RAM + BATTERY"; batteryenabled = true; break;
 		    default: cout << "MMU::Error - Unrecognized MBC type" << endl; exit(1); break;
 		}
 	    }
@@ -295,13 +408,10 @@ namespace gb
 		}
     	    }
 
-	    inline void dodmatransfer(uint8_t value)
+	    inline void writedma(uint8_t value)
 	    {		
-		uint16_t addr = (value << 8);
-		for (int i = 0; i < 0xA0; i++)
-		{
-		    writeByte((0xFE00 + i), readByte(addr + i));
-		}
+		dma = value;
+		dmaactive = true;
 	    }
 
 	    inline bool islcdenabled()
@@ -337,9 +447,9 @@ namespace gb
 
 	    inline void writelcdc(uint8_t value)
 	    {
-		bool wasenabled = islcdenabled();		
+		bool wasenabled = TestBit(value, 7);
+		poweron(wasenabled);		
 		lcdc = value;
-		poweron(wasenabled);
 	    }
 
 	    inline void writediv()
@@ -493,11 +603,13 @@ namespace gb
 	    uint8_t windowx = 0x00;
 	    uint8_t ly = 0x00;
 	    uint8_t lyc = 0x00;
+	    uint8_t dma = 0x00;
 	    uint8_t bgpalette = 0xFC;
 	    uint8_t objpalette0 = 0xFF;
 	    uint8_t objpalette1 = 0xFF;
 	    uint8_t key1 = 0x00;
 	    uint8_t interruptenabled = 0x00;
+	    bool dmaactive = false;
 
 	    uint8_t lylastcycle = 0xFF;
     };
