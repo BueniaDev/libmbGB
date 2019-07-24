@@ -84,6 +84,8 @@ namespace gb
 	    return false;
 	}
 
+	cout << hex << (int)(interruptenabled) << endl;
+
 	file.seekg(offset);
 
 	file.read((char*)&cartmem[0], sizeof(cartmem));
@@ -92,7 +94,29 @@ namespace gb
 	file.read((char*)&wram[0], 0x8000);
 	file.read((char*)&oam[0], 0xA0);
 	file.read((char*)&hram[0], 0x7F);
-	readio(file);
+	        file.read((char*)&joypad, sizeof(joypad));
+	        file.read((char*)&sb, sizeof(sb));
+	    	file.read((char*)&sc, sizeof(sc));
+	    	file.read((char*)&divider, sizeof(divider));
+	    	file.read((char*)&tima, sizeof(tima));
+	    	file.read((char*)&tma, sizeof(tma));
+	        file.read((char*)&tac, sizeof(tac));
+	        file.read((char*)&interruptflags, sizeof(interruptflags));
+	        file.read((char*)&lcdc, sizeof(lcdc));
+	        file.read((char*)&stat, sizeof(stat));
+	        file.read((char*)&scrolly, sizeof(scrolly));
+	        file.read((char*)&scrollx, sizeof(scrollx));
+	        file.read((char*)&windowy, sizeof(windowy));
+	        file.read((char*)&windowx, sizeof(windowx));
+	        file.read((char*)&ly, sizeof(ly));
+	        file.read((char*)&lyc, sizeof(lyc));
+	        file.read((char*)&dma, sizeof(dma));
+	        file.read((char*)&bgpalette, sizeof(bgpalette));
+	        file.read((char*)&objpalette0, sizeof(objpalette0));
+	        file.read((char*)&objpalette1, sizeof(objpalette1));
+	        file.read((char*)&key1, sizeof(key1));
+	        file.read((char*)&interruptenabled, sizeof(interruptenabled));
+	    	file.read((char*)&dmaactive, sizeof(dmaactive));
 	file.read((char*)&gbcbgpalette[0], 0x40);
 	file.read((char*)&gbcobjpalette[0], 0x40);
 	file.read((char*)&doublespeed, sizeof(doublespeed));
@@ -101,6 +125,7 @@ namespace gb
 	file.read((char*)&higherrombankbits, sizeof(higherrombankbits));
 	file.read((char*)&rommode, sizeof(rommode));
 	file.read((char*)&ramenabled, sizeof(ramenabled));
+	cout << hex << (int)(interruptenabled) << endl;
 	file.close();
 	return true;
     }
@@ -121,7 +146,29 @@ namespace gb
 	file.write((char*)&wram[0], 0x8000);
 	file.write((char*)&oam[0], 0xA0);
 	file.write((char*)&hram[0], 0x7F);
-	writeio(file);
+	file.write((char*)&joypad, sizeof(joypad));
+	file.write((char*)&sb, sizeof(sb));
+	file.write((char*)&sc, sizeof(sc));
+	file.write((char*)&divider, sizeof(divider));
+	file.write((char*)&tima, sizeof(tima));
+	    	file.write((char*)&tma, sizeof(tma));
+	        file.write((char*)&tac, sizeof(tac));
+	        file.write((char*)&interruptflags, sizeof(interruptflags));
+	        file.write((char*)&lcdc, sizeof(lcdc));
+	        file.write((char*)&stat, sizeof(stat));
+	        file.write((char*)&scrolly, sizeof(scrolly));
+	        file.write((char*)&scrollx, sizeof(scrollx));
+	        file.write((char*)&windowy, sizeof(windowy));
+	        file.write((char*)&windowx, sizeof(windowx));
+	        file.write((char*)&ly, sizeof(ly));
+	        file.write((char*)&lyc, sizeof(lyc));
+	        file.write((char*)&dma, sizeof(dma));
+	        file.write((char*)&bgpalette, sizeof(bgpalette));
+	        file.write((char*)&objpalette0, sizeof(objpalette0));
+	        file.write((char*)&objpalette1, sizeof(objpalette1));
+	        file.write((char*)&key1, sizeof(key1));
+	        file.write((char*)&interruptenabled, sizeof(interruptenabled));
+	    	file.write((char*)&dmaactive, sizeof(dmaactive));
 	file.write((char*)&gbcbgpalette[0], 0x40);
 	file.write((char*)&gbcobjpalette[0], 0x40);
 	file.write((char*)&doublespeed, sizeof(doublespeed));
@@ -129,7 +176,8 @@ namespace gb
 	file.write((char*)&currentrambank, sizeof(currentrambank));
 	file.write((char*)&higherrombankbits, sizeof(higherrombankbits));
 	file.write((char*)&rommode, sizeof(rommode));
-	file.write((char*)&ramenabled, sizeof(ramenabled));
+	file.write((char*)&ramenabled, sizeof(ramenabled));	
+	cout << hex << (int)(interruptenabled) << endl;
 	file.close();
 	return true;
     }
@@ -149,7 +197,7 @@ namespace gb
 	    }
 	    else
 	    {
-		if (gbmbc != MBCType::None && externalrampres)
+		if (gbmbc != MBCType::None && batteryenabled)
 		{
 		    sram.read((char*)&rambanks[0], 0x8000);
 		    cout << "MMU::Save data succesfully loaded." << endl;
@@ -181,7 +229,7 @@ namespace gb
 	    }
 	    else
 	    {
-		if (gbmbc != MBCType::None && externalrampres)
+		if (gbmbc != MBCType::None && batteryenabled)
 		{
 		    sram.write((char*)&rambanks[0], 0x8000);
 		    cout << "MMU::Save data succesfully stored." << endl;
@@ -604,7 +652,7 @@ namespace gb
 	    file.read((char*)&cartmem[0], size);
 	    file.close();
 
-	    bool cgbflag = ((cartmem[0x0143] == 0xC0) || (cartmem[0x0143] == 0x80));
+	    bool cgbflag = ((cartmem[0x0143] == 0xC0));
 
 	    if (gameboy == Console::Default)
 	    {

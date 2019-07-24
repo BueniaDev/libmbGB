@@ -54,12 +54,8 @@ namespace gb
 	    if (prevtimaval == timermem.tima)
 	    {
 		timaoverflownotinterrupted = true;
-		loadtmaintotima();
-		if (timermem.isdivinterrupt)
-		{
-		    timermem.requestinterrupt(2);
-		    timermem.isdivinterrupt = true;
-		}
+		timermem.tima = timermem.tma;
+		timermem.requestinterrupt(2);
 	    }
 	    else
 	    {

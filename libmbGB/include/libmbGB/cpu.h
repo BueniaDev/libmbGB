@@ -142,20 +142,16 @@ namespace gb
 
 	    int8_t getimmsignedbyte()
 	    {
-		int8_t temp = (int8_t)(mem.readByte(pc++));
-		hardwaretick(4);
+		int8_t temp = (int8_t)(getimmbyte());
 		return temp;
 	    }
 
 	    uint16_t getimmword()
 	    {
-		hardwaretick(4);
-		uint16_t temp = mem.readWord(pc);
-		hardwaretick(4);
+		uint8_t lo = getimmbyte();
+		uint8_t hi = getimmbyte();
 
-		pc += 2;
-
-		return temp;
+		return ((hi << 8) | lo);
 	    }
 
 	    inline void setcarryflag()
@@ -187,8 +183,8 @@ namespace gb
 
 	    void load16intomem(uint16_t reg, uint16_t imm)
 	    {
-		mem.writeWord(reg, imm);
-		hardwaretick(8);
+		load8intomem(reg, (imm & 0xFF));
+		load8intomem((reg + 1), (imm >> 8));
 	    }
 
 	    inline uint16_t loadspn(int8_t val)
@@ -372,18 +368,31 @@ namespace gb
 
 	    inline uint16_t increg(uint16_t reg)
 	    {
+		hardwaretick(4);
 		return (reg + 1);
 	    }
 
 	    inline uint16_t decreg(uint16_t reg)
 	    {
+		hardwaretick(4);
 		return (reg - 1);
+	    }
+
+	    inline void loadhltosp()
+	    {
+		sp = hl.reg;
+		hardwaretick(4);
 	    }
 
 	    inline void jump(uint16_t addr)
 	    {
 		hardwaretick(4);
 		pc = addr;
+	    }
+
+	    inline void jumptohl()
+	    {
+		pc = hl.reg;
 	    }
 
 	    inline int jumpcond(uint16_t addr, bool cond)
@@ -396,7 +405,6 @@ namespace gb
 		}
 		else
 		{
-		    hardwaretick(8);
 		    temp = 12;
 		}
 
@@ -420,7 +428,6 @@ namespace gb
 		}
 		else
 		{
-		    hardwaretick(4);
 		    temp = 8;
 		}
 
@@ -449,7 +456,6 @@ namespace gb
 		}
 		else
 		{
-		    hardwaretick(8);
 		    temp = 12;
 		}
 

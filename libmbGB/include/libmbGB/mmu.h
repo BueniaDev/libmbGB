@@ -95,6 +95,9 @@ namespace gb
 		bgpalette = 0xFC;
 		interruptflags = 0xE0;
 		ly = 0x90;
+	    	tima = 0x00;
+	    	tma = 0x00;
+	        tac = 0xF8;
 	    }
 
 	    inline void resetio()
@@ -124,8 +127,10 @@ namespace gb
 	    	dmaactive = false;
 	    }
 
-	    inline void readio(ifstream &file)
+	    inline void readio(ifstream& file)
 	    {
+		cout << hex << (int)(interruptenabled) << endl;
+
 	        file.read((char*)&joypad, sizeof(joypad));
 	        file.read((char*)&sb, sizeof(sb));
 	    	file.read((char*)&sc, sizeof(sc));
@@ -149,11 +154,14 @@ namespace gb
 	        file.read((char*)&key1, sizeof(key1));
 	        file.read((char*)&interruptenabled, sizeof(interruptenabled));
 	    	file.read((char*)&dmaactive, sizeof(dmaactive));
+
+		cout << hex << (int)(interruptenabled) << endl;
 	    }
 
-	    inline void writeio(ofstream &file)
-	    {
-	        file.write((char*)&joypad, sizeof(joypad));
+	    inline void writeio(ofstream& file)
+	    {	        
+
+		file.write((char*)&joypad, sizeof(joypad));
 	        file.write((char*)&sb, sizeof(sb));
 	    	file.write((char*)&sc, sizeof(sc));
 	    	file.write((char*)&divider, sizeof(divider));
@@ -176,6 +184,8 @@ namespace gb
 	        file.write((char*)&key1, sizeof(key1));
 	        file.write((char*)&interruptenabled, sizeof(interruptenabled));
 	    	file.write((char*)&dmaactive, sizeof(dmaactive));
+
+		cout << hex << (int)(interruptenabled) << endl;
 	    }
 
 	    bool loadmmu(int offset, string filename);

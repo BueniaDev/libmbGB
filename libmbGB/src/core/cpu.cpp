@@ -129,6 +129,10 @@ namespace gb
 	file.read((char*)&interruptmasterenable, sizeof(interruptmasterenable));
 	file.read((char*)&enableinterruptsdelayed, sizeof(enableinterruptsdelayed));
 
+	printregs();
+
+	loaded = true;
+
 	file.close();
 	return true;
     }
@@ -166,7 +170,6 @@ namespace gb
 
     void CPU::printregs()
     {
-	uint8_t stat = mem.readByte(0xFF41);	
 	cout << "AF: " << hex << (int)(af.reg) << endl;
 	cout << "BC: " << hex << (int)(bc.reg) << endl;
 	cout << "DE: " << hex << (int)(de.reg) << endl;
@@ -179,10 +182,7 @@ namespace gb
 	cout << "IMA: " << (int)(enableinterruptsdelayed) << endl;
 	cout << "REI: " << (int)(mem.requestedenabledinterrupts()) << endl;
 	cout << "LCD: " << (int)(mem.ispending(1)) << endl;
-	cout << "(FF41): " << hex << (int)(stat) << endl;
-	cout << "STAT IRQ: " << (int)(mem.statinterruptsignal) << endl;
-	cout << "STAT mode: " << (int)(stat & 3) << endl;
-	cout << "LY = LYC: " << (int)(TestBit(stat, 6) && TestBit(stat, 2)) << endl;
+	cout << "TIMA: " << hex << (int)(mem.readByte(0xFF05)) << endl;
 	cout << "Opcode: " << hex << (int)(mem.readByte(pc)) << endl;
 	cout << endl;
     }
@@ -196,11 +196,11 @@ namespace gb
 	    if (mem.requestedenabledinterrupts())
 	    {		
 
-		hardwaretick(8);
-		mem.writeByte(--sp, (pc >> 8));
-		hardwaretick(8);
-
 		interruptmasterenable = false;
+
+		hardwaretick(8);
+		load8intomem(--sp, (pc >> 8));
+		hardwaretick(4);
 
 		uint16_t interruptvector = 0x0000;
 
@@ -235,8 +235,7 @@ namespace gb
 		    // serviceinterrupt(0x60);
 		}
 
-		mem.writeByte(--sp, (pc & 0xFF));
-		hardwaretick(4);
+		load8intomem(--sp, (pc & 0xFF));
 
 		pc = interruptvector;
 
@@ -281,32 +280,32 @@ namespace gb
 		cycles -= 4;
 		continue;
 	    }
-
-	    /*
-	    if (pc == 0x0100)
-	    {
-		printregs();
-	    }
-	    */
 	    
 	    // TODO: HDMA transfer stuff
 
 	    cycles -= handleinterrupts();
 
+	    int temp = 0;
+
 	    if (state == CPUState::Running)
 	    {
-		cycles -= executenextopcode(mem.readByte(pc++));
+		temp = executenextopcode(mem.readByte(pc++));
+		cycles -= temp;
 	    }
 	    else if (state == CPUState::HaltBug)
 	    {
-		cycles -= executenextopcode(mem.readByte(pc));
+		temp = executenextopcode(mem.readByte(pc));
+		cycles -= temp;
 		state = CPUState::Running;
 	    }
 	    else if (state == CPUState::Halted)
 	    {
 		haltedtick(4);
+		temp = 4;
 		cycles -= 4;
 	    }
+
+	    // cout << hex << (int)(mem.readByte(0xFFFF)) << endl;
 	}
 
 	return cycles;

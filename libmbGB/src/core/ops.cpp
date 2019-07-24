@@ -21,7 +21,7 @@ namespace gb
     int CPU::executenextopcode(uint8_t opcode)
     {
 	hardwaretick(4);
-	int cycles = 0;	
+	int cycles = 0;
 
 	switch (opcode)
 	{
@@ -72,7 +72,7 @@ namespace gb
 	    case 0x1F: af.hi = (rr(af.hi)); setzero(false); cycles = 4; break;
 	    case 0x20: cycles = reljumpcond(getimmsignedbyte(), !iszero()); break;
 	    case 0x21: hl.reg = (getimmword()); cycles = 12; break;
-	    case 0x22: load8intomem(hl.reg, af.hi); hl.reg = (increg(hl.reg)); cycles = 8; break;
+	    case 0x22: load8intomem(hl.reg++, af.hi);cycles = 8; break;
 	    case 0x23: hl.reg = (increg(hl.reg)); cycles = 8; break;
 	    case 0x24: hl.hi = (incregbyte(hl.hi)); cycles = 4; break;
 	    case 0x25: hl.hi = (decregbyte(hl.hi)); cycles = 4; break;
@@ -80,7 +80,7 @@ namespace gb
 	    case 0x27: daa(); cycles = 4; break;
 	    case 0x28: cycles = reljumpcond(getimmsignedbyte(), iszero()); break;
 	    case 0x29: hl.reg = (add16reg(hl.reg, hl.reg)); cycles = 8; break;
-	    case 0x2A: af.hi = (store8frommem(hl.reg)); hl.reg = (increg(hl.reg)); cycles = 8; break;
+	    case 0x2A: af.hi = (store8frommem(hl.reg++)); cycles = 8; break;
 	    case 0x2B: hl.reg = (decreg(hl.reg)); cycles = 8; break;
 	    case 0x2C: hl.lo = (incregbyte(hl.lo)); cycles = 4; break;
 	    case 0x2D: hl.lo = (decregbyte(hl.lo)); cycles = 4; break;
@@ -88,7 +88,7 @@ namespace gb
 	    case 0x2F: compareg(); cycles = 4; break;
 	    case 0x30: cycles = reljumpcond(getimmsignedbyte(), !iscarry()); break;
 	    case 0x31: sp = getimmword(); cycles = 12; break;
-	    case 0x32: load8intomem(hl.reg, af.hi); hl.reg = (decreg(hl.reg)); cycles = 8; break;
+	    case 0x32: load8intomem(hl.reg--, af.hi); cycles = 8; break;
 	    case 0x33: sp = increg(sp); cycles = 8; break;
 	    case 0x34: load8intomem(hl.reg, incregbyte(store8frommem(hl.reg))); cycles = 12; break;
 	    case 0x35: load8intomem(hl.reg, decregbyte(store8frommem(hl.reg))); cycles = 12; break;
@@ -96,7 +96,7 @@ namespace gb
 	    case 0x37: setcarryflag(); cycles = 4; break;
 	    case 0x38: cycles = reljumpcond(getimmsignedbyte(), iscarry()); break;
 	    case 0x39: hl.reg = (add16reg(hl.reg, sp)); cycles = 8; break;
-	    case 0x3A: af.hi = (store8frommem(hl.reg)); hl.reg = (decreg(hl.reg)); cycles = 8; break;
+	    case 0x3A: af.hi = (store8frommem(hl.reg--)); cycles = 8; break;
 	    case 0x3B: sp = decreg(sp); cycles = 8; break;
 	    case 0x3C: af.hi = (incregbyte(af.hi)); cycles = 4; break;
 	    case 0x3D: af.hi = (decregbyte(af.hi)); cycles = 4; break;
@@ -241,7 +241,7 @@ namespace gb
 	    case 0xC8: cycles = retcond(iszero()); break;
 	    case 0xC9: ret(); cycles = 16; break;
 	    case 0xCA: cycles = jumpcond(getimmword(), iszero()); break;
-	    case 0xCB: executenextcbopcode(getimmbyte()); break;
+	    case 0xCB: cycles = executenextcbopcode(getimmbyte()); break;
 	    case 0xCC: cycles = callcond(getimmword(), iszero()); break;
 	    case 0xCD: call(getimmword()); cycles = 24; break;
 	    case 0xCE: af.hi = (adcreg(getimmbyte())); cycles = 8; break;
@@ -265,20 +265,20 @@ namespace gb
 	    case 0xE5: push(hl.reg); cycles = 16; break;
 	    case 0xE6: andreg(getimmbyte()); cycles = 8; break;
 	    case 0xE7: call(0x20); cycles = 16; break;
-	    case 0xE8: addsp(getimmbyte()); cycles = 16; break;
-	    case 0xE9: jump(hl.reg); cycles = 4; break;
+	    case 0xE8: addsp(getimmsignedbyte()); cycles = 16; break;
+	    case 0xE9: jumptohl(); cycles = 4; break;
 	    case 0xEA: load8intomem(getimmword(), af.hi); cycles = 16; break;
 	    case 0xEE: xorreg(getimmbyte()); cycles = 8; break;
 	    case 0xEF: call(0x28); cycles = 16; break;
-	    case 0xF0: af.hi = (store8frommem((0xFF00 + getimmbyte()))); cycles = 8; break;
+	    case 0xF0: af.hi = (store8frommem((0xFF00 + getimmbyte()))); cycles = 12; break;
 	    case 0xF1: af.reg = (pop()); af.lo = ((af.lo & 0xF0)); cycles = 12; break;
 	    case 0xF2: af.hi = (store8frommem((0xFF00 + bc.lo))); cycles = 8; break;
 	    case 0xF3: interruptmasterenable = false; cycles = 4; break;
 	    case 0xF5: push(af.reg); cycles = 16; break;
 	    case 0xF6: orreg(getimmbyte()); cycles = 8; break;
 	    case 0xF7: call(0x30); cycles = 16; break;
-	    case 0xF8: hl.reg = (loadspn(getimmbyte())); cycles = 12; break;
-	    case 0xF9: sp = hl.reg; cycles = 8; break;
+	    case 0xF8: hl.reg = (loadspn(getimmsignedbyte())); cycles = 12; break;
+	    case 0xF9: loadhltosp(); cycles = 8; break;
 	    case 0xFA: af.hi = (store8frommem(getimmword())); cycles = 16; break;
 	    case 0xFB: enableinterruptsdelayed = true; cycles = 4; break;
 	    case 0xFE: cmpreg(getimmbyte()); cycles = 8; break;
