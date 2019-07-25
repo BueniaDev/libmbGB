@@ -129,8 +129,6 @@ namespace gb
 
 	    inline void readio(ifstream& file)
 	    {
-		cout << hex << (int)(interruptenabled) << endl;
-
 	        file.read((char*)&joypad, sizeof(joypad));
 	        file.read((char*)&sb, sizeof(sb));
 	    	file.read((char*)&sc, sizeof(sc));
@@ -154,13 +152,10 @@ namespace gb
 	        file.read((char*)&key1, sizeof(key1));
 	        file.read((char*)&interruptenabled, sizeof(interruptenabled));
 	    	file.read((char*)&dmaactive, sizeof(dmaactive));
-
-		cout << hex << (int)(interruptenabled) << endl;
 	    }
 
 	    inline void writeio(ofstream& file)
-	    {	        
-
+	    {
 		file.write((char*)&joypad, sizeof(joypad));
 	        file.write((char*)&sb, sizeof(sb));
 	    	file.write((char*)&sc, sizeof(sc));
@@ -184,8 +179,6 @@ namespace gb
 	        file.write((char*)&key1, sizeof(key1));
 	        file.write((char*)&interruptenabled, sizeof(interruptenabled));
 	    	file.write((char*)&dmaactive, sizeof(dmaactive));
-
-		cout << hex << (int)(interruptenabled) << endl;
 	    }
 
 	    bool loadmmu(int offset, string filename);

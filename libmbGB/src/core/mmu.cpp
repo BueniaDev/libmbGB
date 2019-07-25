@@ -94,29 +94,7 @@ namespace gb
 	file.read((char*)&wram[0], 0x8000);
 	file.read((char*)&oam[0], 0xA0);
 	file.read((char*)&hram[0], 0x7F);
-	        file.read((char*)&joypad, sizeof(joypad));
-	        file.read((char*)&sb, sizeof(sb));
-	    	file.read((char*)&sc, sizeof(sc));
-	    	file.read((char*)&divider, sizeof(divider));
-	    	file.read((char*)&tima, sizeof(tima));
-	    	file.read((char*)&tma, sizeof(tma));
-	        file.read((char*)&tac, sizeof(tac));
-	        file.read((char*)&interruptflags, sizeof(interruptflags));
-	        file.read((char*)&lcdc, sizeof(lcdc));
-	        file.read((char*)&stat, sizeof(stat));
-	        file.read((char*)&scrolly, sizeof(scrolly));
-	        file.read((char*)&scrollx, sizeof(scrollx));
-	        file.read((char*)&windowy, sizeof(windowy));
-	        file.read((char*)&windowx, sizeof(windowx));
-	        file.read((char*)&ly, sizeof(ly));
-	        file.read((char*)&lyc, sizeof(lyc));
-	        file.read((char*)&dma, sizeof(dma));
-	        file.read((char*)&bgpalette, sizeof(bgpalette));
-	        file.read((char*)&objpalette0, sizeof(objpalette0));
-	        file.read((char*)&objpalette1, sizeof(objpalette1));
-	        file.read((char*)&key1, sizeof(key1));
-	        file.read((char*)&interruptenabled, sizeof(interruptenabled));
-	    	file.read((char*)&dmaactive, sizeof(dmaactive));
+	readio(file);
 	file.read((char*)&gbcbgpalette[0], 0x40);
 	file.read((char*)&gbcobjpalette[0], 0x40);
 	file.read((char*)&doublespeed, sizeof(doublespeed));
@@ -132,7 +110,7 @@ namespace gb
 
     bool MMU::savemmu(string filename)
     {
-	ofstream file(filename.c_str(), ios::app);
+	ofstream file(filename.c_str(), ios::binary | ios::app);
 
 	if (!file.is_open())
 	{
@@ -146,29 +124,7 @@ namespace gb
 	file.write((char*)&wram[0], 0x8000);
 	file.write((char*)&oam[0], 0xA0);
 	file.write((char*)&hram[0], 0x7F);
-	file.write((char*)&joypad, sizeof(joypad));
-	file.write((char*)&sb, sizeof(sb));
-	file.write((char*)&sc, sizeof(sc));
-	file.write((char*)&divider, sizeof(divider));
-	file.write((char*)&tima, sizeof(tima));
-	    	file.write((char*)&tma, sizeof(tma));
-	        file.write((char*)&tac, sizeof(tac));
-	        file.write((char*)&interruptflags, sizeof(interruptflags));
-	        file.write((char*)&lcdc, sizeof(lcdc));
-	        file.write((char*)&stat, sizeof(stat));
-	        file.write((char*)&scrolly, sizeof(scrolly));
-	        file.write((char*)&scrollx, sizeof(scrollx));
-	        file.write((char*)&windowy, sizeof(windowy));
-	        file.write((char*)&windowx, sizeof(windowx));
-	        file.write((char*)&ly, sizeof(ly));
-	        file.write((char*)&lyc, sizeof(lyc));
-	        file.write((char*)&dma, sizeof(dma));
-	        file.write((char*)&bgpalette, sizeof(bgpalette));
-	        file.write((char*)&objpalette0, sizeof(objpalette0));
-	        file.write((char*)&objpalette1, sizeof(objpalette1));
-	        file.write((char*)&key1, sizeof(key1));
-	        file.write((char*)&interruptenabled, sizeof(interruptenabled));
-	    	file.write((char*)&dmaactive, sizeof(dmaactive));
+	writeio(file);
 	file.write((char*)&gbcbgpalette[0], 0x40);
 	file.write((char*)&gbcobjpalette[0], 0x40);
 	file.write((char*)&doublespeed, sizeof(doublespeed));

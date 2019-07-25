@@ -42,6 +42,8 @@ namespace gb
 
     void GBCore::init()
     {
+	coremmu->resetio();
+	coremmu->initio();	
 	corecpu->init();
 	coregpu->init();
 	coretimers->init();

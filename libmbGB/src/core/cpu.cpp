@@ -285,27 +285,22 @@ namespace gb
 
 	    cycles -= handleinterrupts();
 
-	    int temp = 0;
-
 	    if (state == CPUState::Running)
 	    {
-		temp = executenextopcode(mem.readByte(pc++));
-		cycles -= temp;
+		cycles -= executenextopcode(mem.readByte(pc++));
 	    }
 	    else if (state == CPUState::HaltBug)
 	    {
-		temp = executenextopcode(mem.readByte(pc));
-		cycles -= temp;
+		cycles -= executenextopcode(mem.readByte(pc));
 		state = CPUState::Running;
 	    }
 	    else if (state == CPUState::Halted)
 	    {
 		haltedtick(4);
-		temp = 4;
 		cycles -= 4;
 	    }
 
-	    // cout << hex << (int)(mem.readByte(0xFFFF)) << endl;
+	    // cout << hex << (int)(pc) << endl;
 	}
 
 	return cycles;
