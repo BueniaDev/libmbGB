@@ -613,6 +613,10 @@ namespace gb
 	    uint8_t key1 = 0x00;
 	    uint8_t interruptenabled = 0x00;
 	    bool dmaactive = false;
+	    uint8_t s1sweep = 0x00;
+	    uint8_t s1dutylength = 0x00;
+	    uint8_t s1volenv = 0x00;
+	    uint16_t s1freq = 0x0000;
 
 	    uint8_t lylastcycle = 0xFF;
     };

@@ -398,6 +398,11 @@ namespace gb
 	    case 0x06: temp = tma; break;
 	    case 0x07: temp = (tac | 0xF8); break;
 	    case 0x0F: temp = (interruptflags | 0xE0); break;
+	    case 0x10: temp = (s1sweep | 0x80); break;
+	    case 0x11: temp = s1dutylength; break;
+	    case 0x12: temp = s1volenv; break;
+	    case 0x13: temp = (s1freq & 0xFF); break;
+	    case 0x14: temp = (s1freq >> 8); break;
 	    case 0x40: temp = lcdc; break;
 	    case 0x41: temp = (stat | 0x80); break;
 	    case 0x42: temp = scrolly; break;
@@ -440,6 +445,11 @@ namespace gb
 	    case 0x06: tma = value; break;
 	    case 0x07: tac = (value & 0x07); break;
 	    case 0x0F: writeif(value); break;
+	    case 0x10: s1sweep = (value & 0x7F); break;
+	    case 0x11: s1dutylength = value; break;
+	    case 0x12: s1volenv = value; break;
+	    case 0x13: s1freq = ((s1freq & 0xFF00) | (value & 0xFF)); break;
+	    case 0x14: s1freq = ((s1freq & 0xFF) | (value << 8)); break;
 	    case 0x40: writelcdc(value); break;
 	    case 0x41: writestat(value); break;
 	    case 0x42: scrolly = value; break;
