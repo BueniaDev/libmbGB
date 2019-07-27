@@ -399,10 +399,15 @@ namespace gb
 	    case 0x07: temp = (tac | 0xF8); break;
 	    case 0x0F: temp = (interruptflags | 0xE0); break;
 	    case 0x10: temp = (s1sweep | 0x80); break;
-	    case 0x11: temp = s1dutylength; break;
-	    case 0x12: temp = s1volenv; break;
-	    case 0x13: temp = (s1freq & 0xFF); break;
-	    case 0x14: temp = (s1freq >> 8); break;
+	    case 0x11: temp = (((s1lengthload & 0x3F) | ((s1duty & 0x3) << 6)) | 0x3F); break;
+	    case 0x12: temp = ((s1envperiodload & 0x7) | (s1envaddmode << 3) | ((s1volumeload & 0xF) << 4)); break;
+	    case 0x13: temp = ((s1freq & 0xFF) | 0xFF); break;
+	    case 0x14: temp = ((((s1freq >> 8) & 0x7) | (s1lengthenabled << 6) | (s1triggerbit << 7)) | 0xBF); break;
+	    case 0x16: temp = (((s2lengthload & 0x3F) | ((s2duty & 0x3) << 6)) | 0x3F); break;
+	    case 0x17: temp = ((s2envperiodload & 0x7) | (s2envaddmode << 3) | ((s2volumeload & 0xF) << 4)); break;
+	    case 0x18: temp = ((s2freq & 0xFF) | 0xFF); break;
+	    case 0x19: temp = ((((s2freq >> 8) & 0x7) | (s2lengthenabled << 6) | (s2triggerbit << 7)) | 0xBF); break;
+	    case 0x26: temp = getsoundenabled(); break;
 	    case 0x40: temp = lcdc; break;
 	    case 0x41: temp = (stat | 0x80); break;
 	    case 0x42: temp = scrolly; break;
@@ -446,10 +451,65 @@ namespace gb
 	    case 0x07: tac = (value & 0x07); break;
 	    case 0x0F: writeif(value); break;
 	    case 0x10: s1sweep = (value & 0x7F); break;
-	    case 0x11: s1dutylength = value; break;
-	    case 0x12: s1volenv = value; break;
-	    case 0x13: s1freq = ((s1freq & 0xFF00) | (value & 0xFF)); break;
-	    case 0x14: s1freq = ((s1freq & 0xFF) | (value << 8)); break;
+	    case 0x11: 
+	    {
+		s1lengthload = (value & 0x3F);
+		s1duty = ((value >> 6) & 0x3);
+	    }
+	    break;
+	    case 0x12:
+	    {
+		s1dacenabled = ((value & 0xF8) != 0);
+		s1volumeload = ((value >> 4) & 0xF);
+		s1envaddmode = TestBit(value, 3);
+		s1envperiodload = (value & 0x7);
+		s1envperiod = s1envperiodload;
+		s1volume = s1volumeload;
+	    }
+	    break;
+	    case 0x13: s1freq = ((s1freq & 0x700) | (value & 0xFF)); break;
+	    case 0x14: 
+	    {
+		s1freq = (((s1freq & 0xFF) | ((value & 0x7) << 8)));
+		s1lengthenabled = TestBit(value, 6);
+		s1triggerbit = TestBit(value, 7);
+
+		if (TestBit(value, 7))
+		{
+		    s1trigger();
+		}
+	    }
+	    break;
+	    case 0x16: 
+	    {
+		s2lengthload = (value & 0x3F);
+		s2duty = ((value >> 6) & 0x3);
+	    }
+	    break;
+	    case 0x17:
+	    {
+		s2dacenabled = ((value & 0xF8) != 0);
+		s2volumeload = ((value >> 4) & 0xF);
+		s2envaddmode = TestBit(value, 3);
+		s2envperiodload = (value & 0x7);
+		s2envperiod = s2envperiodload;
+		s2volume = s2volumeload;
+	    }
+	    break;
+	    case 0x18: s2freq = ((s2freq & 0x700) | (value & 0xFF)); break;
+	    case 0x19: 
+	    {
+		s2freq = (((s2freq & 0xFF) | ((value & 0x7) << 8)));
+		s2lengthenabled = TestBit(value, 6);
+		s2triggerbit = TestBit(value, 7);
+
+		if (TestBit(value, 7))
+		{
+		    s2trigger();
+		}
+	    }
+	    break;
+	    case 0x26: soundenabled = TestBit(value, 7); break;
 	    case 0x40: writelcdc(value); break;
 	    case 0x41: writestat(value); break;
 	    case 0x42: scrolly = value; break;
@@ -618,7 +678,65 @@ namespace gb
 	    file.read((char*)&cartmem[0], size);
 	    file.close();
 
-	    bool cgbflag = ((cartmem[0x0143] == 0xC0));
+	    bool cgbflag = ((cartmem[0x0143] == 0xC0) || (cartmem[0x0143] == 0x80));
+
+	    if (gameboy == Console::Default)
+	    {
+		if (cgbflag && !ismanual)
+		{
+		    gameboy = Console::CGB;
+		}
+		else
+		{
+		    gameboy = Console::DMG;
+		}
+	    }
+	    
+
+	    if (gameboy == Console::CGB && cgbflag && gbmode == Mode::Default)
+	    {
+		gbmode = Mode::CGB;
+	    }
+	    else
+	    {
+		gbmode = Mode::DMG;
+	    }
+
+	    cout << "Title: " << determinegametitle(cartmem) << endl;
+	    determinembctype(cartmem);
+	    cout << "MBC type: " << mbctype << endl;
+	    numrombanks = getrombanks(cartmem);
+	    cout << "ROM size: " << romsize << endl;
+	    numrambanks = getrambanks(cartmem);
+	    cout << "RAM size: " << ramsize << endl;
+
+	    if (gbmbc != MBCType::None && size != (numrombanks * 0x4000))
+	    {
+		cout << "MMU::Warning - Size of ROM does not match size in cartridge header." << endl;
+	    }
+
+	    memcpy(&rom[0], &cartmem[0], 0x8000);
+	    cout << "MMU::" << filename << " succesfully loaded." << endl;
+	    return true;
+	}
+	else
+	{
+	    cout << "MMU::Error - " << filename << " could not be opened." << endl;
+	    return false;
+	}
+    }
+
+    bool MMU::loadROM(const char *filename, const uint8_t* buffer, int size)
+    {
+	cout << "MMU::Loading ROM " << filename << "..." << endl;
+
+	if ((buffer) != NULL)
+	{
+	    cartmem.resize(size, 0);
+
+	    memcpy(&cartmem[0], &buffer[0], size);
+
+	    bool cgbflag = ((cartmem[0x0143] == 0xC0) || (cartmem[0x0143] == 0x80));
 
 	    if (gameboy == Console::Default)
 	    {

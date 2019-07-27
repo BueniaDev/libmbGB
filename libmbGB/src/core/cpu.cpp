@@ -18,7 +18,7 @@ using namespace gb;
 
 namespace gb
 {
-    CPU::CPU(MMU& memory, GPU& graphics, Timers& timers, Serial& serial) : mem(memory), gpu(graphics), timer(timers), link(serial)
+    CPU::CPU(MMU& memory, GPU& graphics, Timers& timers, Serial& serial, APU& audio) : mem(memory), gpu(graphics), timer(timers), link(serial), apu(audio)
     {
 
     }
@@ -299,8 +299,6 @@ namespace gb
 		haltedtick(4);
 		cycles -= 4;
 	    }
-
-	    // cout << hex << (int)(pc) << endl;
 	}
 
 	return cycles;
@@ -318,9 +316,14 @@ namespace gb
 	{
 	    enabledelayedinterrupts();
 	    timer.updatetimer();
-	    updatedma();
 	    link.updateserial();
 	    gpu.updatelcd();
+
+	    for (int i = 0; i < (2 >> mem.doublespeed); i++)
+	    {
+		apu.updateaudio();
+	    }
+
 	    mem.ifwrittenthiscycle = false;
 	}
     }
@@ -332,6 +335,11 @@ namespace gb
 	    timer.updatetimer();
 	    link.updateserial();
 	    gpu.updatelcd();
+
+	    for (int i = 0; i < (2 >> mem.doublespeed); i++)
+	    {
+		apu.updateaudio();
+	    }
 	}
     }
 };

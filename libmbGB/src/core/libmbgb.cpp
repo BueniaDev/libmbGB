@@ -27,7 +27,8 @@ namespace gb
 	coretimers = make_unique<Timers>(*coremmu);
 	coreinput = make_unique<Input>(*coremmu);
 	coreserial = make_unique<Serial>(*coremmu);
-	corecpu = make_unique<CPU>(*coremmu, *coregpu, *coretimers, *coreserial);
+	coreapu = make_unique<APU>(*coremmu);
+	corecpu = make_unique<CPU>(*coremmu, *coregpu, *coretimers, *coreserial, *coreapu);
     }
 
     GBCore::~GBCore()
@@ -149,6 +150,11 @@ namespace gb
     bool GBCore::loadROM(string filename)
     {
 	return coremmu->loadROM(filename);
+    }
+
+    bool GBCore::loadROM(const char *filename, const uint8_t* buffer, int size)
+    {
+	return coremmu->loadROM(filename, buffer, size);
     }
 
     bool GBCore::loadbackup()

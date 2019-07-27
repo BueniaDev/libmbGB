@@ -5,7 +5,6 @@
 using namespace gb;
 using namespace std;
 
-
 GBCore core;
 
 SDL_Window *window;
@@ -17,6 +16,31 @@ int scale = 3;
 
 int fpscount = 0;
 Uint32 fpstime = 0;
+
+vector<int16_t> buffer;
+
+void sdlcallback(int16_t left, int16_t right)
+{
+    buffer.push_back(left);
+    buffer.push_back(right);
+
+    if (buffer.size() >= 4096)
+    {
+	buffer.clear();
+
+	while ((SDL_GetQueuedAudioSize(1)) > 4096 * sizeof(int16_t))
+	{
+	    SDL_Delay(1);
+	}
+
+	SDL_QueueAudio(1, &buffer[0], 4096 * sizeof(int16_t));
+    }
+}
+
+void play()
+{
+
+}
 
 bool init()
 {
@@ -36,11 +60,23 @@ bool init()
 
     surface = SDL_GetWindowSurface(window);
 
+    SDL_AudioSpec audiospec;
+    audiospec.format = AUDIO_S16SYS;
+    audiospec.freq = 48000;
+    audiospec.samples = 4096;
+    audiospec.channels = 2;
+    audiospec.callback = NULL;
+    
+    SDL_AudioSpec obtainedspec;
+    SDL_OpenAudio(&audiospec, &obtainedspec);
+    SDL_PauseAudio(0);
+
     return true;
 }
 
 void stop()
 {
+    SDL_CloseAudio();
     SDL_DestroyWindow(window);
     SDL_Quit();
 }
@@ -103,6 +139,8 @@ void handleinput(SDL_Event event)
 
 int main(int argc, char* argv[])
 {
+    core.coreapu->setaudiocallback(bind(&sdlcallback, placeholders::_1, placeholders::_2));
+
     if (!core.getoptions(argc, argv))
     {
 	exit(1);

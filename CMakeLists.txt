@@ -3,6 +3,7 @@ project(libmbGB)
 
 option(BUILD_EXAMPLE "Enables the example renderer (requires SDL2)." OFF)
 option(BUILD_HEADLESS "Enables the headless renderer." OFF)
+option(BUILD_LIBRETRO "Enables the Libretro core." OFF)
 option(BUILD_GUI "Enables the ImGUI renderer (requires SDL2)." OFF)
 
 if (WIN32)
@@ -24,6 +25,7 @@ set(LIBMBGB_API_HEADERS
 	libmbGB/include/libmbGB/mmu.h
 	libmbGB/include/libmbGB/cpu.h
 	libmbGB/include/libmbGB/gpu.h
+	libmbGB/include/libmbGB/apu.h
 	libmbGB/include/libmbGB/timers.h
 	libmbGB/include/libmbGB/serial.h
 	libmbGB/include/libmbGB/input.h
@@ -34,6 +36,7 @@ set(LIBMBGB
 	libmbGB/src/core/mbc.cpp
 	libmbGB/src/core/cpu.cpp
 	libmbGB/src/core/gpu.cpp
+	libmbGB/src/core/apu.cpp
 	libmbGB/src/core/timers.cpp
 	libmbGB/src/core/serial.cpp
 	libmbGB/src/core/input.cpp
@@ -46,6 +49,11 @@ endif()
 
 if (BUILD_HEADLESS STREQUAL "ON")
 	add_subdirectory(example/headless)
+endif()
+
+if (BUILD_LIBRETRO STREQUAL "ON")
+	add_subdirectory(example/libretro)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 endif()
 
 if (BUILD_GUI STREQUAL "ON")

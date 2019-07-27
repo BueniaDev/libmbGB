@@ -98,6 +98,7 @@ namespace gb
 	    	tima = 0x00;
 	    	tma = 0x00;
 	        tac = 0xF8;
+		lcdc = 0x91;
 	    }
 
 	    inline void resetio()
@@ -363,6 +364,7 @@ namespace gb
 
 	    bool loadBIOS(string filename);
 	    bool loadROM(string filename);
+	    bool loadROM(const char *filename, const uint8_t* buffer, int size);
 
 	    uint8_t readByte(uint16_t addr);
 	    void writeByte(uint16_t addr, uint8_t value);
@@ -413,8 +415,11 @@ namespace gb
 
 	    inline void writedma(uint8_t value)
 	    {		
-		dma = value;
-		dmaactive = true;
+		uint16_t addr = (value << 8);
+		for (int i = 0; i < 0xA0; i++)
+		{
+		    writeByte((0xFE00 + i), readByte(addr + i));
+		}
 	    }
 
 	    inline bool islcdenabled()
@@ -451,8 +456,8 @@ namespace gb
 	    inline void writelcdc(uint8_t value)
 	    {
 		bool wasenabled = TestBit(value, 7);
-		poweron(wasenabled);		
 		lcdc = value;
+		poweron(wasenabled);
 	    }
 
 	    inline void writediv()
@@ -614,11 +619,81 @@ namespace gb
 	    uint8_t interruptenabled = 0x00;
 	    bool dmaactive = false;
 	    uint8_t s1sweep = 0x00;
-	    uint8_t s1dutylength = 0x00;
-	    uint8_t s1volenv = 0x00;
+	    int s1duty = 0;
+	    int s1lengthload = 0;
+	    bool s1envaddmode = false;
+	    bool s1envrunning = false;
+	    int s1envperiodload = 0;
+	    int s1envperiod = 0;
+	    int s1volumeload = 0;
+	    int s1volume = 0;
+	    bool s1dacenabled = false;
 	    uint16_t s1freq = 0x0000;
+	    int s1timer = 0;
+	    bool s1lengthenabled = false;
+	    bool s1triggerbit = false;
+	    int s1lengthcounter = 0;
+	    bool s1enabled = false;
+	    int s1outputvol = 0;
+
+	    int s2duty = 0;
+	    int s2lengthload = 0;
+	    bool s2envaddmode = false;
+	    bool s2envrunning = false;
+	    int s2envperiodload = 0;
+	    int s2envperiod = 0;
+	    int s2volumeload = 0;
+	    int s2volume = 0;
+	    bool s2dacenabled = false;
+	    uint16_t s2freq = 0x0000;
+	    int s2timer = 0;
+	    bool s2lengthenabled = false;
+	    bool s2triggerbit = false;
+	    int s2lengthcounter = 0;
+	    bool s2enabled = false;
+	    int s2outputvol = 0;
+
+	    bool soundenabled = false;
 
 	    uint8_t lylastcycle = 0xFF;
+
+	    inline void s1trigger()
+	    {
+		s1enabled = true;
+		if (s1lengthcounter == 0)
+		{
+		    s1lengthcounter = (64 - (s1lengthload & 0x3F));
+		    s1lengthload &= 0xC0;
+		}
+
+		s1timer = ((2048 - s1freq) * 4);
+		s1envrunning = true;
+		s1envperiod = s1envperiodload;
+		s1volume = s1volumeload;
+	    }
+
+	    inline void s2trigger()
+	    {
+		s2enabled = true;
+		if (s2lengthcounter == 0)
+		{
+		    s2lengthcounter = (64 - (s2lengthload & 0x3F));
+		    s2lengthload &= 0xC0;
+		}
+
+		s2timer = ((2048 - s2freq) * 4);
+		s2envrunning = true;
+		s2envperiod = s2envperiodload;
+		s2volume = s2volumeload;
+	    }
+
+	    inline uint8_t getsoundenabled()
+	    {
+		uint8_t temp = 0;
+		temp |= (soundenabled << 7);
+		temp |= ((s1lengthcounter > 0));
+		return temp;
+	    }
     };
 };
 

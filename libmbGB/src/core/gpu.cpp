@@ -137,6 +137,8 @@ namespace gb
 
     void GPU::updatelcd()
     {
+	
+
 	if (!gpumem.islcdenabled())
 	{
 	    return;
@@ -152,11 +154,12 @@ namespace gb
 	    if (scanlinecounter == ((gpumem.isdmgmode() || gpumem.doublespeed) ? 4 : 0))
 	    {
 		gpumem.setstatmode(2);
-		linexbias = (gpumem.scrollx & 7);
-		pixelx = linexbias;
-
+		
 		if (isdotrender())
 		{
+		    linexbias = (gpumem.scrollx & 7);
+		    pixelx = linexbias;
+
 		    scanline();
 		}
 	    }
@@ -421,7 +424,15 @@ namespace gb
 	    tileaddr += (0x1000 + ((int8_t)(tile) << 4));
 	}
 
-	tileaddr += ((y & 7) << 1);
+	y &= 7;
+
+	if (TestBit(bgattr, 6))
+	{
+	    y = (7 - y);
+	}
+
+
+	tileaddr += (y << 1);
 	
 	return readvram16(tileaddr);
     }
@@ -612,6 +623,11 @@ namespace gb
 	    bgdata = readtilecgb(TestBit(gpumem.lcdc, 3), scrollx, scrolly);
 	}
 
+	if (TestBit(bgattr, 5))
+	{
+	    tx = (7 - tx);
+	}
+
 	bgpalette = getdmgcolornum(bgdata, tx);
 
 	if (gpumem.isdmgmode() && !gpumem.biosload)
@@ -674,6 +690,11 @@ namespace gb
 	if (tx == 0 || pixelx == 0)
 	{
 	    bgdata = readtilecgb(TestBit(gpumem.lcdc, 6), sx, sy);
+	}
+
+	if (TestBit(bgattr, 5))
+	{
+	    tx = (7 - tx);
 	}
 
 	bgpalette = getdmgcolornum(bgdata, tx);
@@ -842,7 +863,7 @@ namespace gb
 
 	uint8_t ypos = 0;
 
-	ypos = scrolly + currentscanline;
+	ypos = scrolly + gpumem.ly;
 
 	uint16_t tilerow = (((uint8_t)(ypos / 8)) * 32);
 
@@ -948,7 +969,7 @@ namespace gb
 		blue = ((tempblue << 3) | (tempblue >> 2));
 	    }
 
-	    uint8_t scanline = currentscanline;
+	    uint8_t scanline = gpumem.ly;
 
 	    if ((scanline < 0) || (scanline > 144))
 	    {
@@ -983,7 +1004,7 @@ namespace gb
 	uint16_t tiledata = (unsig) ? 0x8000 : 0x8800;
 	uint16_t bgmem = TestBit(gpumem.lcdc, 6) ? 0x9C00 : 0x9800;
 
-	uint8_t ypos = (currentscanline - windowy);
+	uint8_t ypos = (gpumem.ly - windowy);
 
 	uint16_t tilerow = (((ypos / 8)) * 32);
 
@@ -1091,7 +1112,7 @@ namespace gb
 		    blue = ((tempblue << 3) | (tempblue >> 2));
 		}
 
-	        uint8_t scanline = currentscanline;
+	        uint8_t scanline = gpumem.ly;
 
 		if ((scanline < 0) || (scanline > 144))
 		{

@@ -52,6 +52,7 @@ namespace gb
 	    unique_ptr<Input> coreinput;
 	    unique_ptr<CPU> corecpu;
 	    unique_ptr<Serial> coreserial;
+	    unique_ptr<APU> coreapu;
 
 	    void preinit();
 	    void init();
@@ -60,6 +61,7 @@ namespace gb
 	    bool getoptions(int argc, char* argv[]);
 	    bool loadBIOS(string filename);
 	    bool loadROM(string filename);
+	    bool loadROM(const char *filename, const uint8_t* buffer, int size);
 	    bool loadstate();
 	    bool savestate();
 	    RGB getpixel(int x, int y);
