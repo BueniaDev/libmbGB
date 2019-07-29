@@ -40,8 +40,6 @@ namespace gb
 	gbcbgpalette.resize(0x40, 0);
 	gbcobjpalette.resize(0x40, 0);
 
-	initio();
-
 	cout << "MMU::Initialized" << endl;
     }
 
@@ -291,6 +289,14 @@ namespace gb
 	{
 	    return 0x00;
 	}
+	else if (addr < 0xFF30)
+	{
+	    return readIO(addr);
+	}
+	else if (addr < 0xFF40)
+	{
+	    return waveram[addr - 0xFF30];
+	}
 	else if (addr < 0xFF80)
 	{
 	    return readIO(addr);
@@ -359,6 +365,14 @@ namespace gb
 	{
 	    return;
 	}
+	else if (addr < 0xFF30)
+	{
+	    writeIO(addr, value);
+	}
+	else if (addr < 0xFF40)
+	{
+	    waveram[addr - 0xFF30] = value;
+	}
 	else if (addr < 0xFF80)
 	{
 	    writeIO(addr, value);
@@ -398,7 +412,7 @@ namespace gb
 	    case 0x06: temp = tma; break;
 	    case 0x07: temp = (tac | 0xF8); break;
 	    case 0x0F: temp = (interruptflags | 0xE0); break;
-	    case 0x10: temp = (s1sweep | 0x80); break;
+	    case 0x10: temp = ((s1sweepshift) | (s1sweepnegate << 3) | (s1sweepperiodload << 4) | 0x80); break;
 	    case 0x11: temp = (((s1lengthload & 0x3F) | ((s1duty & 0x3) << 6)) | 0x3F); break;
 	    case 0x12: temp = ((s1envperiodload & 0x7) | (s1envaddmode << 3) | ((s1volumeload & 0xF) << 4)); break;
 	    case 0x13: temp = ((s1freq & 0xFF) | 0xFF); break;
@@ -407,6 +421,25 @@ namespace gb
 	    case 0x17: temp = ((s2envperiodload & 0x7) | (s2envaddmode << 3) | ((s2volumeload & 0xF) << 4)); break;
 	    case 0x18: temp = ((s2freq & 0xFF) | 0xFF); break;
 	    case 0x19: temp = ((((s2freq >> 8) & 0x7) | (s2lengthenabled << 6) | (s2triggerbit << 7)) | 0xBF); break;
+	    case 0x1A: temp = ((wavedacenabled) << 7); break;
+	    case 0x1B: temp = wavelengthload; break;
+	    case 0x1C: temp = (wavevolumecode << 5); break;
+	    case 0x1D: temp = (wavefreq & 0xFF); break;
+	    case 0x1E: temp = (((wavefreq >> 8) & 0x7) | (wavelengthenabled << 6) | (wavetriggerbit << 7)); break;
+	    case 0x24: temp = ((rightvol) | (vinrightenable << 3) | (leftvol << 4) | (vinleftenable << 7)); break;
+	    case 0x25:
+	    {
+		for (int i = 0; i < 4; i++)
+		{
+		    temp |= (rightenables[i] << i);
+		}
+
+		for (int i = 0; i < 4; i++)
+		{
+		    temp |= (leftenables[i] << (i + 4));
+		}
+	    }
+	    break;
 	    case 0x26: temp = getsoundenabled(); break;
 	    case 0x40: temp = lcdc; break;
 	    case 0x41: temp = (stat | 0x80); break;
@@ -450,7 +483,14 @@ namespace gb
 	    case 0x06: tma = value; break;
 	    case 0x07: tac = (value & 0x07); break;
 	    case 0x0F: writeif(value); break;
-	    case 0x10: s1sweep = (value & 0x7F); break;
+	    case 0x10: 
+	    {
+		s1sweepshift = (value & 0x7);
+		s1sweepnegate = TestBit(value, 3);
+		s1sweepperiodload = ((value >> 4) & 0x7);
+		s1sweepperiod = s1sweepperiodload;
+	    }
+	    break;
 	    case 0x11: 
 	    {
 		s1lengthload = (value & 0x3F);
@@ -506,6 +546,82 @@ namespace gb
 		if (TestBit(value, 7))
 		{
 		    s2trigger();
+		}
+	    }
+	    break;
+	    case 0x1A: wavedacenabled = TestBit(value, 7); break;
+	    case 0x1B: wavelengthload = value; break;
+	    case 0x1C: wavevolumecode = ((value >> 5) & 0x3); break;
+	    case 0x1D: wavefreq = ((wavefreq & 0x700) | (value)); break;
+	    case 0x1E:
+	    {
+		wavefreq = ((wavefreq & 0xFF) | ((value & 0x7) << 8));
+		wavelengthenabled = TestBit(value, 6);
+		wavetriggerbit = TestBit(value, 7);
+
+		if (TestBit(value, 7))
+		{
+		    wavetrigger();
+		}
+	    }
+	    break;
+	    case 0x20: noiselengthload = (value & 0x3F); break;
+	    case 0x21:
+	    {
+		noisedacenabled = ((value & 0xF8) != 0);
+		noisevolumeload = ((value >> 4) & 0xF);
+		noiseenvaddmode = TestBit(value, 3);
+		noiseenvperiodload = (value & 0x7);
+		noiseenvperiod = noiseenvperiodload;
+		noisevolume = noisevolumeload;
+	    }
+	    break;
+	    case 0x22:
+	    {
+		noisedivisor = (value & 0x7);
+		noisewidthmode = TestBit(value, 3);
+		noiseclockshift = ((value >> 4) & 0xF);
+	    }
+	    break;
+	    case 0x23:
+	    {
+		noiselengthenabled = TestBit(value, 6);
+		noisetriggerbit = TestBit(value, 7);
+
+		if (TestBit(value, 7))
+		{
+		    noisetrigger();
+		}
+	    }
+	    break;
+	    case 0x24:
+	    {
+		if (!soundenabled)
+		{
+		    return;
+		}
+
+		rightvol = (value & 0x7);
+		vinrightenable = TestBit(value, 3);
+		leftvol = ((value >> 4) & 0x7);
+		vinleftenable = TestBit(value, 7);
+	    }
+	    break;
+	    case 0x25:
+	    {
+		if (!soundenabled)
+		{
+		    return;
+		}
+
+		for (int i = 0; i < 4; i++)
+		{
+		    rightenables[i] = TestBit((value >> i), 0);
+		}
+
+		for (int i = 0; i < 4; i++)
+		{
+		    leftenables[i] = TestBit((value >> (i + 4)), 0);
 		}
 	    }
 	    break;
@@ -682,7 +798,7 @@ namespace gb
 
 	    if (gameboy == Console::Default)
 	    {
-		if (cgbflag && !ismanual)
+		if (cgbflag)
 		{
 		    gameboy = Console::CGB;
 		}
@@ -740,7 +856,7 @@ namespace gb
 
 	    if (gameboy == Console::Default)
 	    {
-		if (cgbflag && !ismanual)
+		if (cgbflag)
 		{
 		    gameboy = Console::CGB;
 		}

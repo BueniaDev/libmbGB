@@ -142,6 +142,7 @@ namespace gb
 
 	    RGB framebuffer[160 * 144];
 	    uint8_t screenbuffer[144][160];
+	    bool bgpriorline[160] = {false};
 
 	    inline RGB getdmgpalette(int color, int offset, bool bg)
 	    {
@@ -186,10 +187,12 @@ namespace gb
 	    uint16_t windata = 0;
 	    uint16_t objdata = 0;
 	    uint8_t bgattr = 0;
+	    uint8_t winattr = 0;
 	    int bgcolor = 0;
 	    int bgpalette = 0;
 	    int objcolor = 0;
 	    int objpalette = 0;
+	    bool bgprior = false;
 	    bool objprior = false;
 	    bool objdmgpalette = false;
 
@@ -197,7 +200,8 @@ namespace gb
 	    int sprites;
 
 	    uint16_t readtiledmg(bool select, int x, int y);
-	    uint16_t readtilecgb(bool select, int x, int y);
+	    uint16_t readtilecgbbg(bool select, int x, int y);
+	    uint16_t readtilecgbwin(bool select, int x, int y);
 
 	    uint8_t bgscanline[160];
 	    uint8_t winscanline[160];

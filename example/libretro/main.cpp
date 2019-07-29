@@ -86,9 +86,9 @@ void retro_get_system_av_info(retro_system_av_info* info)
     info->timing.sample_rate = 48000;
     info->geometry.base_width = screenwidth;
     info->geometry.base_height = screenheight;
-    info->geometry.max_width = width;
-    info->geometry.max_height = height;
-    info->geometry.aspect_ratio = (((float)(screenheight)) / ((float)(screenwidth)));
+    info->geometry.max_width = screenwidth;
+    info->geometry.max_height = screenheight;
+    info->geometry.aspect_ratio = (float)(160 / 144);
 }
 
 void retro_set_environment(retro_environment_t cb)
@@ -108,6 +108,8 @@ bool retro_load_game(const retro_game_info* info)
 	{
 	    return false;
 	}
+
+	core.romname = info->path;
 
 	core.init();
 
@@ -246,6 +248,7 @@ bool retro_unserialize(const void *data, size_t size)
 
 void retro_cheat_reset(void)
 {
+
 }
 
 void retro_cheat_set(unsigned index, bool enabled, const char *code)

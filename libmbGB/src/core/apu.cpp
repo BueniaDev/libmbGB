@@ -43,11 +43,11 @@ namespace gb
 	    {
 		case 0: lengthclock(); break;
 		case 1: break;
-		case 2: lengthclock(); break; // TODO: Sweep clock
+		case 2: sweepclock(); lengthclock(); break;
 		case 3: break;
 		case 4: lengthclock(); break;
 		case 5: break;
-		case 6: lengthclock(); break; // TODO: Sweep clock
+		case 6: sweepclock(); lengthclock(); break; 
 		case 7: envclock(); break;
 	    }
 
@@ -56,6 +56,8 @@ namespace gb
 
 	s1step();
 	s2step();
+	wavestep();
+	noisestep();
 
 	if (samplecounter++ == initialsamplerate)
 	{
@@ -70,21 +72,58 @@ namespace gb
 	static constexpr float ampl = 30000;
 	auto sound1 = gets1outputvol();
 	auto sound2 = gets2outputvol();
+	auto sound3 = getwaveoutputvol();
+	auto sound4 = getnoiseoutputvol();
 
 	float leftsample = 0;
 	float rightsample = 0;
 
-	leftsample += sound1;
-	rightsample += sound1;
 
-	leftsample += sound2;
-	rightsample += sound2;
+	if (apumem.leftenables[0])
+	{
+	    leftsample += sound1;
+	}
 
-	leftsample /= 2.0f;
-	rightsample /= 2.0f;
+	if (apumem.leftenables[1])
+	{
+	    leftsample += sound2;
+	}
 
-	auto leftvolume = (((float)(4.0f)) / 7.0f);
-	auto rightvolume = (((float)(4.0f)) / 7.0f);
+	if (apumem.leftenables[2])
+	{
+	    leftsample += sound3;
+	}
+
+	if (apumem.leftenables[3])
+	{
+	    leftsample += sound4;
+	}
+
+	if (apumem.rightenables[0])
+	{
+	    rightsample += sound1;
+	}
+
+	if (apumem.rightenables[1])
+	{
+	    rightsample += sound2;
+	}
+
+	if (apumem.rightenables[2])
+	{
+	    rightsample += sound3;
+	}
+
+	if (apumem.rightenables[3])
+	{
+	    rightsample += sound4;
+	}
+
+	leftsample /= 4.0f;
+	rightsample /= 4.0f;
+
+	auto leftvolume = (((float)(apumem.leftvol)) / 7.0f);
+	auto rightvolume = (((float)(apumem.rightvol)) / 7.0f);
 
 	auto left = (int16_t)(leftsample * leftvolume * ampl);
 	auto right = (int16_t)(rightsample * rightvolume * ampl);
@@ -95,15 +134,23 @@ namespace gb
 	}
     }
 
+    void APU::sweepclock()
+    {
+	s1sweepclock();
+    }
+
     void APU::lengthclock()
     {
 	s1lengthclock();
 	s2lengthclock();
+	wavelengthclock();
+	noiselengthclock();
     }
 
     void APU::envclock()
     {
 	s1envclock();
 	s2envclock();
+	noiseenvclock();
     }
 };

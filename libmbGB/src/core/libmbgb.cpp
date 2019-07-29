@@ -43,14 +43,19 @@ namespace gb
 
     void GBCore::init()
     {
-	coremmu->resetio();
-	coremmu->initio();	
+	// coremmu->resetio();
+
+	if (!coremmu->biosload)
+	{
+	    coremmu->initio();
+	}
+
 	corecpu->init();
 	coregpu->init();
 	coretimers->init();
 	coreinput->init();
 	coreserial->init();
-	loadbackup();
+	// loadbackup();
 	cout << "mbGB::Initialized" << endl;
     }
 
@@ -61,7 +66,7 @@ namespace gb
 	coretimers->shutdown();
 	coregpu->shutdown();
 	corecpu->shutdown();
-	savebackup();
+	// savebackup();
 	coremmu->shutdown();
 	cout << "mbGB::Shutting down..." << endl;
     }
@@ -73,8 +78,9 @@ namespace gb
 	cout << "Options:" << endl;
 	cout << "-b [FILE], --bios [FILE] \t\t Loads and uses a BIOS file." << endl;
 	cout << "--sys-dmg \t\t Plays ROMs in DMG mode." << endl;
-	cout << "--sys-gbc \t\t Plays ROMs in GBC mode (HUGE WIP)." << endl;
-	cout << "--sys-hybrid \t\t Plays ROMs in hybrid DMG/GBC mode (HUGE WIP)." << endl;
+	cout << "--sys-gbc \t\t Plays ROMs in GBC mode." << endl;
+	cout << "--sys-hybrid \t\t Plays ROMs in hybrid DMG/GBC mode." << endl;
+	cout << "--dotrender \t\t Enables the more accurate dot-based renderer." << endl;
 	cout << "-h, --help \t\t Displays this help message." << endl;
 	cout << endl;
     }
@@ -94,7 +100,7 @@ namespace gb
 
 	for (int i = 1; i < argc; i++)
 	{
-	    if ((strncmp(argv[i], "-h", 2) == 0) || (strncmp(argv[i], "--help", 6) == 0))
+	    if ((strcmp(argv[i], "-h") == 0) || (strcmp(argv[i], "--help") == 0))
 	    {
 		printusage(argv[0]);
 		return false;
@@ -105,7 +111,7 @@ namespace gb
 
 	for (int i = 2; i < argc; i++)
 	{
-	    if ((strncmp(argv[i], "-b", 2) == 0) || (strncmp(argv[i], "--bios", 6) == 0))
+	    if ((strcmp(argv[i], "-b") == 0) || (strcmp(argv[i], "--bios") == 0))
 	    {
 		if ((i + 1) == argc)
 		{
@@ -119,23 +125,28 @@ namespace gb
 		}
 	    }
 
-	    if ((strncmp(argv[i], "--sys-dmg", 9) == 0))
+	    if ((strcmp(argv[i], "--sys-dmg") == 0))
 	    {
-		coremmu->ismanual = true;
 		coremmu->gameboy = Console::DMG;
-		coremmu->gbmode = Mode::DMG;
 	    }
 
-	    if ((strncmp(argv[i], "--sys-gbc", 9) == 0))
+	    if ((strcmp(argv[i], "--sys-gbc") == 0))
 	    {
-		coremmu->ismanual = true;
 		coremmu->gameboy = Console::CGB;
-		coremmu->gbmode = Mode::CGB;
 	    }
 
-	    if ((strncmp(argv[i], "--sys-hybrid", 12) == 0))
+	    if ((strcmp(argv[i], "--sys-hybrid") == 0))
 	    {
 		coremmu->hybrid = true;
+	    }
+
+	    if ((strcmp(argv[i], "--dotrender") == 0))
+	    {
+		setdotrender(true);
+	    }
+	    else
+	    {
+		setdotrender(false);
 	    }
 	}
 
@@ -293,6 +304,11 @@ namespace gb
 	    cout << "mbGB::Error - Memory could not be dumped" << endl;
 	    return false;
 	}
+    }
+
+    void GBCore::setdotrender(bool val)
+    {
+	coregpu->setdotrender(val);
     }
 
     void GBCore::runcore()

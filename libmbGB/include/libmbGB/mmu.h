@@ -99,6 +99,26 @@ namespace gb
 	    	tma = 0x00;
 	        tac = 0xF8;
 		lcdc = 0x91;
+		writeByte(0xFF10, 0x80);
+		writeByte(0xFF11, 0xBF);
+		writeByte(0xFF12, 0xF3);
+		writeByte(0xFF14, 0xBF);
+		writeByte(0xFF16, 0x3F);
+		writeByte(0xFF19, 0xBF);
+		writeByte(0xFF1A, 0x7F);
+		writeByte(0xFF1B, 0xFF);
+		writeByte(0xFF1C, 0x9F);
+		writeByte(0xFF1E, 0xBF);
+		writeByte(0xFF20, 0xFF);
+		writeByte(0xFF23, 0xBF);
+		writeByte(0xFF24, 0x77);
+		writeByte(0xFF25, 0xF3);
+		writeByte(0xFF26, 0xF1);
+		writeByte(0xFF4D, 0x7E);
+		hdmasource = 0xFFFF;
+		hdmadest = 0xFFFF;
+		hdmalength = 0xFF;
+		doublespeed = false;
 	    }
 
 	    inline void resetio()
@@ -618,7 +638,13 @@ namespace gb
 	    uint8_t key1 = 0x00;
 	    uint8_t interruptenabled = 0x00;
 	    bool dmaactive = false;
-	    uint8_t s1sweep = 0x00;
+
+	    int s1sweepshift = 0;
+	    bool s1sweepnegate = false;
+	    int s1sweepperiodload = 0;
+	    int s1sweepperiod = 0;
+	    bool s1sweepenable = false;
+	    uint16_t s1sweepshadow = 0;
 	    int s1duty = 0;
 	    int s1lengthload = 0;
 	    bool s1envaddmode = false;
@@ -653,9 +679,81 @@ namespace gb
 	    bool s2enabled = false;
 	    int s2outputvol = 0;
 
-	    bool soundenabled = false;
+	    bool wavedacenabled = false;
+	    uint8_t wavelengthload = 0x00;
+	    int wavevolumecode = 0;
+	    uint16_t wavefreq = 0x0000;
+	    int wavetimer = 0;
+	    bool wavelengthenabled = false;
+	    bool wavetriggerbit = false;
+	    uint8_t outputbyte = 0x00;
+	    uint8_t lastoutputbyte = 0x00;
+	    bool waveenabled = false;
+	    int wavelengthcounter = 0;
+	    int wavepositioncounter = 0;
+	    uint8_t waveram[0x10] = {0};
+	    int waveoutputvol = 0;
+
+	    int noiselengthload = 0;
+	    bool noiseenvaddmode = false;
+	    bool noiseenvrunning = false;
+	    int noiseenvperiodload = 0;
+	    int noiseenvperiod = 0;
+	    int noisevolumeload = 0;
+	    int noisevolume = 0;
+	    bool noisedacenabled = false;
+	    int noisedivisor = 0;
+	    int noisetimer = 0;
+	    bool noisewidthmode = false;
+	    int noiseclockshift = 0;
+	    bool noiselengthenabled = false;
+	    bool noisetriggerbit = false;
+	    int noiselengthcounter = 0;
+	    bool noiseenabled = false;
+	    int noiseoutputvol = 0;
+	    int lfsr = 0;
+	    int divisors[8] =
+	    {
+		8, 16, 32, 48,
+		64, 80, 96, 112
+	    };
+
+
+	
+	    int rightvol = 0;
+	    bool vinrightenable = false;
+	    int leftvol = 0;
+	    bool vinleftenable = false;
+
+	    bool rightenables[4] = {false};
+	    bool leftenables[4] = {false};
+
+	    bool soundenabled = true;
 
 	    uint8_t lylastcycle = 0xFF;
+
+	    inline uint16_t sweepcalc()
+	    {
+		uint16_t newfreq = 0;
+		newfreq = (s1sweepshadow >> s1sweepshift);
+
+		if (s1sweepnegate)
+		{
+		    newfreq = (s1sweepshadow - newfreq);
+		}
+		else
+		{
+		    newfreq = (s1sweepshadow + newfreq);
+		}
+
+		if (newfreq > 2047)
+		{
+		    s1enabled = false;
+		}
+
+		return newfreq;
+
+	    }
 
 	    inline void s1trigger()
 	    {
@@ -670,6 +768,21 @@ namespace gb
 		s1envrunning = true;
 		s1envperiod = s1envperiodload;
 		s1volume = s1volumeload;
+
+		s1sweepshadow = s1freq;
+		s1sweepperiod = s1sweepperiodload;
+
+		if (s1sweepperiod == 0)
+		{
+		    s1sweepperiod = 8;
+		}
+
+		s1sweepenable = ((s1sweepperiod > 0) || (s1sweepshift > 0));
+
+		if (s1sweepshift > 0)
+		{
+		    sweepcalc();
+		}
 	    }
 
 	    inline void s2trigger()
@@ -687,11 +800,48 @@ namespace gb
 		s2volume = s2volumeload;
 	    }
 
+	    inline void wavetrigger()
+	    {
+		waveenabled = true;
+		if (wavelengthcounter == 0)
+		{
+		    wavelengthcounter = 256;
+		}
+
+		wavetimer = ((2048 - wavefreq) * 2);
+		wavepositioncounter = 0;
+	    }
+
+	    inline void noisetrigger()
+	    {
+		noiseenabled = true;
+		if (noiselengthcounter == 0)
+		{
+		    noiselengthcounter = (64 - (noiselengthload & 0x3F));
+		    noiselengthload &= 0xC0;
+		}
+
+		noisetimer = divisors[noisedivisor];
+		noiseenvrunning = true;
+		noiseenvperiod = noiseenvperiodload;
+		noisevolume = noisevolumeload;
+
+		lfsr = 0x7FFF;
+	    }
+
 	    inline uint8_t getsoundenabled()
 	    {
 		uint8_t temp = 0;
-		temp |= (soundenabled << 7);
-		temp |= ((s1lengthcounter > 0));
+
+		if (soundenabled)
+		{
+		    temp |= (soundenabled << 7);
+		}
+
+		temp |= (waveenabled << 2);
+		temp |= (noiseenabled << 3);
+		temp |= (s2enabled << 1);
+		temp |= (s1enabled);
 		return temp;
 	    }
     };

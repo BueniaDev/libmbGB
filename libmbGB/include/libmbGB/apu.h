@@ -46,6 +46,7 @@ namespace gb
 
 	    void updateaudio();
 	    void mixaudio();
+	    void sweepclock();
 	    void lengthclock();
 	    void envclock();
 
@@ -65,6 +66,32 @@ namespace gb
 		    if (apumem.s1lengthcounter == 0)
 		    {
 			apumem.s1enabled = false;
+		    }
+		}
+	    }
+
+	    inline void s1sweepclock()
+	    {
+		if (--apumem.s1sweepperiod <= 0)
+		{
+		    apumem.s1sweepperiod = apumem.s1sweepperiodload;
+
+		    if (apumem.s1sweepperiod == 0)
+		    {
+			apumem.s1sweepperiod = 8;
+		    }
+
+		    if (apumem.s1sweepenable && apumem.s1sweepperiodload > 0)
+		    {
+			uint16_t newfreq = apumem.sweepcalc();
+
+			if (newfreq < 2048 && apumem.s1sweepshift > 0)
+			{
+			    apumem.s1sweepshadow = newfreq;
+			    apumem.s1freq = newfreq;
+			    apumem.sweepcalc();
+			}
+			apumem.sweepcalc();
 		    }
 		}
 	    }
@@ -197,6 +224,136 @@ namespace gb
 	    inline float gets2outputvol()
 	    {
 		return ((float)((apumem.s2outputvol) / 15.f));
+	    }
+
+	    inline void wavelengthclock()
+	    {
+		if (apumem.wavelengthenabled && apumem.wavelengthcounter != 0)
+		{
+		    apumem.wavelengthcounter -= 1;
+
+		    if (apumem.wavelengthcounter == 0)
+		    {
+			apumem.waveenabled = false;
+		    }
+		}
+	    }
+
+	    inline void wavestep()
+	    {
+		if (--apumem.wavetimer <= 0)
+		{
+		    apumem.wavetimer = ((2048 - apumem.wavefreq) * 2);
+		    apumem.wavepositioncounter = ((apumem.wavepositioncounter + 1) % 32);
+
+		    if (apumem.waveenabled && apumem.wavedacenabled)
+		    {
+			int position = (apumem.wavepositioncounter / 2);
+			uint8_t outputbyte = apumem.waveram[position];
+			bool highbit = ((apumem.wavepositioncounter & 0x1) == 0);
+			if (highbit)
+			{
+			    outputbyte >>= 4;
+			}
+
+			outputbyte &= 0xF;
+
+			if (apumem.wavevolumecode > 0)
+			{
+			    outputbyte >>= (apumem.wavevolumecode - 1);
+			}
+			else
+			{
+			    outputbyte = 0;
+			}
+
+			apumem.waveoutputvol = outputbyte;
+		    }
+		    else
+		    {
+			apumem.waveoutputvol = 0;
+		    }
+		}
+	    }
+
+	    inline float getwaveoutputvol()
+	    {
+		return ((float)((apumem.waveoutputvol) / 15.f));
+	    }
+
+	    inline void noiselengthclock()
+	    {
+		if (apumem.noiselengthenabled && apumem.noiselengthcounter != 0)
+		{
+		    apumem.noiselengthcounter -= 1;
+
+		    if (apumem.noiselengthcounter == 0)
+		    {
+			apumem.noiseenabled = false;
+		    }
+		}
+	    }
+
+	    inline void noiseenvclock()
+	    {
+		if (--apumem.noiseenvperiod <= 0)
+		{
+		    apumem.noiseenvperiod = apumem.noiseenvperiodload;
+
+		    if (apumem.noiseenvperiod == 0)
+		    {
+			apumem.noiseenvperiod = 8;
+		    }
+
+		    if (apumem.noiseenvrunning && apumem.noiseenvperiodload > 0)
+		    {
+			if (apumem.noiseenvaddmode && apumem.noisevolume < 15)
+			{
+			    apumem.noisevolume += 1;
+			}
+			else if (!apumem.noiseenvaddmode && apumem.noisevolume > 0)
+			{
+			    apumem.noisevolume -= 1;
+			}
+		    }
+
+		    if (apumem.noisevolume == 0 || apumem.noisevolume == 15)
+		    {
+			apumem.noiseenvrunning = false;
+		    }
+		}
+	    }
+
+	    inline void noisestep()
+	    {
+		if (--apumem.noisetimer <= 0)
+		{
+		    apumem.noisetimer = apumem.divisors[apumem.noisedivisor] << apumem.noiseclockshift;
+
+		    uint8_t result = (apumem.lfsr & 0x1) ^ ((apumem.lfsr >> 1) & 0x1);
+		    apumem.lfsr >>= 1;
+		    apumem.lfsr |= (result << 14);
+
+		    if (apumem.noisewidthmode)
+		    {
+			apumem.lfsr &= ~0x40;
+			apumem.lfsr |= (result << 6);
+		    }
+
+		    if (apumem.noiseenabled && apumem.noisedacenabled && (apumem.lfsr & 0x1) == 0)
+		    {
+			apumem.noiseoutputvol = apumem.noisevolume;
+		    }
+		    else
+		    {
+			apumem.noiseoutputvol = 0;
+		    }
+		}
+	    }
+
+	    inline float getnoiseoutputvol()
+	    {
+		return ((float)((apumem.noiseoutputvol) / 15.f));
 	    }
 
 	    bool dutytable[4][8] = 

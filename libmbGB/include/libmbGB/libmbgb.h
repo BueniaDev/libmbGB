@@ -70,9 +70,11 @@ namespace gb
 	    void keyreleased(Button button);
 	    bool dumpvram(string filename);
 	    bool dumpmemory(string filename);
+	    void setdotrender(bool val);
 
 	    bool loadbackup();
 	    bool savebackup();
+	    bool paused = false;
 
 	    int overspentcycles = 0;
 	    void runcore();

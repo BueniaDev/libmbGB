@@ -673,6 +673,8 @@ namespace gb
 	
 		uint8_t key1 = mem.key1;
 
+		cout << hex << (int)(key1) << endl;
+
 		if (TestBit(key1, 0))
 		{
 		    mem.doublespeed = !mem.doublespeed;

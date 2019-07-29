@@ -23,7 +23,6 @@ namespace gb
     {
 	gpumem.setpoweroncallback(bind(&GPU::updatepoweronstate, this, placeholders::_1));
 	gpumem.setscreencallback(bind(&GPU::clearscreen, this));
-	setdotrender(false);
     }
 
     GPU::~GPU()
@@ -41,106 +40,12 @@ namespace gb
 	cout << "GPU::Shutting down..." << endl;
     }
 
-    /*
     void GPU::updatelcd()
     {
 	if (!gpumem.islcdenabled())
 	{
-	    return;
-	}
-
-	scanlinecounter += 4;
-
-	updatelycomparesignal();
-
-	uint8_t scanline = gpumem.ly;
-
-	switch (gpumem.getstatmode())
-	{
-	    case 2:
-	    {
-		pixelx = 0;
-
-		if (scanlinecounter >= 92)
-		{
-		    if (isdotrender())
-		    {
-		        dmgscanline();
-		    }
-
-		    gpumem.setstatmode(3);
-
-		    if (!isdotrender())
-		    {
-			renderscanline();
-		    }
-		}
-	    }
-	    break;
-	    case 3:
-	    {
-		if (scanlinecounter >= 252)
-		{
-		    gpumem.setstatmode(0);
-		}
-	    }
-	    break;
-	    case 0:
-	    case 1:
-	    {
-		if (scanlinecounter >= 456)
-		{
-		    scanlinecounter -= 456;
-
-		    scanline++;
-
-		    if (scanline == 154)
-		    {
-			scanline = 0;
-		    }
-
-		    if (scanline == 144)
-		    {
-			gpumem.requestinterrupt(0);			
-			gpumem.setstatmode(1);
-		    }
-		    else if (scanline < 144)
-		    {
-			gpumem.setstatmode(2);
-		    }
-		    else
-		    {
-
-		    }
-
-		    gpumem.ly = scanline;
-		}
-	    }
-	    break;
-	}
-
-	    		if (isdotrender())
-		{
-		    while ((scanlinecounter - 84) >= pixelx)
-		    {
-		        renderdmgpixel();
-		        if (pixelx >= 160)
-		        {
-			    break;
-		        }
-		    }
-		}
-
-	gpumem.checkstatinterrupt();
-    }
-    */
-
-    void GPU::updatelcd()
-    {
-	
-
-	if (!gpumem.islcdenabled())
-	{
+	    gpumem.ly = 0;
+	    gpumem.setstatmode(0);
 	    return;
 	}
 
@@ -341,7 +246,7 @@ namespace gb
 
 	    obj.y = gpumem.oam[addr];
 	    obj.x = gpumem.oam[addr + 1];
-	    obj.patternnum = gpumem.oam[addr + 2];
+	    obj.patternnum = (gpumem.oam[addr + 2] & ~BitGetVal(gpumem.lcdc, 2));
 	    uint8_t temp = gpumem.oam[addr + 3];
 	    obj.priority = TestBit(temp, 7);
 	    obj.yflip = TestBit(temp, 6);
@@ -367,17 +272,6 @@ namespace gb
 		break;
 	    }
 	}
-
-	for (int lo = 0; lo < sprites; lo++)
-	{
-	    for (int hi = (lo + 1); hi < sprites; hi++)
-	    {
-		if (sprite[hi].x < sprite[lo].x)
-		{
-		    swap(sprite[lo], sprite[hi]);
-		}
-	    }
-	}
     }
 
     uint16_t GPU::readtiledmg(bool select, int x, int y)
@@ -401,14 +295,13 @@ namespace gb
 	return readvram16(tileaddr);
     }
 
-    uint16_t GPU::readtilecgb(bool select, int x, int y)
+    uint16_t GPU::readtilecgbbg(bool select, int x, int y)
     {	
 	int map = (select) ? 1 : 0;	
 
 	uint16_t tmaddr = (0x1800 + (map << 10));
 
 	tmaddr += ((((y >> 3) << 5) + (x >> 3)) & 0x03FF);
-
 
 	uint16_t tile = gpumem.vram[tmaddr];
 	bgattr = gpumem.vram[tmaddr + 0x2000];
@@ -427,6 +320,41 @@ namespace gb
 	y &= 7;
 
 	if (TestBit(bgattr, 6))
+	{
+	    y = (7 - y);
+	}
+
+
+	tileaddr += (y << 1);
+	
+	return readvram16(tileaddr);
+    }
+
+    uint16_t GPU::readtilecgbwin(bool select, int x, int y)
+    {	
+	int map = (select) ? 1 : 0;	
+
+	uint16_t tmaddr = (0x1800 + (map << 10));
+
+	tmaddr += ((((y >> 3) << 5) + (x >> 3)) & 0x03FF);
+
+	uint16_t tile = gpumem.vram[tmaddr];
+	winattr = gpumem.vram[tmaddr + 0x2000];
+
+	uint16_t tileaddr = (TestBit(winattr, 3)) ? 0x2000 : 0x0000;
+
+	if (TestBit(gpumem.lcdc, 4))
+	{
+	    tileaddr += (tile << 4);
+	}
+	else
+	{
+	    tileaddr += (0x1000 + ((int8_t)(tile) << 4));
+	}
+
+	y &= 7;
+
+	if (TestBit(winattr, 6))
 	{
 	    y = (7 - y);
 	}
@@ -506,11 +434,19 @@ namespace gb
 	bgpalette = 0;
 	objcolor = 0;
 	objpalette = 0;
+	objprior = false;
 
-	if (gpumem.isbgenabled())
+	rendercgbbgpixel();
+
+	if (gpumem.isgbcconsole() && gpumem.isdmgmode())
 	{
-	    rendercgbbgpixel();
-
+	    if (gpumem.isbgenabled() && gpumem.iswinenabled())
+	    {
+		rendercgbwinpixel();
+	    }
+	}
+	else
+	{
 	    if (gpumem.iswinenabled())
 	    {
 		rendercgbwinpixel();
@@ -535,7 +471,17 @@ namespace gb
 	    color = objcolor;
 	    isobjcolor = true;
 	}
-	else if (!objprior)
+	else if (!TestBit(gpumem.lcdc, 0))
+	{
+	    color = objcolor;
+	    isobjcolor = true;
+	}
+	else if (bgprior)
+	{
+	    color = bgcolor;
+	    isobjcolor = false;
+	}
+	else if (objprior)
 	{
 	    color = objcolor;
 	    isobjcolor = true;
@@ -620,7 +566,7 @@ namespace gb
 
 	if (tx == 0 || pixelx == 0)
 	{
-	    bgdata = readtilecgb(TestBit(gpumem.lcdc, 3), scrollx, scrolly);
+	    bgdata = readtilecgbbg(TestBit(gpumem.lcdc, 3), scrollx, scrolly);
 	}
 
 	if (TestBit(bgattr, 5))
@@ -638,6 +584,8 @@ namespace gb
 	{
 	    bgcolor = getgbccolor((bgattr & 0x07), bgpalette, true);
 	}
+
+	bgprior = TestBit(bgattr, 7);
     }
 
     void GPU::renderdmgwinpixel()
@@ -689,15 +637,15 @@ namespace gb
 
 	if (tx == 0 || pixelx == 0)
 	{
-	    bgdata = readtilecgb(TestBit(gpumem.lcdc, 6), sx, sy);
+	    windata = readtilecgbwin(TestBit(gpumem.lcdc, 6), sx, sy);
 	}
 
-	if (TestBit(bgattr, 5))
+	if (TestBit(winattr, 5))
 	{
 	    tx = (7 - tx);
 	}
 
-	bgpalette = getdmgcolornum(bgdata, tx);
+	bgpalette = getdmgcolornum(windata, tx);
 
 	if (gpumem.isdmgmode() && !gpumem.biosload)
 	{
@@ -705,8 +653,10 @@ namespace gb
 	}
 	else
 	{
-	    bgcolor = getgbccolor((bgattr & 0x07), bgpalette, true);
+	    bgcolor = getgbccolor((winattr & 0x07), bgpalette, true);
 	}
+
+	bgprior = TestBit(winattr, 7);
     }
 
     void GPU::renderdmgobjpixel()
@@ -785,7 +735,8 @@ namespace gb
 		ty = ((height - 1) - ty);
 	    }
 
-	    uint16_t tileaddr = ((obj.patternnum << 4) + (ty << 1));
+	    uint16_t tileaddr = (obj.cgbbank ? 0x2000 : 0x0000);
+	    tileaddr += ((obj.patternnum << 4) + (ty << 1));
 	    objdata = readvram16(tileaddr);
 
 	    int temp = getdmgcolornum(objdata, tx);
@@ -805,10 +756,10 @@ namespace gb
 	    }
 	    else
 	    {
-	        objcolor = getgbccolor((bgattr & 0x07), objpalette, false);
+	        objcolor = getgbccolor(obj.cgbpalette, objpalette, false);
 	    }
 
-	    objprior = obj.priority;
+	    objprior = !obj.priority;
 	}
     }
 
@@ -921,6 +872,7 @@ namespace gb
 	    if (gpumem.isgbcconsole() && !isdmgmode())
 	    {
 		xpos = TestBit(mapattrib, 5) ? (7 - xpos) : xpos;
+		bgpriorline[pixel] = TestBit(mapattrib, 7);
 	    }
 
 	    int colorbit = (xpos % 8);
@@ -1187,7 +1139,8 @@ namespace gb
 		{
 		    uint8_t xpixel = (xpos + pixel);
 		    int spritepixel = (xflip) ? pixel : ((pixel - 7) * -1);
-		    bool iswhite = (bgscanline[xpixel] == 0);
+		    bool iswhite = (bgscanline[xpixel] == 0 && winscanline[xpixel] == 0);
+		    bool isbgwhite = (bgscanline[xpixel] == 0);
 		    int colornum = BitGetVal(data2, spritepixel);
 		    colornum <<= 1;
 		    colornum |= BitGetVal(data1, spritepixel);
@@ -1251,6 +1204,11 @@ namespace gb
 		    }
 
 		    if ((scanline < 0) || (scanline > 144))
+		    {
+			continue;
+		    }
+
+		    if (gpumem.isgbcmode() && TestBit(gpumem.lcdc, 0) && (bgpriorline[xpixel] && !isbgwhite))
 		    {
 			continue;
 		    }

@@ -19,6 +19,21 @@ Uint32 fpstime = 0;
 
 vector<int16_t> buffer;
 
+void screenshot()
+{
+    srand(SDL_GetTicks());
+
+    stringstream temp;
+
+    temp << (rand() % 1024) << (rand() % 1024) << (rand() % 1024);
+
+    string screenstring = core.romname + "-" + temp.str() + ".bmp";
+
+    SDL_SaveBMP(surface, screenstring.c_str());
+
+    cout << "Screenshot saved." << endl;
+}
+
 void sdlcallback(int16_t left, int16_t right)
 {
     buffer.push_back(left);
@@ -118,7 +133,8 @@ void handleinput(SDL_Event event)
 	    case SDLK_SPACE: core.keypressed(Button::Select); break;
 	    case SDLK_l: core.loadstate(); break;
 	    case SDLK_s: core.savestate(); break;
-	    // case SDLK_d: core.dumpvram("vram.bin"); break;
+	    case SDLK_p: core.paused = !core.paused; break;
+	    case SDLK_q: screenshot(); break;
 	}
     }
     else if (event.type == SDL_KEYUP)
@@ -155,8 +171,7 @@ int main(int argc, char* argv[])
 	    exit(1);
 	}
     }
-    
-    if(!core.loadROM(core.romname))
+    else if (!core.loadROM(core.romname))
     {
 	exit(1);
     }
@@ -185,8 +200,13 @@ int main(int argc, char* argv[])
 	    }
 	}
 
-	core.runcore();
-	drawpixels();
+	SDL_PauseAudio(core.paused);
+
+	if (!core.paused)
+	{
+	    core.runcore();
+	    drawpixels();
+	}
 
 	framecurrenttime = SDL_GetTicks();
 
