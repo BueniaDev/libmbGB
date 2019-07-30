@@ -1,6 +1,5 @@
-#include "libretro.h"
 #include <libmbGB/libmbgb.h>
-
+#include "libretro.h"
 #include <array>
 #include <vector>
 using namespace gb;
@@ -133,7 +132,8 @@ void retro_reset(void)
 }
 
 void retro_run(void)
-{
+{  
+
     core.runcore();
 
     processinput();
