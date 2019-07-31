@@ -818,8 +818,6 @@ namespace gb
 	{
 	    streampos size = file.tellg();
 
-	    cout << hex << (int)size << endl;
-
 	    cartmem.resize(size, 0);
 
 	    file.seekg(0, ios::beg);

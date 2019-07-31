@@ -183,6 +183,7 @@ namespace gb
 	cout << "REI: " << (int)(mem.requestedenabledinterrupts()) << endl;
 	cout << "LCD: " << (int)(mem.ispending(1)) << endl;
 	cout << "TIMA: " << hex << (int)(mem.readByte(0xFF05)) << endl;
+	cout << "LCDC: " << hex << (int)(mem.readByte(0xFF40)) << endl;
 	cout << "LY: " << hex << (int)(mem.readByte(0xFF44)) << endl;
 	cout << "Scanline counter: " << dec << (int)(gpu.scanlinecounter) << endl;
 	cout << "Opcode: " << hex << (int)(mem.readByte(pc)) << endl;
@@ -284,6 +285,7 @@ namespace gb
 	    
 	    // TODO: HDMA transfer stuff
 
+
 	    cycles -= handleinterrupts();
 
 	    if (state == CPUState::Running)
@@ -301,15 +303,24 @@ namespace gb
 		cycles -= 4;
 	    }
 
-	    cout << hex << (int)(mem.ly) << endl;
+	    // cout << hex << (int)(mem.ly) << endl;
 
 	    /*
-	    if (pc == 0x38EA)
+	    if (pc == 0x37A7)
 	    {
 		printregs();
 		exit(1);
 	    }
 	    */
+
+	    /*
+	    if (pc == 0x38BB)
+	    {
+		printregs();
+		exit(1);
+	    }
+	    */
+
 	}
 
 	return cycles;
@@ -325,6 +336,7 @@ namespace gb
     {
 	for (; cycles != 0; cycles -= 4)
 	{
+
 	    enabledelayedinterrupts();
 	    timer.updatetimer();
 	    link.updateserial();

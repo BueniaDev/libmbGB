@@ -42,8 +42,7 @@ namespace gb
 	    case 0x0E: bc.lo = (getimmbyte()); cycles = 8; break;
 	    case 0x0F: af.hi = (rrc(af.hi)); setzero(false); cycles = 4; break;
 	    case 0x10:
-	    {
-		cout << (int)(mem.isgbcmode()) << endl;		
+	    {	
 
 		if (mem.isgbcmode())
 		{

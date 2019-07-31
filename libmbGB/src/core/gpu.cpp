@@ -42,24 +42,26 @@ namespace gb
 
     void GPU::updatelcd()
     {
-	if (!gpumem.islcdenabled())
+	if (!gpumem.islcdenabled()) // Checks if LCD is disabled
 	{
-	    gpumem.ly = 0;
-	    gpumem.setstatmode(0);
+	    scanlinecounter = 0; // Disabling this breaks The Powerpuff Girls: Battle Him (obscure title, I know)
+	    gpumem.ly = 0; // Disabling this...
+	    gpumem.setstatmode(0); // or this breaks Dr. Mario
 	    return;
 	}
 
-	scanlinecounter += 4;
+	scanlinecounter += 4; // Increment scanline counter
 
-	updately();
-	updatelycomparesignal();
+	updately(); // Update LY register
+	updatelycomparesignal(); // Update LY=LYC comparision
 
-	if (currentscanline <= 143)
+	if (currentscanline <= 143) // If we are not in VBlank, then cycles between modes 0, 2, & 3
 	{
 	    if (scanlinecounter == ((gpumem.isdmgmode() || gpumem.doublespeed) ? 4 : 0))
 	    {
-		gpumem.setstatmode(2);
+		gpumem.setstatmode(2); // Set mode to 3
 		
+		// Dot-based renderer logic
 		if (isdotrender())
 		{
 		    linexbias = (gpumem.scrollx & 7);
@@ -70,17 +72,19 @@ namespace gb
 	    }
 	    else if (scanlinecounter == (gpumem.isdmgmode() ? 84 : (80 << gpumem.doublespeed)))
 	    {	
-		gpumem.setstatmode(3);
+		gpumem.setstatmode(3); // Set mode to 3
 
+		// Scanline-based renderer logic
 		if (!isdotrender())
 		{
 		    renderscanline();
 		}
 	    }
-	    else if (scanlinecounter == mode3cycles())
+	    else if (scanlinecounter == mode3cycles()) // According to The Cycle-Accurate Gameboy Docs, the number of cycles in mode 3 varies slightly.
 	    {		
-		gpumem.setstatmode(0);
+		gpumem.setstatmode(0); // Set mode to 0
 
+		// HDMA transfer logic
 		if (gpumem.isgbcconsole() && gpumem.hdmaactive)
 		{
 		    if ((gpumem.hdmalength & 0x7F) == 0)
@@ -92,7 +96,7 @@ namespace gb
 		}
 	    }
 	}
-	else if (currentscanline == 144)
+	else if (currentscanline == 144) // Checks if we are at the beginning of VBlank
 	{
 	    if (scanlinecounter == 0 && gpumem.isgbcconsole())
 	    {
@@ -100,8 +104,8 @@ namespace gb
 	    }
 	    else if (scanlinecounter == (4 << gpumem.doublespeed))
 	    {
-		gpumem.requestinterrupt(0);
-		gpumem.setstatmode(1);
+		gpumem.requestinterrupt(0); // VBlank
+		gpumem.setstatmode(1); // Set mode to 1
 
 		if (gpumem.isdmgconsole())
 		{
@@ -110,12 +114,14 @@ namespace gb
 	    }
 	}
 
+	// Dot-based renderer logic
 	if (isdotrender())
 	{
 	    int16_t currentpixel = ((((scanlinecounter % 456) - 92) & ~3) + linexbias);
 
 	    for (int i = pixelx; i < currentpixel; i++)
 	    {
+		// Check to ensure that current pixel is within screen boundaries
 		if (pixelx >= 160)
 		{
 		    continue;
@@ -126,34 +132,34 @@ namespace gb
 		    continue;
 		}
 
-		renderpixel();
+		renderpixel(); // Renders current pixel
 	    }
 	}
 
-	gpumem.checkstatinterrupt();
+	gpumem.checkstatinterrupt(); // Check STAT IRQ signal
     }
 
     void GPU::updatelycomparesignal()
     {
 	if (gpumem.isdmgconsole())
 	{
-	if (lycomparezero)
-	{
-	    gpumem.setlycompare(gpumem.lyc == gpumem.lylastcycle);
+	    if (lycomparezero)
+	    {
+	        gpumem.setlycompare(gpumem.lyc == gpumem.lylastcycle);
 
-	    lycomparezero = false;
-	}
-	else if (gpumem.ly != gpumem.lylastcycle)
-	{
-	    gpumem.setlycompare(false);
-	    lycomparezero = true;
-	    gpumem.lylastcycle = gpumem.ly;
-	}
-	else
-	{
-	    gpumem.setlycompare(gpumem.lyc == gpumem.ly);
-	    gpumem.lylastcycle = gpumem.ly;
-	}
+	        lycomparezero = false;
+	    }
+	    else if (gpumem.ly != gpumem.lylastcycle)
+	    {
+	        gpumem.setlycompare(false);
+	        lycomparezero = true;
+	        gpumem.lylastcycle = gpumem.ly;
+	    }
+	    else
+	    {
+	        gpumem.setlycompare(gpumem.lyc == gpumem.ly);
+	        gpumem.lylastcycle = gpumem.ly;
+	    }
 	}
 	else if (gpumem.doublespeed)
 	{
@@ -190,6 +196,7 @@ namespace gb
     {
 	if (!wasenabled && gpumem.islcdenabled())
 	{
+	    // Set scanline counter to these values so it automatically ticks over to 0
 	    if (gpumem.doublespeed)
 	    {
 		scanlinecounter = 908;
@@ -202,6 +209,7 @@ namespace gb
 	}
 	else if (wasenabled && !gpumem.islcdenabled())
 	{
+	    scanlinecounter = 0; // Disabling this breaks The Powerpuff Girls: Battle Him (obscure title, I know)
 	    gpumem.ly = 0;
 	    gpumem.setstatmode(0);
 	}
@@ -214,7 +222,8 @@ namespace gb
 	    gpumem.ly = 0;
 	}
 
-	if (scanlinecounter == (456 << gpumem.doublespeed))
+	// LY increments once every 456 cycles (or every 912 cycles in double speed mode)
+	if (scanlinecounter == (456 << gpumem.doublespeed)) 
 	{
 	    scanlinecounter = 0;
 
@@ -223,20 +232,18 @@ namespace gb
 		gpumem.ly = currentscanline;
 	    }
 
-	    
-
-	    if (currentscanline == 153)
+	    if (currentscanline == 153) // If current scanline is 153...
 	    {
 		if (gpumem.isdmgconsole())
 		{
 		    gpumem.setstatmode(0);
 		}
 
-		currentscanline = 0;
+		currentscanline = 0; // then reset to 0
 	    }
 	    else
 	    {
-		currentscanline = ++gpumem.ly;
+	        currentscanline = ++gpumem.ly; // Otherwise, increment scanline
 	    }
 	}
     }

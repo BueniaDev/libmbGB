@@ -94,7 +94,7 @@ namespace gb
 		interruptenabled = 0x00;
 		bgpalette = 0xFC;
 		interruptflags = 0xE0;
-		ly = 0x90;
+		ly = 0x00;
 	    	tima = 0x00;
 	    	tma = 0x00;
 	        tac = 0xF8;
