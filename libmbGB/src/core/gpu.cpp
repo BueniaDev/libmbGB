@@ -214,7 +214,7 @@ namespace gb
 	    gpumem.ly = 0;
 	}
 
-	if (scanlinecounter > (456 << gpumem.doublespeed))
+	if (scanlinecounter == (456 << gpumem.doublespeed))
 	{
 	    scanlinecounter = 0;
 
@@ -223,10 +223,10 @@ namespace gb
 		gpumem.ly = currentscanline;
 	    }
 
+	    
+
 	    if (currentscanline == 153)
 	    {
-		
-
 		if (gpumem.isdmgconsole())
 		{
 		    gpumem.setstatmode(0);

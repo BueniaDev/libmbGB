@@ -301,6 +301,8 @@ namespace gb
 		cycles -= 4;
 	    }
 
+	    cout << hex << (int)(mem.ly) << endl;
+
 	    /*
 	    if (pc == 0x38EA)
 	    {

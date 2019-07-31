@@ -72,6 +72,7 @@ namespace gb
 	    void updately();
 	    void updatelycomparesignal();
 	    void checkstatinterrupt();
+	    bool isly0 = false;
 
 	    bool dotrender = false;
 
