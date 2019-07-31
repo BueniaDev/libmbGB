@@ -69,7 +69,7 @@ namespace gb
 		}
 	    }
 	    else if (scanlinecounter == (gpumem.isdmgmode() ? 84 : (80 << gpumem.doublespeed)))
-	    {		
+	    {	
 		gpumem.setstatmode(3);
 
 		if (!isdotrender())
@@ -112,7 +112,7 @@ namespace gb
 
 	if (isdotrender())
 	{
-	    int16_t currentpixel = ((((scanlinecounter % 456) - 92) & ~3) - linexbias);
+	    int16_t currentpixel = ((((scanlinecounter % 456) - 92) & ~3) + linexbias);
 
 	    for (int i = pixelx; i < currentpixel; i++)
 	    {
@@ -135,6 +135,8 @@ namespace gb
 
     void GPU::updatelycomparesignal()
     {
+	if (gpumem.isdmgconsole())
+	{
 	if (lycomparezero)
 	{
 	    gpumem.setlycompare(gpumem.lyc == gpumem.lylastcycle);
@@ -152,13 +154,56 @@ namespace gb
 	    gpumem.setlycompare(gpumem.lyc == gpumem.ly);
 	    gpumem.lylastcycle = gpumem.ly;
 	}
+	}
+	else if (gpumem.doublespeed)
+	{
+	    if (currentscanline == 153 && scanlinecounter == 12)
+	    {
+		gpumem.setlycompare(gpumem.lyc == gpumem.lylastcycle);
+	    }
+	    else
+	    {
+		gpumem.setlycompare(gpumem.lyc == gpumem.lylastcycle);
+		gpumem.lylastcycle = gpumem.ly;
+	    }
+	}
+	else
+	{
+	    if (scanlinecounter == 452)
+	    {
+		gpumem.setlycompare(gpumem.lyc == gpumem.lylastcycle);
+	    }
+	    else if (gpumem.lylastcycle == 153)
+	    {
+		gpumem.setlycompare(gpumem.lyc == gpumem.lylastcycle);
+		gpumem.lylastcycle = gpumem.ly;
+	    }
+	    else
+	    {
+		gpumem.setlycompare(gpumem.lyc == gpumem.ly);
+		gpumem.lylastcycle = gpumem.ly;
+	    }
+	}
     }
 
     void GPU::updatepoweronstate(bool wasenabled)
     {
-	if (wasenabled && !gpumem.islcdenabled())
+	if (!wasenabled && gpumem.islcdenabled())
 	{
-	    scanlinecounter = 0;
+	    if (gpumem.doublespeed)
+	    {
+		scanlinecounter = 908;
+	    }
+	    else
+	    {
+		scanlinecounter = 452;
+	    }
+	    currentscanline = 153;
+	}
+	else if (wasenabled && !gpumem.islcdenabled())
+	{
+	    gpumem.ly = 0;
+	    gpumem.setstatmode(0);
 	}
     }
 
@@ -169,13 +214,24 @@ namespace gb
 	    gpumem.ly = 0;
 	}
 
-	if (scanlinecounter == (456 << gpumem.doublespeed))
+	if (scanlinecounter > (456 << gpumem.doublespeed))
 	{
 	    scanlinecounter = 0;
 
+	    if (gpumem.isgbcmode() && !gpumem.doublespeed && currentscanline != 153)
+	    {
+		gpumem.ly = currentscanline;
+	    }
+
 	    if (currentscanline == 153)
 	    {
-		gpumem.setstatmode(0);
+		
+
+		if (gpumem.isdmgconsole())
+		{
+		    gpumem.setstatmode(0);
+		}
+
 		currentscanline = 0;
 	    }
 	    else
@@ -620,7 +676,7 @@ namespace gb
     {
 	int windowy = gpumem.windowy;
 	int windowx = gpumem.windowx;
-	int sx = (pixelx - windowx + 7);
+	int sx = (pixelx + 7 - windowx);
 	int sy = (gpumem.ly - windowy);
 
 	if (sx < 0)

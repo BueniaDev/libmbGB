@@ -183,6 +183,8 @@ namespace gb
 	cout << "REI: " << (int)(mem.requestedenabledinterrupts()) << endl;
 	cout << "LCD: " << (int)(mem.ispending(1)) << endl;
 	cout << "TIMA: " << hex << (int)(mem.readByte(0xFF05)) << endl;
+	cout << "LY: " << hex << (int)(mem.readByte(0xFF44)) << endl;
+	cout << "Scanline counter: " << dec << (int)(gpu.scanlinecounter) << endl;
 	cout << "Opcode: " << hex << (int)(mem.readByte(pc)) << endl;
 	cout << endl;
     }
@@ -194,8 +196,7 @@ namespace gb
 	if (interruptmasterenable)
 	{
 	    if (mem.requestedenabledinterrupts())
-	    {		
-
+	    {
 		interruptmasterenable = false;
 
 		hardwaretick(8);
@@ -299,6 +300,14 @@ namespace gb
 		haltedtick(4);
 		cycles -= 4;
 	    }
+
+	    /*
+	    if (pc == 0x38EA)
+	    {
+		printregs();
+		exit(1);
+	    }
+	    */
 	}
 
 	return cycles;

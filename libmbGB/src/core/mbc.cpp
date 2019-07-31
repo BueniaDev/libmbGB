@@ -297,14 +297,17 @@ namespace gb
 	else if (addr < 0x3000)
 	{
 	    currentrombank = ((currentrombank & 0x100) | value);
+	    currentrombank &= (numrombanks - 1);
 	}
 	else if (addr < 0x4000)
 	{
 	    currentrombank = ((currentrombank & 0xFF) | ((value & 0x1) << 9));
+	    currentrombank &= (numrombanks - 1);
 	}
 	else if (addr < 0x6000)
 	{
 	    currentrambank = (value & 0x0F);
+	    currentrambank &= (numrambanks - 1);
 	}
 	else if ((addr >= 0xA000) && (addr < 0xC000))
 	{

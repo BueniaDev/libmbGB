@@ -41,6 +41,8 @@ namespace gb
 	gbcobjpalette.resize(0x40, 0);
 
 	cout << "MMU::Initialized" << endl;
+
+	soundenabled = false;
     }
 
     void MMU::shutdown()
@@ -365,6 +367,14 @@ namespace gb
 	{
 	    return;
 	}
+	else if (addr < 0xFF10)
+	{
+	    writeIO(addr, value);
+	}
+	else if ((addr < 0xFF24) && soundenabled)
+	{
+	    writeIO(addr, value);
+	}
 	else if (addr < 0xFF30)
 	{
 	    writeIO(addr, value);
@@ -625,7 +635,27 @@ namespace gb
 		}
 	    }
 	    break;
-	    case 0x26: soundenabled = TestBit(value, 7); break;
+	    case 0x26: 
+	    {
+		if (!TestBit(value, 7))
+		{
+		    for (int i = 0xFF10; i < 0xFF26; i++)
+		    {
+			writeByte(i, 0);
+		    }
+
+		    soundenabled = false;
+		    s1enabled = false;
+		    s2enabled = false;
+		    waveenabled = false;
+		    noiseenabled = false;
+		}
+		else
+		{
+		    soundenabled = true;
+		}
+	    }
+	    break;
 	    case 0x40: writelcdc(value); break;
 	    case 0x41: writestat(value); break;
 	    case 0x42: scrolly = value; break;
@@ -787,6 +817,8 @@ namespace gb
 	if (file.is_open())
 	{
 	    streampos size = file.tellg();
+
+	    cout << hex << (int)size << endl;
 
 	    cartmem.resize(size, 0);
 
