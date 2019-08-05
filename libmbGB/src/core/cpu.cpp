@@ -38,6 +38,8 @@ namespace gb
 	{
 	    initbios();
 	}
+
+	printregs();
     }
 
     void CPU::initnobios()
@@ -73,8 +75,7 @@ namespace gb
 	interruptmasterenable = false;
 	enableinterruptsdelayed = false;
 
-	state = CPUState::Running;
-	
+	state = CPUState::Running;	
 
 	cout << "CPU::Initialized" << endl;
     }
@@ -302,25 +303,6 @@ namespace gb
 		haltedtick(4);
 		cycles -= 4;
 	    }
-
-	    // cout << hex << (int)(mem.ly) << endl;
-
-	    /*
-	    if (pc == 0x37A7)
-	    {
-		printregs();
-		exit(1);
-	    }
-	    */
-
-	    /*
-	    if (pc == 0x38BB)
-	    {
-		printregs();
-		exit(1);
-	    }
-	    */
-
 	}
 
 	return cycles;

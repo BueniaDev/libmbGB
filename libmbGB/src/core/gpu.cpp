@@ -32,6 +32,9 @@ namespace gb
 
     void GPU::init()
     {
+	scanlinecounter = 0;
+	windowlinecounter = 0;
+	clearscreen();
 	cout << "GPU::Initialized" << endl;
     }
 
@@ -45,6 +48,7 @@ namespace gb
 	if (!gpumem.islcdenabled()) // Checks if LCD is disabled
 	{
 	    scanlinecounter = 0; // Disabling this breaks The Powerpuff Girls: Battle Him (obscure title, I know)
+	    windowlinecounter = 0;
 	    gpumem.ly = 0; // Disabling this...
 	    gpumem.setstatmode(0); // or this breaks Dr. Mario
 	    return;
@@ -210,6 +214,7 @@ namespace gb
 	else if (wasenabled && !gpumem.islcdenabled())
 	{
 	    scanlinecounter = 0; // Disabling this breaks The Powerpuff Girls: Battle Him (obscure title, I know)
+	    windowlinecounter = 0;
 	    gpumem.ly = 0;
 	    gpumem.setstatmode(0);
 	}
@@ -240,6 +245,7 @@ namespace gb
 		}
 
 		currentscanline = 0; // then reset to 0
+		windowlinecounter = 0;
 	    }
 	    else
 	    {
@@ -1014,18 +1020,25 @@ namespace gb
 	    windowx -= 7;
 	}
 
+	if (windowx >= 160 || windowy > currentscanline)
+	{
+	    return;
+	}
+
 
 	bool unsig = TestBit(gpumem.lcdc, 4);
 	uint16_t tiledata = (unsig) ? 0x8000 : 0x8800;
 	uint16_t bgmem = TestBit(gpumem.lcdc, 6) ? 0x9C00 : 0x9800;
 
-	uint8_t ypos = (gpumem.ly - windowy);
+
+	int ypos = windowlinecounter;
+	windowlinecounter++;
 
 	uint16_t tilerow = (((ypos / 8)) * 32);
 
-	for (int pixel = windowx; pixel < 160; pixel++)
+	for (int pixel = 0; pixel < 160; pixel++)
 	{
-	    if (true)
+	    if (pixel >= windowx)
 	    {
 		uint8_t xpos = (pixel - windowx);
 
@@ -1128,6 +1141,7 @@ namespace gb
 		}
 
 	        uint8_t scanline = gpumem.ly;
+
 
 		if ((scanline < 0) || (scanline > 144))
 		{

@@ -68,6 +68,7 @@ namespace gb
 	    MBCType gbmbc;
 
 	    void init();
+	    void initnot();
 	    void shutdown();
 
 	    inline void initio()
@@ -94,11 +95,14 @@ namespace gb
 		interruptenabled = 0x00;
 		bgpalette = 0xFC;
 		interruptflags = 0xE0;
-		ly = 0x00;
+		ly = 0x90;
+		stat = 0x01;
 	    	tima = 0x00;
 	    	tma = 0x00;
 	        tac = 0xF8;
 		lcdc = 0x91;
+		vrambank = 0;
+		wrambank = 1;
 		writeByte(0xFF10, 0x80);
 		writeByte(0xFF11, 0xBF);
 		writeByte(0xFF12, 0xF3);
@@ -114,11 +118,16 @@ namespace gb
 		writeByte(0xFF24, 0x77);
 		writeByte(0xFF25, 0xF3);
 		writeByte(0xFF26, 0xF1);
+		writeByte(0xFF40, 0x91);
 		writeByte(0xFF4D, 0x7E);
 		hdmasource = 0xFFFF;
 		hdmadest = 0xFFFF;
 		hdmalength = 0xFF;
 		doublespeed = false;
+		s1enabled = false;
+		s2enabled = false;
+		waveenabled = false;
+		noiseenabled = false;
 	    }
 
 	    inline void resetio()
@@ -357,8 +366,8 @@ namespace gb
 		switch (rom[0x0149])
 		{
 		    case 0: banks = 0; mbcramsize = 0; ramsize = "None"; break;
-		    case 1: banks = 0; mbcramsize = 2; ramsize = "2 KB"; break;
-		    case 2: banks = 0; mbcramsize = 8; ramsize = "8 KB"; break;
+		    case 1: banks = 1; mbcramsize = 2; ramsize = "2 KB"; break;
+		    case 2: banks = 1; mbcramsize = 8; ramsize = "8 KB"; break;
 		    case 3: banks = 4; mbcramsize = 32; ramsize = "32 KB"; break; 
 	    	    default: cout << "MMU::Error - Unrecognzied RAM quantity given in cartridge" << endl; exit(1); break;
 		}

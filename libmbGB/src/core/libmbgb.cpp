@@ -316,4 +316,50 @@ namespace gb
 	overspentcycles = corecpu->runfor((70224 << coremmu->doublespeed) + overspentcycles);
     }
 
+    bool GBCore::initcore()
+    {
+	preinit();
+
+	if (biosload())
+	{
+	    if (!loadBIOS(biosname))
+	    {
+		return false;
+	    }
+	}
+	else if (!loadROM(romname))
+	{
+	    return false;
+	}
+
+	init();
+	return true;
+    }
+
+    bool GBCore::initcore(const char *filename, const uint8_t* buffer, int size)
+    {
+	preinit();	
+
+	if (!loadROM(filename, buffer, size))
+	{
+	    return false;
+	}
+
+	romname = filename;
+
+	init();
+    }
+
+
+    void GBCore::resetcore()
+    {
+	shutdown();
+	initcore();
+    }
+
+    void GBCore::resetcoreretro()
+    {
+	shutdown();
+	init();
+    }
 };

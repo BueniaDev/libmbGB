@@ -21,6 +21,9 @@ static GBCore core;
 static vector<int16_t> apubuffer;
 static short framebuffer[screenwidth * screenheight];
 
+static const uint8_t *rombuffer;
+static int romsize;
+
 static array<pair<size_t, Button>, 8> keymap = 
 {
     {
@@ -109,6 +112,8 @@ bool retro_load_game(const retro_game_info* info)
 	}
 
 	core.romname = info->path;
+	rombuffer = (uint8_t*)(info->data);
+	romsize = info->size;
 
 	core.init();
 
@@ -128,12 +133,11 @@ void retro_unload_game(void)
 
 void retro_reset(void)
 {
-
+    core.resetcoreretro();
 }
 
 void retro_run(void)
 {  
-
     core.runcore();
 
     processinput();

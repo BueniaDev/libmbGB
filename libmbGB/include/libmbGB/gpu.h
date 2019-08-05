@@ -138,6 +138,7 @@ namespace gb
 
 	    int scanlinecounter = 452;
 	    int currentscanline = 0;
+	    int windowlinecounter = 0;
 
 	    void updatepoweronstate(bool wasenabled);
 

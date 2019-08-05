@@ -7,8 +7,8 @@ using namespace std;
 
 GBCore core;
 
-SDL_Window *window;
-SDL_Surface *surface;
+SDL_Window *window = nullptr;
+SDL_Surface *surface = nullptr;
 
 int screenwidth = 160;
 int screenheight = 144;
@@ -41,14 +41,13 @@ void sdlcallback(int16_t left, int16_t right)
 
     if (buffer.size() >= 4096)
     {
-	buffer.clear();
-
 	while ((SDL_GetQueuedAudioSize(1)) > 4096 * sizeof(int16_t))
 	{
 	    SDL_Delay(1);
 	}
 
 	SDL_QueueAudio(1, &buffer[0], 4096 * sizeof(int16_t));
+	buffer.clear();
     }
 }
 
@@ -57,7 +56,7 @@ void play()
 
 }
 
-bool init()
+bool initsdl()
 {
     if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
     {
@@ -134,6 +133,7 @@ void handleinput(SDL_Event event)
 	    case SDLK_l: core.loadstate(); break;
 	    case SDLK_s: core.savestate(); break;
 	    case SDLK_p: core.paused = !core.paused; break;
+	    case SDLK_r: core.resetcore(); break;
 	    case SDLK_q: screenshot(); break;
 	}
     }
@@ -159,28 +159,17 @@ int main(int argc, char* argv[])
 
     if (!core.getoptions(argc, argv))
     {
-	exit(1);
+	return 1;
+    }
+ 
+    if (!core.initcore())
+    {
+	return 1;
     }
 
-    core.preinit();
-
-    if (core.biosload())
+    if (!initsdl())
     {
-	if (!core.loadBIOS(core.biosname))
-	{
-	    exit(1);
-	}
-    }
-    else if (!core.loadROM(core.romname))
-    {
-	exit(1);
-    }
-
-    core.init();
-
-    if (!init())
-    {
-	exit(1);
+	return 1;
     }
 
     SDL_Event event;
@@ -222,11 +211,14 @@ int main(int argc, char* argv[])
 	if (((SDL_GetTicks() - fpstime) >= 1000))
 	{
 	    fpstime = SDL_GetTicks();
+	    stringstream title;
+	    title << "mbGB-SDL2-" << fpscount << " FPS";
+	    SDL_SetWindowTitle(window, title.str().c_str());
 	    fpscount = 0;
 	}
     }
 
     core.shutdown();
     stop();
-    exit(0);
+    return 0;
 }

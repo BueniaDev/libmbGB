@@ -39,10 +39,26 @@ namespace gb
 	rambanks.resize(0x8000, 0);
 	gbcbgpalette.resize(0x40, 0);
 	gbcobjpalette.resize(0x40, 0);
+	fill(rom.begin(), rom.end(), 0);
+	fill(vram.begin(), vram.end(), 0);
+	fill(wram.begin(), wram.end(), 0);
+	fill(oam.begin(), oam.end(), 0);
+	fill(hram.begin(), hram.end(), 0);
 
 	cout << "MMU::Initialized" << endl;
 
 	soundenabled = false;
+	initio();
+	gbmode = Mode::Default; // DO NOT DISABLE THIS! Doing so breaks the emulator on reset!
+    }
+
+    void MMU::initnot()
+    {
+	cout << "MMU::Initialized" << endl;
+
+	soundenabled = false;
+	initio();
+	gbmode = Mode::Default; // DO NOT DISABLE THIS! Doing so breaks the emulator on reset!
     }
 
     void MMU::shutdown()
@@ -53,6 +69,7 @@ namespace gb
 	wram.clear();
 	oam.clear();
 	hram.clear();
+	cartmem.clear();
 	rambanks.clear();
 	
 	cout << "MMU::Shutting down..." << endl;
@@ -463,13 +480,8 @@ namespace gb
 	    case 0x49: temp = objpalette1; break;
 	    case 0x4A: temp = windowy; break;
 	    case 0x4B: temp = windowx; break;
-	    case 0x4D: temp = key1; break;
+	    case 0x4D: temp = (key1 | (isgbcmode() ? 0x7E : 0xFF)); break;
 	    case 0x4F: temp = (vrambank | 0xFE); break;
-	    case 0x51: temp = (hdmasource >> 8); break;
-	    case 0x52: temp = (hdmasource & 0xFF); break;
-	    case 0x53: temp = (hdmadest >> 8); break;
-	    case 0x54: temp = (hdmadest & 0xFF); break;
-	    case 0x55: temp = ((hdmalength & 0x7F) | ((hdmaactive ? 0 : 1) << 7)); break;
 	    case 0x68: temp = (isgbcconsole()) ? gbcbgpaletteindex : 0xFF; break;
 	    case 0x69: temp = (isgbcconsole()) ? gbcbgpalette[gbcbgpaletteindex] : 0xFF; break;
 	    case 0x6A: temp = (isgbcconsole()) ? gbcobjpaletteindex : 0xFF; break;
@@ -668,7 +680,11 @@ namespace gb
 	    case 0x49: objpalette1 = value; break;
 	    case 0x4A: windowy = value; break;
 	    case 0x4B: windowx = value; break;
-	    case 0x4D: key1 = value; break;
+	    case 0x4D: 
+	    {
+		key1 = value;
+	    }
+	    break;
 	    case 0x4F: 
 	    {
 		vrambank = (isgbcconsole()) ? BitGetVal(value, 0) : 0;
@@ -825,6 +841,8 @@ namespace gb
 	    file.close();
 
 	    bool cgbflag = ((cartmem[0x0143] == 0xC0) || (cartmem[0x0143] == 0x80));
+
+	    // cout << hex << (int)(doublespeed) << endl;
 
 	    if (gameboy == Console::Default)
 	    {

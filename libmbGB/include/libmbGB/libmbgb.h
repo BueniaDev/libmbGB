@@ -78,6 +78,10 @@ namespace gb
 
 	    int overspentcycles = 0;
 	    void runcore();
+	    bool initcore();
+	    bool initcore(const char *filename, const uint8_t* buffer, int size);
+	    void resetcore();
+	    void resetcoreretro();
 
 	    string romname;
 	    string biosname;
