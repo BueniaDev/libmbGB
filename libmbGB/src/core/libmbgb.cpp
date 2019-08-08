@@ -43,7 +43,7 @@ namespace gb
 
     void GBCore::init()
     {
-	// coremmu->resetio();
+	coremmu->resetio();
 
 	if (!coremmu->biosload)
 	{
@@ -55,7 +55,7 @@ namespace gb
 	coretimers->init();
 	coreinput->init();
 	coreserial->init();
-	// loadbackup();
+	loadbackup();
 	cout << "mbGB::Initialized" << endl;
     }
 
@@ -66,7 +66,7 @@ namespace gb
 	coretimers->shutdown();
 	coregpu->shutdown();
 	corecpu->shutdown();
-	// savebackup();
+	savebackup();
 	coremmu->shutdown();
 	cout << "mbGB::Shutting down..." << endl;
     }
@@ -327,7 +327,9 @@ namespace gb
 		return false;
 	    }
 	}
-	else if (!loadROM(romname))
+	
+
+	if (!loadROM(romname))
 	{
 	    return false;
 	}
@@ -348,8 +350,18 @@ namespace gb
 	romname = filename;
 
 	init();
+	return true;
     }
 
+    void GBCore::setsamplerate(int val)
+    {
+	coreapu->setsamplerate(val);
+    }
+
+    void GBCore::setaudiocallback(apuoutputfunc cb)
+    {
+	coreapu->setaudiocallback(cb);
+    }
 
     void GBCore::resetcore()
     {

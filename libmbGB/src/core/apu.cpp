@@ -21,7 +21,8 @@ namespace gb
 {
     APU::APU(MMU& memory) : apumem(memory)
     {
-
+	auto apu = bind(&APU::apulengthlow, this);
+	apumem.setapucallbacks(apu);
     }
 
     APU::~APU()
@@ -34,5 +35,39 @@ namespace gb
 	frametimer += 2;
 
 	s1update(getframesequencer());
+
+	if (samplecounter == maxsamples)
+	{
+	    samplecounter = 0;
+	    mixaudio();
+	}
+	else
+	{
+	    samplecounter += 1;
+	}
+    }
+
+    void APU::mixaudio()
+    {
+	static constexpr float ampl = 30000;
+
+	auto sound1 = gets1outputvol();
+
+	float leftsample = 0;
+	float rightsample = 0;
+
+	leftsample += sound1;
+	rightsample += sound1;
+
+	auto leftvolume = ((float)(5.0f / 7.0f));
+	auto rightvolume = ((float)(5.0f / 7.0f));
+
+	auto left = (int16_t)(leftsample * leftvolume * ampl);
+	auto right = (int16_t)(rightsample * rightvolume * ampl);
+
+	if (audiocallback)
+	{
+	    audiocallback(left, right);
+	}
     }
 };

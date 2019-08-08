@@ -472,6 +472,8 @@ namespace gb
 		sets1dutycycle();
 	    }
 	    break;
+	    case 0x13: s1freqlo = value; break;
+	    case 0x14: s1writereset(value); break;
 	    case 0x40: writelcdc(value); break;
 	    case 0x41: writestat(value); break;
 	    case 0x42: scrolly = value; break;
@@ -645,8 +647,6 @@ namespace gb
 	    file.close();
 
 	    bool cgbflag = ((cartmem[0x0143] == 0xC0) || (cartmem[0x0143] == 0x80));
-
-	    // cout << hex << (int)(doublespeed) << endl;
 
 	    if (gameboy == Console::Default)
 	    {

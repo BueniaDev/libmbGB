@@ -82,6 +82,8 @@ namespace gb
 	    bool initcore(const char *filename, const uint8_t* buffer, int size);
 	    void resetcore();
 	    void resetcoreretro();
+	    void setsamplerate(int val);
+	    void setaudiocallback(apuoutputfunc cb);
 
 	    string romname;
 	    string biosname;

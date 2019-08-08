@@ -56,6 +56,7 @@ namespace gb
     using joypadfunc = function<void()>;
     using statirqfunc = function<bool()>;
     using screenfunc = function<void()>;
+    using apulengthfunc = function<bool()>;
 
     class LIBMBGB_API MMU
     {
@@ -412,6 +413,7 @@ namespace gb
 	    joypadfunc updatep1;
 	    statirqfunc statirq;
 	    screenfunc screen;
+	    apulengthfunc apulength;
 
 	    inline void lcdchecklyc()
 	    {
@@ -509,6 +511,11 @@ namespace gb
 	    void setscreencallback(screenfunc cb)
 	    {
 		screen = cb;
+	    }
+
+	    void setapucallbacks(apulengthfunc cb)
+	    {
+		apulength = cb;
 	    }
 
 	    inline void exitbios()
@@ -647,8 +654,12 @@ namespace gb
 
 	    int s1soundlength = 0;
 	    int s1lengthcounter = 0;
+	    uint8_t s1freqlo = 0;
+	    uint8_t s1freqhi = 0;
+	    int s1periodtimer = 0;
+	    bool s1enabled = false;
 
-	    array<int, 8> dutycycle;
+	    array<int, 8> s1dutycycle;
 
 	    inline void reloads1lengthcounter()
 	    {
@@ -660,12 +671,56 @@ namespace gb
 	    {
 		switch ((s1soundlength & 0xC0) >> 6)
 		{
-		    case 0: dutycycle = {{false, false, false, false, false, false, false, true}}; break;
-		    case 1: dutycycle = {{true, false, false, false, false, false, false, true}}; break;
-		    case 2: dutycycle = {{true, false, false, false, false, true, true, true}}; break;
-		    case 3: dutycycle = {{false, true, true, true, true, true, true, false}}; break;
+		    case 0: s1dutycycle = {{false, false, false, false, false, false, false, true}}; break;
+		    case 1: s1dutycycle = {{true, false, false, false, false, false, false, true}}; break;
+		    case 2: s1dutycycle = {{true, false, false, false, false, true, true, true}}; break;
+		    case 3: s1dutycycle = {{false, true, true, true, true, true, true, false}}; break;
 		    default: break;
 		}
+	    }
+
+	    inline void s1writereset(uint8_t value)
+	    {
+		bool lengthwasenable = TestBit(s1freqhi, 6);
+		s1freqhi = (value & 0xC7);
+
+		if (apulength() && !lengthwasenable && TestBit(s1freqhi, 6) && s1lengthcounter > 0)
+		{
+		    s1lengthcounter -= 1;
+
+		    if (s1lengthcounter == 0)
+		    {
+			s1enabled = false;
+		    }
+		}
+
+		if (TestBit(s1freqhi, 7))
+		{
+		    s1resetchannel();
+		}
+	    }
+
+	    inline void s1resetchannel()
+	    {
+		s1enabled = true;
+		s1reloadperiod();
+		s1freqhi &= 0x7F;
+
+		if (s1lengthcounter == 0)
+		{
+		    s1lengthcounter = 64;
+		}
+
+		if (apulength() && TestBit(s1freqhi, 6))
+		{
+		    s1lengthcounter -= 1;
+		}
+	    }
+
+	    inline void s1reloadperiod()
+	    {
+		int frequency = (s1freqlo | ((s1freqhi & 0x07) << 8));
+		s1periodtimer = ((2048 - frequency) << 1);
 	    }
     };
 };
