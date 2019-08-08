@@ -124,10 +124,6 @@ namespace gb
 		hdmadest = 0xFFFF;
 		hdmalength = 0xFF;
 		doublespeed = false;
-		s1enabled = false;
-		s2enabled = false;
-		waveenabled = false;
-		noiseenabled = false;
 	    }
 
 	    inline void resetio()
@@ -647,211 +643,29 @@ namespace gb
 	    uint8_t key1 = 0x00;
 	    uint8_t interruptenabled = 0x00;
 	    bool dmaactive = false;
-
-	    int s1sweepshift = 0;
-	    bool s1sweepnegate = false;
-	    int s1sweepperiodload = 0;
-	    int s1sweepperiod = 0;
-	    bool s1sweepenable = false;
-	    uint16_t s1sweepshadow = 0;
-	    int s1duty = 0;
-	    int s1lengthload = 0;
-	    bool s1envaddmode = false;
-	    bool s1envrunning = false;
-	    int s1envperiodload = 0;
-	    int s1envperiod = 0;
-	    int s1volumeload = 0;
-	    int s1volume = 0;
-	    bool s1dacenabled = false;
-	    uint16_t s1freq = 0x0000;
-	    int s1timer = 0;
-	    bool s1lengthenabled = false;
-	    bool s1triggerbit = false;
-	    int s1lengthcounter = 0;
-	    bool s1enabled = false;
-	    int s1outputvol = 0;
-
-	    int s2duty = 0;
-	    int s2lengthload = 0;
-	    bool s2envaddmode = false;
-	    bool s2envrunning = false;
-	    int s2envperiodload = 0;
-	    int s2envperiod = 0;
-	    int s2volumeload = 0;
-	    int s2volume = 0;
-	    bool s2dacenabled = false;
-	    uint16_t s2freq = 0x0000;
-	    int s2timer = 0;
-	    bool s2lengthenabled = false;
-	    bool s2triggerbit = false;
-	    int s2lengthcounter = 0;
-	    bool s2enabled = false;
-	    int s2outputvol = 0;
-
-	    bool wavedacenabled = false;
-	    uint8_t wavelengthload = 0x00;
-	    int wavevolumecode = 0;
-	    uint16_t wavefreq = 0x0000;
-	    int wavetimer = 0;
-	    bool wavelengthenabled = false;
-	    bool wavetriggerbit = false;
-	    uint8_t outputbyte = 0x00;
-	    uint8_t lastoutputbyte = 0x00;
-	    bool waveenabled = false;
-	    int wavelengthcounter = 0;
-	    int wavepositioncounter = 0;
-	    uint8_t waveram[0x10] = {0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF};
-	    int waveoutputvol = 0;
-
-	    int noiselengthload = 0;
-	    bool noiseenvaddmode = false;
-	    bool noiseenvrunning = false;
-	    int noiseenvperiodload = 0;
-	    int noiseenvperiod = 0;
-	    int noisevolumeload = 0;
-	    int noisevolume = 0;
-	    bool noisedacenabled = false;
-	    int noisedivisor = 0;
-	    int noisetimer = 0;
-	    bool noisewidthmode = false;
-	    int noiseclockshift = 0;
-	    bool noiselengthenabled = false;
-	    bool noisetriggerbit = false;
-	    int noiselengthcounter = 0;
-	    bool noiseenabled = false;
-	    int noiseoutputvol = 0;
-	    int lfsr = 0;
-	    int divisors[8] =
-	    {
-		8, 16, 32, 48,
-		64, 80, 96, 112
-	    };
-
-
-	
-	    int rightvol = 0;
-	    bool vinrightenable = false;
-	    int leftvol = 0;
-	    bool vinleftenable = false;
-
-	    bool rightenables[4] = {false};
-	    bool leftenables[4] = {false};
-
-	    bool soundenabled = true;
-
 	    uint8_t lylastcycle = 0xFF;
 
-	    inline uint16_t sweepcalc()
+	    int s1soundlength = 0;
+	    int s1lengthcounter = 0;
+
+	    array<int, 8> dutycycle;
+
+	    inline void reloads1lengthcounter()
 	    {
-		uint16_t newfreq = 0;
-		newfreq = (s1sweepshadow >> s1sweepshift);
-
-		if (s1sweepnegate)
-		{
-		    newfreq = (s1sweepshadow - newfreq);
-		}
-		else
-		{
-		    newfreq = (s1sweepshadow + newfreq);
-		}
-
-		if (newfreq > 2047)
-		{
-		    s1enabled = false;
-		}
-
-		return newfreq;
-
+		s1lengthcounter = (64 - (s1soundlength & 0x3F));
+		s1soundlength &= 0xC0;	
 	    }
 
-	    inline void s1trigger()
+	    inline void sets1dutycycle()
 	    {
-		s1enabled = true;
-		if (s1lengthcounter == 0)
+		switch ((s1soundlength & 0xC0) >> 6)
 		{
-		    s1lengthcounter = (64 - (s1lengthload & 0x3F));
-		    s1lengthload &= 0xC0;
+		    case 0: dutycycle = {{false, false, false, false, false, false, false, true}}; break;
+		    case 1: dutycycle = {{true, false, false, false, false, false, false, true}}; break;
+		    case 2: dutycycle = {{true, false, false, false, false, true, true, true}}; break;
+		    case 3: dutycycle = {{false, true, true, true, true, true, true, false}}; break;
+		    default: break;
 		}
-
-		s1timer = ((2048 - s1freq) * 4);
-		s1envrunning = true;
-		s1envperiod = s1envperiodload;
-		s1volume = s1volumeload;
-
-		s1sweepshadow = s1freq;
-		s1sweepperiod = s1sweepperiodload;
-
-		if (s1sweepperiod == 0)
-		{
-		    s1sweepperiod = 8;
-		}
-
-		s1sweepenable = ((s1sweepperiod > 0) || (s1sweepshift > 0));
-
-		if (s1sweepshift > 0)
-		{
-		    sweepcalc();
-		}
-	    }
-
-	    inline void s2trigger()
-	    {
-		s2enabled = true;
-		if (s2lengthcounter == 0)
-		{
-		    s2lengthcounter = (64 - (s2lengthload & 0x3F));
-		    s2lengthload &= 0xC0;
-		}
-
-		s2timer = ((2048 - s2freq) * 4);
-		s2envrunning = true;
-		s2envperiod = s2envperiodload;
-		s2volume = s2volumeload;
-	    }
-
-	    inline void wavetrigger()
-	    {
-		waveenabled = true;
-		if (wavelengthcounter == 0)
-		{
-		    wavelengthcounter = 256;
-		}
-
-		wavetimer = ((2048 - wavefreq) * 2);
-		wavepositioncounter = 0;
-	    }
-
-	    inline void noisetrigger()
-	    {
-		noiseenabled = true;
-		if (noiselengthcounter == 0)
-		{
-		    noiselengthcounter = (64 - (noiselengthload & 0x3F));
-		    noiselengthload &= 0xC0;
-		}
-
-		noisetimer = divisors[noisedivisor];
-		noiseenvrunning = true;
-		noiseenvperiod = noiseenvperiodload;
-		noisevolume = noisevolumeload;
-
-		lfsr = 0x7FFF;
-	    }
-
-	    inline uint8_t getsoundenabled()
-	    {
-		uint8_t temp = 0;
-
-		if (soundenabled)
-		{
-		    temp |= (soundenabled << 7);
-		}
-
-		temp |= (waveenabled << 2);
-		temp |= (noiseenabled << 3);
-		temp |= (s2enabled << 1);
-		temp |= (s1enabled);
-		return temp;
 	    }
     };
 };

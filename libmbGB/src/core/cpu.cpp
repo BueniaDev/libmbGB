@@ -38,8 +38,6 @@ namespace gb
 	{
 	    initbios();
 	}
-
-	printregs();
     }
 
     void CPU::initnobios()
@@ -211,31 +209,26 @@ namespace gb
 		{
 		    mem.clearinterrupt(0);
 		    interruptvector = 0x0040;
-		    // serviceinterrupt(0x40);
 		}
 		else if (mem.ispending(1))
 		{
 		    mem.clearinterrupt(1);
 		    interruptvector = 0x0048;
-		    // serviceinterrupt(0x48);
 		}
 		else if (mem.ispending(2))
 		{
 		    mem.clearinterrupt(2);
 		    interruptvector = 0x0050;
-		    // serviceinterrupt(0x50);
 		}
 		else if (mem.ispending(3))
 		{
 		    mem.clearinterrupt(3);
 		    interruptvector = 0x0058;
-		    // serviceinterrupt(0x58);
 		}
 		else if (mem.ispending(4))
 		{
 		    mem.clearinterrupt(4);
 		    interruptvector = 0x0060;
-		    // serviceinterrupt(0x60);
 		}
 
 		load8intomem(--sp, (pc & 0xFF));
@@ -283,9 +276,6 @@ namespace gb
 		cycles -= 4;
 		continue;
 	    }
-	    
-	    // TODO: HDMA transfer stuff
-
 
 	    cycles -= handleinterrupts();
 
@@ -318,7 +308,6 @@ namespace gb
     {
 	for (; cycles != 0; cycles -= 4)
 	{
-
 	    enabledelayedinterrupts();
 	    timer.updatetimer();
 	    link.updateserial();
