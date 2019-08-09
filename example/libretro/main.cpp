@@ -2,8 +2,10 @@
 #include "libretro.h"
 #include <array>
 #include <vector>
+#include <functional>
 using namespace gb;
 using namespace std;
+using namespace std::placeholders;
 
 static constexpr int screenwidth = 160;
 static constexpr int screenheight = 144;
@@ -102,7 +104,8 @@ bool retro_load_game(const retro_game_info* info)
 {
     if (info && info->data)
     {
-	core.coreapu->setaudiocallback(bind(&retrocallback, placeholders::_1, placeholders::_2));    	
+        core.setsamplerate(48000);
+	core.setaudiocallback(bind(&retrocallback, _1, _2));    	
 
 	core.preinit();	
 

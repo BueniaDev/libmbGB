@@ -654,10 +654,15 @@ namespace gb
 
 	    int s1soundlength = 0;
 	    int s1lengthcounter = 0;
+	    int s1volumeenvelope = 0;
+	    bool s1envelopeenabled = false;
+	    int s1envelopecounter = 0;
+	    int s1volume = 0;
 	    uint8_t s1freqlo = 0;
 	    uint8_t s1freqhi = 0;
 	    int s1periodtimer = 0;
 	    bool s1enabled = false;
+	    int mastervolume = 0;
 
 	    array<int, 8> s1dutycycle;
 
@@ -706,6 +711,16 @@ namespace gb
 		s1reloadperiod();
 		s1freqhi &= 0x7F;
 
+		s1volume = ((s1volumeenvelope & 0xF0) >> 4);
+		s1envelopecounter = (s1volumeenvelope & 0x07);
+		s1envelopeenabled = (s1envelopecounter != 0);
+
+
+		if ((!TestBit(s1volumeenvelope, 3) && s1volume == 0) || (TestBit(s1volumeenvelope, 3) && s1volume == 0x0F))
+		{
+		    s1envelopeenabled = false;
+		}
+
 		if (s1lengthcounter == 0)
 		{
 		    s1lengthcounter = 64;
@@ -714,6 +729,11 @@ namespace gb
 		if (apulength() && TestBit(s1freqhi, 6))
 		{
 		    s1lengthcounter -= 1;
+		}
+
+		if (s1volume == 0)
+		{
+		    s1enabled = false;
 		}
 	    }
 

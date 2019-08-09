@@ -428,6 +428,9 @@ namespace gb
 	    case 0x06: temp = tma; break;
 	    case 0x07: temp = (tac | 0xF8); break;
 	    case 0x0F: temp = (interruptflags | 0xE0); break;
+	    case 0x11: temp = (s1soundlength | 0x3F); break;
+	    case 0x12: temp = s1volumeenvelope; break;
+	    case 0x14: temp = (s1freqhi | 0xBF); break;
 	    case 0x40: temp = lcdc; break;
 	    case 0x41: temp = (stat | 0x80); break;
 	    case 0x42: temp = scrolly; break;
@@ -470,6 +473,16 @@ namespace gb
 		s1soundlength = value;
 		reloads1lengthcounter();
 		sets1dutycycle();
+	    }
+	    break;
+	    case 0x12:
+	    {
+		s1volumeenvelope = value;
+
+		if (((s1volumeenvelope & 0xF0) >> 4) == 0)
+		{
+		    s1enabled = false;
+		}
 	    }
 	    break;
 	    case 0x13: s1freqlo = value; break;

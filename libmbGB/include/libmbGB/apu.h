@@ -40,6 +40,7 @@ namespace gb
 	    int maxsamples = 0;
 
 	    bool prevs1lengthdec = false;
+	    bool prevs1envelopeinc = false;
 
 	    void updateaudio();
 	    void mixaudio();
@@ -62,6 +63,7 @@ namespace gb
 	    {
 		s1timertick();
 		s1lengthcountertick(frameseq);
+		s1envelopetick(frameseq);
 	    }
 
 	    inline void s1lengthcountertick(int frameseq)
@@ -84,6 +86,43 @@ namespace gb
 		prevs1lengthdec = lengthcounterdec;
 	    }
 
+	    inline void s1envelopetick(int frameseq)
+	    {
+		bool envelopeinc = TestBit(frameseq, 2);
+
+		if (apumem.s1envelopeenabled)
+		{
+		    if (!envelopeinc && prevs1envelopeinc)
+		    {
+			apumem.s1envelopecounter -= 1;
+
+			if (apumem.s1envelopecounter == 0)
+			{
+			    if (!TestBit(apumem.s1volumeenvelope, 3))
+			    {
+				apumem.s1volume -= 1;
+				if (apumem.s1volume == 0)
+				{
+				    apumem.s1envelopeenabled = false;
+				}
+			    }
+			    else
+			    {
+				apumem.s1volume += 1;
+				if (apumem.s1volume == 0x0F)
+				{
+				    apumem.s1envelopeenabled = false;
+				}
+			    }
+			}
+
+			apumem.s1envelopecounter = (apumem.s1volumeenvelope & 0x7);
+		    }
+		}
+
+		prevs1envelopeinc = envelopeinc;
+	    }
+
 	    inline void s1timertick()
 	    {
 		if (apumem.s1periodtimer == 0)
@@ -103,7 +142,7 @@ namespace gb
 		int outputvol = 0;
 		if (apumem.s1enabled)
 		{
-		    outputvol = (apumem.s1dutycycle[s1seqpointer] * 4);
+		    outputvol = (apumem.s1dutycycle[s1seqpointer] * apumem.s1volume);
 		}
 		else
 		{
