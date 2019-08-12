@@ -35,6 +35,8 @@ namespace gb
 	frametimer += 2;
 
 	s1update(getframesequencer());
+	s2update(getframesequencer());
+	waveupdate(getframesequencer());
 
 	if (samplecounter == maxsamples)
 	{
@@ -47,23 +49,115 @@ namespace gb
 	}
     }
 
-    void APU::mixaudio()
+    void APU::mixs16audio()
     {
 	static constexpr float ampl = 30000;
 
 	auto sound1 = gets1outputvol();
+	auto sound2 = gets2outputvol();
+	auto sound3 = getwaveoutputvol();
 
 	float leftsample = 0;
 	float rightsample = 0;
 
-	leftsample += sound1;
-	rightsample += sound1;
+	if (apumem.s1enabledleft())
+	{
+	    leftsample += sound1;
+	}
 
-	auto leftvolume = ((float)(5.0f / 7.0f));
-	auto rightvolume = ((float)(5.0f / 7.0f));
+	if (apumem.s1enabledright())
+	{
+	    rightsample += sound1;
+	}
+
+	if (apumem.s2enabledleft())
+	{
+	    leftsample += sound2;
+	}
+
+	if (apumem.s2enabledright())
+	{
+	    rightsample += sound2;
+	}
+
+	if (apumem.waveenabledleft())
+	{
+	    leftsample += sound3;
+	}
+
+	if (apumem.waveenabledright())
+	{
+	    rightsample += sound3;
+	}
+
+	leftsample /= 3.0f;
+	rightsample /= 3.0f;
+
+	int mastervolleft = ((apumem.mastervolume >> 4) & 0x7);
+	int mastervolright = (apumem.mastervolume & 0x7);
+
+	auto leftvolume = (((float)(mastervolleft)) / 7.0f);
+	auto rightvolume = (((float)(mastervolright)) / 7.0f);
 
 	auto left = (int16_t)(leftsample * leftvolume * ampl);
 	auto right = (int16_t)(rightsample * rightvolume * ampl);
+
+	if (audiocallback)
+	{
+	    audiocallback(left, right);
+	}
+    }
+
+    void APU::mixf32audio()
+    {
+	auto sound1 = gets1outputvol();
+	auto sound2 = gets2outputvol();
+	auto sound3 = getwaveoutputvol();
+
+	float leftsample = 0;
+	float rightsample = 0;
+
+	if (apumem.s1enabledleft())
+	{
+	    leftsample += sound1;
+	}
+
+	if (apumem.s1enabledright())
+	{
+	    rightsample += sound1;
+	}
+
+	if (apumem.s2enabledleft())
+	{
+	    leftsample += sound2;
+	}
+
+	if (apumem.s2enabledright())
+	{
+	    rightsample += sound2;
+	}
+
+	if (apumem.waveenabledleft())
+	{
+	    leftsample += sound3;
+	}
+
+	if (apumem.waveenabledright())
+	{
+	    rightsample += sound3;
+	}
+
+	leftsample /= 3.0f;
+	rightsample /= 3.0f;
+
+	int mastervolleft = ((apumem.mastervolume >> 4) & 0x7);
+	int mastervolright = (apumem.mastervolume & 0x7);
+
+	auto leftvolume = (((float)(mastervolleft)) / 7.0f);
+	auto rightvolume = (((float)(mastervolright)) / 7.0f);
+
+	auto left = (float)(leftsample * leftvolume);
+	auto right = (float)(rightsample * rightvolume);
 
 	if (audiocallback)
 	{

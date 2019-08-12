@@ -104,22 +104,6 @@ namespace gb
 		lcdc = 0x91;
 		vrambank = 0;
 		wrambank = 1;
-		writeByte(0xFF10, 0x80);
-		writeByte(0xFF11, 0xBF);
-		writeByte(0xFF12, 0xF3);
-		writeByte(0xFF14, 0xBF);
-		writeByte(0xFF16, 0x3F);
-		writeByte(0xFF19, 0xBF);
-		writeByte(0xFF1A, 0x7F);
-		writeByte(0xFF1B, 0xFF);
-		writeByte(0xFF1C, 0x9F);
-		writeByte(0xFF1E, 0xBF);
-		writeByte(0xFF20, 0xFF);
-		writeByte(0xFF23, 0xBF);
-		writeByte(0xFF24, 0x77);
-		writeByte(0xFF25, 0xF3);
-		writeByte(0xFF26, 0xF1);
-		writeByte(0xFF40, 0x91);
 		writeByte(0xFF4D, 0x7E);
 		hdmasource = 0xFFFF;
 		hdmadest = 0xFFFF;
@@ -662,9 +646,49 @@ namespace gb
 	    uint8_t s1freqhi = 0;
 	    int s1periodtimer = 0;
 	    bool s1enabled = false;
+
+	    int s2soundlength = 0;
+	    int s2lengthcounter = 0;
+	    int s2volumeenvelope = 0;
+	    bool s2envelopeenabled = false;
+	    int s2envelopecounter = 0;
+	    int s2volume = 0;
+	    uint8_t s2freqlo = 0;
+	    uint8_t s2freqhi = 0;
+	    int s2periodtimer = 0;
+	    bool s2enabled = false;
+
+	    int wavesweep = 0;
+	    int wavesoundlength = 0;
+	    int wavelengthcounter = 0;
+	    int wavevolumeenvelope = 0;
+	    int wavevolume = 0;
+	    uint8_t wavefreqlo = 0;
+	    uint8_t wavefreqhi = 0;
+	    int waveperiodtimer = 0;
+	    bool waveenabled = false;
+	    int waveramlengthmask = 0;
+	    int wavepos = 0;
+	    bool wavechannelenabled = false;
+	    uint8_t wavecurrentsample = 0;
+	    uint8_t wavelastplayedsample = 0;
+	    array<uint8_t, 0x10> waveram = {0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF};
+
 	    int mastervolume = 0;
+	    int soundselect = 0;
 
 	    array<int, 8> s1dutycycle;
+	    array<int, 8> s2dutycycle;
+
+	    inline bool s1enabledleft()
+	    {
+		return (s1enabled && (TestBit(soundselect, 4)));
+	    }
+
+	    inline bool s1enabledright()
+	    {
+		return (s1enabled && (TestBit(soundselect, 0)));
+	    }
 
 	    inline void reloads1lengthcounter()
 	    {
@@ -741,6 +765,157 @@ namespace gb
 	    {
 		int frequency = (s1freqlo | ((s1freqhi & 0x07) << 8));
 		s1periodtimer = ((2048 - frequency) << 1);
+	    }
+
+	    inline bool s2enabledleft()
+	    {
+		return (s2enabled && (TestBit(soundselect, 5)));
+	    }
+
+	    inline bool s2enabledright()
+	    {
+		return (s2enabled && (TestBit(soundselect, 1)));
+	    }
+
+	    inline void reloads2lengthcounter()
+	    {
+		s2lengthcounter = (64 - (s2soundlength & 0x3F));
+		s2soundlength &= 0xC0;	
+	    }
+
+	    inline void sets2dutycycle()
+	    {
+		switch ((s2soundlength & 0xC0) >> 6)
+		{
+		    case 0: s2dutycycle = {{false, false, false, false, false, false, false, true}}; break;
+		    case 1: s2dutycycle = {{true, false, false, false, false, false, false, true}}; break;
+		    case 2: s2dutycycle = {{true, false, false, false, false, true, true, true}}; break;
+		    case 3: s2dutycycle = {{false, true, true, true, true, true, true, false}}; break;
+		    default: break;
+		}
+	    }
+
+	    inline void s2writereset(uint8_t value)
+	    {
+		bool lengthwasenable = TestBit(s2freqhi, 6);
+		s2freqhi = (value & 0xC7);
+
+		if (apulength() && !lengthwasenable && TestBit(s2freqhi, 6) && s2lengthcounter > 0)
+		{
+		    s2lengthcounter -= 1;
+
+		    if (s2lengthcounter == 0)
+		    {
+			s2enabled = false;
+		    }
+		}
+
+		if (TestBit(s2freqhi, 7))
+		{
+		    s2resetchannel();
+		}
+	    }
+
+	    inline void s2resetchannel()
+	    {
+		s2enabled = true;
+		s2reloadperiod();
+		s2freqhi &= 0x7F;
+
+		s2volume = ((s2volumeenvelope & 0xF0) >> 4);
+		s2envelopecounter = (s2volumeenvelope & 0x07);
+		s2envelopeenabled = (s2envelopecounter != 0);
+
+
+		if ((!TestBit(s2volumeenvelope, 3) && s2volume == 0) || (TestBit(s2volumeenvelope, 3) && s2volume == 0x0F))
+		{
+		    s2envelopeenabled = false;
+		}
+
+		if (s2lengthcounter == 0)
+		{
+		    s2lengthcounter = 64;
+		}
+
+		if (apulength() && TestBit(s2freqhi, 6))
+		{
+		    s2lengthcounter -= 1;
+		}
+
+		if (s2volume == 0)
+		{
+		    s2enabled = false;
+		}
+	    }
+
+	    inline void s2reloadperiod()
+	    {
+		int frequency = (s2freqlo | ((s2freqhi & 0x07) << 8));
+		s2periodtimer = ((2048 - frequency) << 1);
+	    }
+
+	    inline bool waveenabledleft()
+	    {
+		return (waveenabled && (TestBit(soundselect, 6)));
+	    }
+
+	    inline bool waveenabledright()
+	    {
+		return (waveenabled && (TestBit(soundselect, 2)));
+	    }
+
+	    inline void reloadwavelengthcounter()
+	    {
+		wavelengthcounter = (256 - wavesoundlength);
+		wavesoundlength = 0;	
+	    }
+
+	    inline void wavereloadperiod()
+	    {
+		int frequency = (wavefreqlo | ((wavefreqhi & 0x07) << 8));
+		waveperiodtimer = (2048 - frequency);
+	    }
+
+	    inline void wavewritereset(uint8_t value)
+	    {
+		bool lengthwasenable = TestBit(wavefreqhi, 6);
+		wavefreqhi = (value & 0xC7);
+
+		if (apulength() && !lengthwasenable && TestBit(wavefreqhi, 6) && wavelengthcounter > 0)
+		{
+		    wavelengthcounter -= 1;
+
+		    if (wavelengthcounter == 0)
+		    {
+			waveenabled = false;
+		    }
+		}
+
+		if (TestBit(wavefreqhi, 7))
+		{
+		    waveresetchannel();
+		}
+	    }
+
+	    inline void waveresetchannel()
+	    {
+		waveenabled = true;
+		wavereloadperiod();
+		wavefreqhi &= 0x7F;
+
+		if (wavelengthcounter == 0)
+		{
+		    wavelengthcounter = 256;
+		}
+
+		if (apulength() && TestBit(wavefreqhi, 6))
+		{
+		    wavelengthcounter -= 1;
+		}
+
+		wavepos = 0;
+		waveenabled = TestBit(wavesweep, 7);
+		wavecurrentsample = wavelastplayedsample;
 	    }
     };
 };

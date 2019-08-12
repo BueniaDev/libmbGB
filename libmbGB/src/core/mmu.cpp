@@ -47,14 +47,16 @@ namespace gb
 
 	cout << "MMU::Initialized" << endl;
 
-	initio();
 	gbmode = Mode::Default; // DO NOT DISABLE THIS! Doing so breaks the emulator on reset!
     }
 
     void MMU::initnot()
     {
 	cout << "MMU::Initialized" << endl;
-	initio();
+	if (!biosload)
+	{
+	    initio();
+	}
 	gbmode = Mode::Default; // DO NOT DISABLE THIS! Doing so breaks the emulator on reset!
     }
 
@@ -309,6 +311,10 @@ namespace gb
 	{
 	    return readIO(addr);
 	}
+	else if (addr < 0xFF40)
+	{
+	    return waveram[addr - 0xFF30];
+	}
 	else if (addr < 0xFF80)
 	{
 	    return readIO(addr);
@@ -389,6 +395,10 @@ namespace gb
 	{
 	    writeIO(addr, value);
 	}
+	else if (addr < 0xFF40)
+	{
+	    waveram[addr - 0xFF30] = value;
+	}
 	else if (addr < 0xFF80)
 	{
 	    writeIO(addr, value);
@@ -431,6 +441,14 @@ namespace gb
 	    case 0x11: temp = (s1soundlength | 0x3F); break;
 	    case 0x12: temp = s1volumeenvelope; break;
 	    case 0x14: temp = (s1freqhi | 0xBF); break;
+	    case 0x16: temp = (s2soundlength | 0x3F); break;
+	    case 0x17: temp = s2volumeenvelope; break;
+	    case 0x19: temp = (s2freqhi | 0xBF); break;
+	    case 0x1A: temp = (wavesweep | 0x7F); break;
+	    case 0x1C: temp = (wavevolumeenvelope | 0x9F); break;
+	    case 0x1E: temp = (wavefreqhi | 0xBF); break;
+	    case 0x24: temp = mastervolume; break;
+	    case 0x25: temp = soundselect; break;
 	    case 0x40: temp = lcdc; break;
 	    case 0x41: temp = (stat | 0x80); break;
 	    case 0x42: temp = scrolly; break;
@@ -487,6 +505,54 @@ namespace gb
 	    break;
 	    case 0x13: s1freqlo = value; break;
 	    case 0x14: s1writereset(value); break;
+	    case 0x16:
+	    {
+		s2soundlength = value;
+		reloads2lengthcounter();
+		sets2dutycycle();
+	    }
+	    break;
+	    case 0x17:
+	    {
+		s2volumeenvelope = value;
+
+		if (((s2volumeenvelope & 0xF0) >> 4) == 0)
+		{
+		    s2enabled = false;
+		}
+	    }
+	    break;
+	    case 0x18: s2freqlo = value; break;
+	    case 0x19: s2writereset(value); break;
+	    case 0x1A:
+	    {
+		wavesweep = (value & 0x80);
+
+		if (!TestBit(wavesweep, 7))
+		{
+		    waveenabled = false;
+		}
+
+		waveramlengthmask = 0x1F;
+	    }
+	    break;
+	    case 0x1B:
+	    {
+		wavesoundlength = value;
+		reloadwavelengthcounter();
+	    }
+	    break;
+	    case 0x1C:
+	    {
+		wavevolumeenvelope = (value & 0xE0);
+		int wavevolumeshift = ((wavevolumeenvelope & 0x60) >> 5);
+		wavevolume = (wavevolumeshift) ? (wavevolumeshift - 1) : 4;
+	    }
+	    break;
+	    case 0x1D: wavefreqlo = value; break;
+	    case 0x1E: wavewritereset(value); break;
+	    case 0x24: mastervolume = value; break;
+	    case 0x25: soundselect = value; break;
 	    case 0x40: writelcdc(value); break;
 	    case 0x41: writestat(value); break;
 	    case 0x42: scrolly = value; break;

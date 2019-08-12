@@ -19,9 +19,16 @@ int scale = 3;
 int fpscount = 0;
 Uint32 fpstime = 0;
 
-vector<int16_t> buffer;
+#ifdef LIBMBGB_SIGNED16
+using sampleformat = int16_t;
+#elif defined LIBMBGB_FLOAT32
+using sampleformat = float;
+#endif
 
-void sdlcallback(int16_t left, int16_t right)
+
+vector<sampleformat> buffer;
+
+void sdlcallback(sampleformat left, sampleformat right)
 {
     buffer.push_back(left);
     buffer.push_back(right);
@@ -30,11 +37,11 @@ void sdlcallback(int16_t left, int16_t right)
     {
 	buffer.clear();
 
-	while ((SDL_GetQueuedAudioSize(1)) > (4096 * sizeof(int16_t)))
+	while ((SDL_GetQueuedAudioSize(1)) > (4096 * sizeof(sampleformat)))
 	{
 	    SDL_Delay(1);
 	}
-	SDL_QueueAudio(1, &buffer[0], (4096 * sizeof(int16_t)));
+	SDL_QueueAudio(1, &buffer[0], (4096 * sizeof(sampleformat)));
     }
 }
 
@@ -81,7 +88,11 @@ bool initsdl()
     surface = SDL_GetWindowSurface(window);
 
     SDL_AudioSpec audiospec;
+    #ifdef LIBMBGB_SIGNED16
     audiospec.format = AUDIO_S16SYS;
+    #elif defined LIBMBGB_FLOAT32
+    audiospec.format = AUDIO_F32SYS;
+    #endif
     audiospec.freq = 48000;
     audiospec.samples = 4096;
     audiospec.channels = 2;

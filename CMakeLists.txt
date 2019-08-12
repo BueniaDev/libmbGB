@@ -5,6 +5,8 @@ option(BUILD_EXAMPLE "Enables the example renderer (requires SDL2)." OFF)
 option(BUILD_HEADLESS "Enables the headless renderer." OFF)
 option(BUILD_LIBRETRO "Enables the Libretro core." OFF)
 option(BUILD_GUI "Enables the ImGUI renderer (requires SDL2)." OFF)
+option(ENABLE_FLOAT32 "Enables float-based audio samples." OFF)
+option(ENABLE_SIGNED16 "Enables signed 16-bit integer-based audio samples." OFF)
 
 if (WIN32)
 	message(STATUS "Operating system is Windows.")
@@ -45,6 +47,13 @@ set(LIBMBGB
 
 if (BUILD_EXAMPLE STREQUAL "ON")
 	add_subdirectory(example/sdl2)
+	if (ENABLE_SIGNED16 STREQUAL "ON")
+	    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -DLIBMBGB_SIGNED16=1")
+	elseif (ENABLE_FLOAT32 STREQUAL "ON")
+	    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -DLIBMBGB_FLOAT32=1")
+	else()
+	    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -DLIBMBGB_SIGNED16=1")
+	endif()
 endif()
 
 if (BUILD_HEADLESS STREQUAL "ON")
@@ -53,7 +62,8 @@ endif()
 
 if (BUILD_LIBRETRO STREQUAL "ON")
 	add_subdirectory(example/libretro)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+	set(ENABLE_SIGNED16 "ON")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -DLIBMBGB_SIGNED16=1")
 endif()
 
 if (BUILD_GUI STREQUAL "ON")

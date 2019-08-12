@@ -24,7 +24,13 @@ using namespace std;
 
 namespace gb
 {
+    #ifdef LIBMBGB_SIGNED16
     using apuoutputfunc = function<void(int16_t, int16_t)>;
+    #elif defined LIBMBGB_FLOAT32
+    using apuoutputfunc = function<void(float, float)>;
+    #else
+    #error "Please define an audio output type."
+    #endif
 
     class LIBMBGB_API APU
     {
@@ -34,16 +40,37 @@ namespace gb
 
 	    MMU& apumem;
 
+	    #ifdef LIBMBGB_SIGNED16
+	    float divisor = 15.f;
+	    #elif defined LIBMBGB_FLOAT32
+	    float divisor = 100.f;
+	    #endif
+
 	    int frametimer = 0;
 	    int s1seqpointer = 0;
+	    int s2seqpointer = 0;
 	    int samplecounter = 0;
 	    int maxsamples = 0;
 
 	    bool prevs1lengthdec = false;
 	    bool prevs1envelopeinc = false;
+	    bool prevs2lengthdec = false;
+	    bool prevs2envelopeinc = false;
+	    bool prevwavelengthdec = false;
 
 	    void updateaudio();
-	    void mixaudio();
+
+	    inline void mixaudio()
+	    {
+		#ifdef LIBMBGB_SIGNED16
+		mixs16audio();
+		#elif defined LIBMBGB_FLOAT32
+		mixf32audio();
+		#endif
+	    }
+
+	    void mixs16audio();
+	    void mixf32audio();
 
 	    apuoutputfunc audiocallback;
 
@@ -114,9 +141,9 @@ namespace gb
 				    apumem.s1envelopeenabled = false;
 				}
 			    }
-			}
 
-			apumem.s1envelopecounter = (apumem.s1volumeenvelope & 0x7);
+			    apumem.s1envelopecounter = (apumem.s1volumeenvelope & 0x7);
+			}
 		    }
 		}
 
@@ -149,7 +176,170 @@ namespace gb
 		    outputvol = 0;
 		}
 
-		return ((float)(outputvol) / 15.f);
+		return ((float)(outputvol) / divisor);
+	    }
+
+	    inline void s2update(int frameseq)
+	    {
+		s2timertick();
+		s2lengthcountertick(frameseq);
+		s2envelopetick(frameseq);
+	    }
+
+	    inline void s2lengthcountertick(int frameseq)
+	    {
+		bool lengthcounterdec = TestBit(frameseq, 0);
+
+		if (TestBit(apumem.s2freqhi, 6) && apumem.s2lengthcounter > 0)
+		{
+		    if (!lengthcounterdec && prevs2lengthdec)
+		    {
+			apumem.s2lengthcounter -= 1;
+
+			if (apumem.s2lengthcounter == 0)
+			{
+			    apumem.s2enabled = false;
+			}
+		    }
+		}
+
+		prevs2lengthdec = lengthcounterdec;
+	    }
+
+	    inline void s2envelopetick(int frameseq)
+	    {
+		bool envelopeinc = TestBit(frameseq, 2);
+
+		if (apumem.s2envelopeenabled)
+		{
+		    if (!envelopeinc && prevs2envelopeinc)
+		    {
+			apumem.s2envelopecounter -= 1;
+
+			if (apumem.s2envelopecounter == 0)
+			{
+			    if (!TestBit(apumem.s2volumeenvelope, 3))
+			    {
+				apumem.s2volume -= 1;
+				if (apumem.s2volume == 0)
+				{
+				    apumem.s2envelopeenabled = false;
+				}
+			    }
+			    else
+			    {
+				apumem.s2volume += 1;
+				if (apumem.s2volume == 0x0F)
+				{
+				    apumem.s2envelopeenabled = false;
+				}
+			    }
+
+			    apumem.s2envelopecounter = (apumem.s2volumeenvelope & 0x7);
+			}
+		    }
+		}
+
+		prevs2envelopeinc = envelopeinc;
+	    }
+
+	    inline void s2timertick()
+	    {
+		if (apumem.s2periodtimer == 0)
+		{
+		    s2seqpointer = ((s2seqpointer + 1) & 7);
+
+		    apumem.s2reloadperiod();
+		}
+		else
+		{
+		    apumem.s2periodtimer -= 1;
+		}
+	    }
+
+	    float gets2outputvol()
+	    {
+		int outputvol = 0;
+		if (apumem.s2enabled)
+		{
+		    outputvol = (apumem.s2dutycycle[s2seqpointer] * apumem.s2volume);
+		}
+		else
+		{
+		    outputvol = 0;
+		}
+
+		return ((float)(outputvol) / divisor);
+	    }
+
+	    inline void wavetimertick()
+	    {
+		if (apumem.waveperiodtimer == 0)
+		{
+		    apumem.wavelastplayedsample = apumem.wavecurrentsample;
+		    apumem.wavepos = ((apumem.wavepos + 1) & apumem.waveramlengthmask);
+	
+		    int playingbankoffs = (((apumem.wavesweep & 0x40) >> 6) * 32);
+
+		    int sampleindex = ((apumem.wavepos + playingbankoffs) & 0x3F);
+		    uint8_t samplebyte = apumem.waveram[sampleindex >> 1];
+
+		    apumem.wavecurrentsample = (TestBit(sampleindex, 0) ? (samplebyte & 0x0F) : (samplebyte >> 4));
+
+		    apumem.wavereloadperiod();
+		}
+		else
+		{
+		    apumem.waveperiodtimer -= 1;
+		}
+	    }
+
+	    inline void wavelengthcountertick(int frameseq)
+	    {
+		bool lengthcounterdec = TestBit(frameseq, 0);
+
+		if (TestBit(apumem.wavefreqhi, 6) && apumem.wavelengthcounter > 0)
+		{
+		    if (!lengthcounterdec && prevwavelengthdec)
+		    {
+			apumem.wavelengthcounter -= 1;
+
+			if (apumem.wavelengthcounter == 0)
+			{
+			    apumem.waveenabled = false;
+			}
+		    }
+		}
+
+		prevwavelengthdec = lengthcounterdec;
+	    }
+
+	    inline void waveupdate(int frameseq)
+	    {
+		wavetimertick();
+		wavelengthcountertick(frameseq);
+	    }
+
+	    float getwaveoutputvol()
+	    {
+		int outputvol = 0;
+		if (apumem.waveenabled)
+		{
+		    if (TestBit(apumem.wavevolumeenvelope, 7))
+		    {
+			outputvol = (apumem.wavecurrentsample) - (apumem.wavecurrentsample >> 2);
+		    }
+		    else
+		    {
+			outputvol = (apumem.wavecurrentsample >> apumem.wavevolume);
+		    }
+		}
+		else
+		{
+		    outputvol = 0;
+		}
+
+		return ((float)(outputvol) / divisor);
 	    }
 
 	    inline int getframesequencer()
