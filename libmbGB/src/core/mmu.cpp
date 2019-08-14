@@ -438,6 +438,7 @@ namespace gb
 	    case 0x06: temp = tma; break;
 	    case 0x07: temp = (tac | 0xF8); break;
 	    case 0x0F: temp = (interruptflags | 0xE0); break;
+	    case 0x10: temp = (s1sweep | 0x80); break;
 	    case 0x11: temp = (s1soundlength | 0x3F); break;
 	    case 0x12: temp = s1volumeenvelope; break;
 	    case 0x14: temp = (s1freqhi | 0xBF); break;
@@ -447,8 +448,12 @@ namespace gb
 	    case 0x1A: temp = (wavesweep | 0x7F); break;
 	    case 0x1C: temp = (wavevolumeenvelope | 0x9F); break;
 	    case 0x1E: temp = (wavefreqhi | 0xBF); break;
+	    case 0x21: temp = noisevolumeenvelope; break;
+	    case 0x22: temp = noisefreqlo; break;
+	    case 0x23: temp = (noisefreqhi | 0xBF); break;
 	    case 0x24: temp = mastervolume; break;
 	    case 0x25: temp = soundselect; break;
+	    case 0x26: temp = readsoundon(); break;
 	    case 0x40: temp = lcdc; break;
 	    case 0x41: temp = (stat | 0x80); break;
 	    case 0x42: temp = scrolly; break;
@@ -486,8 +491,15 @@ namespace gb
 	    case 0x06: tma = value; break;
 	    case 0x07: tac = (value & 0x07); break;
 	    case 0x0F: writeif(value); break;
+	    case 0x10: writes1sweep(value); break;
 	    case 0x11:
 	    {
+		if (!TestBit(soundon, 7) && !isdmgconsole())
+		{
+		    cout << "True" << endl;
+		    return;
+		}
+
 		s1soundlength = value;
 		reloads1lengthcounter();
 		sets1dutycycle();
@@ -507,6 +519,11 @@ namespace gb
 	    case 0x14: s1writereset(value); break;
 	    case 0x16:
 	    {
+		if (!TestBit(soundon, 7) && !isdmgconsole())
+		{
+		    return;
+		}
+
 		s2soundlength = value;
 		reloads2lengthcounter();
 		sets2dutycycle();
@@ -538,6 +555,11 @@ namespace gb
 	    break;
 	    case 0x1B:
 	    {
+		if (!TestBit(soundon, 7) && !isdmgconsole())
+		{
+		    return;
+		}
+
 		wavesoundlength = value;
 		reloadwavelengthcounter();
 	    }
@@ -551,8 +573,23 @@ namespace gb
 	    break;
 	    case 0x1D: wavefreqlo = value; break;
 	    case 0x1E: wavewritereset(value); break;
+	    case 0x20:
+	    {
+		if (!TestBit(soundon, 7) && !isdmgconsole())
+		{
+		    return;
+		}
+
+		noisesoundlength = (value & 0x3F);
+		reloadnoiselengthcounter();
+	    }
+	    break;
+	    case 0x21: writenoiseenvelope(value); break;
+	    case 0x22: noisefreqlo = value; break;
+	    case 0x23: noisewritereset(value); break;
 	    case 0x24: mastervolume = value; break;
 	    case 0x25: soundselect = value; break;
+	    case 0x26: writesoundon(value); break;
 	    case 0x40: writelcdc(value); break;
 	    case 0x41: writestat(value); break;
 	    case 0x42: scrolly = value; break;

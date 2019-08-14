@@ -37,6 +37,7 @@ namespace gb
 	s1update(getframesequencer());
 	s2update(getframesequencer());
 	waveupdate(getframesequencer());
+	noiseupdate(getframesequencer());
 
 	if (samplecounter == maxsamples)
 	{
@@ -56,6 +57,7 @@ namespace gb
 	auto sound1 = gets1outputvol();
 	auto sound2 = gets2outputvol();
 	auto sound3 = getwaveoutputvol();
+	auto sound4 = getnoiseoutputvol();
 
 	float leftsample = 0;
 	float rightsample = 0;
@@ -90,8 +92,18 @@ namespace gb
 	    rightsample += sound3;
 	}
 
-	leftsample /= 3.0f;
-	rightsample /= 3.0f;
+	if (apumem.noiseenabledleft())
+	{
+	    leftsample += sound4;
+	}
+
+	if (apumem.noiseenabledright())
+	{
+	    rightsample += sound4;
+	}
+
+	leftsample /= 4.0f;
+	rightsample /= 4.0f;
 
 	int mastervolleft = ((apumem.mastervolume >> 4) & 0x7);
 	int mastervolright = (apumem.mastervolume & 0x7);
@@ -113,6 +125,7 @@ namespace gb
 	auto sound1 = gets1outputvol();
 	auto sound2 = gets2outputvol();
 	auto sound3 = getwaveoutputvol();
+	auto sound4 = getnoiseoutputvol();
 
 	float leftsample = 0;
 	float rightsample = 0;
@@ -147,8 +160,18 @@ namespace gb
 	    rightsample += sound3;
 	}
 
-	leftsample /= 3.0f;
-	rightsample /= 3.0f;
+	if (apumem.noiseenabledleft())
+	{
+	    leftsample += sound4;
+	}
+
+	if (apumem.noiseenabledright())
+	{
+	    rightsample += sound4;
+	}
+
+	leftsample /= 4.0f;
+	rightsample /= 4.0f;
 
 	int mastervolleft = ((apumem.mastervolume >> 4) & 0x7);
 	int mastervolright = (apumem.mastervolume & 0x7);

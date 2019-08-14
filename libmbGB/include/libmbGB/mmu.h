@@ -636,6 +636,11 @@ namespace gb
 	    bool dmaactive = false;
 	    uint8_t lylastcycle = 0xFF;
 
+	    int s1sweep = 0;
+	    bool s1negative = false;
+	    bool s1sweepenabled = false;
+	    uint16_t s1shadowfreq = 0;
+	    int s1sweepcounter = 0;
 	    int s1soundlength = 0;
 	    int s1lengthcounter = 0;
 	    int s1volumeenvelope = 0;
@@ -674,8 +679,21 @@ namespace gb
 	    uint8_t wavelastplayedsample = 0;
 	    array<uint8_t, 0x10> waveram = {0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF};
 
+	    int noisesoundlength = 0;
+	    int noiselengthcounter = 0;
+	    int noisevolumeenvelope = 0;
+	    bool noiseenvelopeenabled = false;
+	    int noiseenvelopecounter = 0;
+	    int noiseperiodtimer = 0;
+	    uint8_t noisefreqlo = 0;
+	    uint8_t noisefreqhi = 0;
+	    int noisevolume = 0;
+	    uint16_t noiselfsr = 1;
+	    bool noiseenabled = false;
+
 	    int mastervolume = 0;
 	    int soundselect = 0;
+	    int soundon = 0;
 
 	    array<int, 8> s1dutycycle;
 	    array<int, 8> s2dutycycle;
@@ -688,6 +706,16 @@ namespace gb
 	    inline bool s1enabledright()
 	    {
 		return (s1enabled && (TestBit(soundselect, 0)));
+	    }
+
+	    inline void writes1sweep(uint8_t value)
+	    {
+		s1sweep = (value & 0x7F);
+
+		if ((((s1sweep & 0x70) >> 4) == 0) || ((s1sweep & 0x07) == 0) || (!TestBit(s1sweep, 3) && s1negative))
+		{
+		    s1sweepenabled = false;
+		}
 	    }
 
 	    inline void reloads1lengthcounter()
@@ -729,11 +757,41 @@ namespace gb
 		}
 	    }
 
+	    inline uint16_t s1sweepcalc()
+	    {
+		uint16_t freqdelta = (s1shadowfreq >> (s1sweep & 0x07));
+
+		if (TestBit(s1sweep, 3))
+		{
+		    freqdelta *= -1;
+		    freqdelta &= 0x7FF;
+
+		    s1negative = true;
+		}
+
+		uint16_t newfreq = ((s1shadowfreq + freqdelta) & 0x7FF);
+
+		if (newfreq > 2047)
+		{
+		    s1sweepenabled = false;
+		    s1enabled = false;
+		}
+
+		return newfreq;
+	    }
+
 	    inline void s1resetchannel()
 	    {
 		s1enabled = true;
 		s1reloadperiod();
 		s1freqhi &= 0x7F;
+
+		s1shadowfreq = (s1freqlo | ((s1freqhi & 0x7) << 8));
+		s1sweepcounter = ((s1sweep & 0x70) >> 4);
+		s1sweepenabled = (s1sweepcounter != 0 && ((s1sweep & 0x07) != 0));
+		s1sweepcalc();
+
+		s1negative = false;
 
 		s1volume = ((s1volumeenvelope & 0xF0) >> 4);
 		s1envelopecounter = (s1volumeenvelope & 0x07);
@@ -748,16 +806,11 @@ namespace gb
 		if (s1lengthcounter == 0)
 		{
 		    s1lengthcounter = 64;
-		}
 
-		if (apulength() && TestBit(s1freqhi, 6))
-		{
-		    s1lengthcounter -= 1;
-		}
-
-		if (s1volume == 0)
-		{
-		    s1enabled = false;
+		    if (apulength() && TestBit(s1freqhi, 6))
+		    {
+			s1lengthcounter -= 1;
+		    }
 		}
 	    }
 
@@ -835,16 +888,11 @@ namespace gb
 		if (s2lengthcounter == 0)
 		{
 		    s2lengthcounter = 64;
-		}
 
-		if (apulength() && TestBit(s2freqhi, 6))
-		{
-		    s2lengthcounter -= 1;
-		}
-
-		if (s2volume == 0)
-		{
-		    s2enabled = false;
+		    if (apulength() && TestBit(s2freqhi, 6))
+		    {
+			s2lengthcounter -= 1;
+		    }
 		}
 	    }
 
@@ -906,17 +954,209 @@ namespace gb
 		if (wavelengthcounter == 0)
 		{
 		    wavelengthcounter = 256;
-		}
 
-		if (apulength() && TestBit(wavefreqhi, 6))
-		{
-		    wavelengthcounter -= 1;
+		    if (apulength() && TestBit(wavefreqhi, 6))
+		    {
+			wavelengthcounter -= 1;
+		    }
 		}
 
 		wavepos = 0;
 		waveenabled = TestBit(wavesweep, 7);
 		wavecurrentsample = wavelastplayedsample;
 	    }
+
+	    inline bool noiseenabledleft()
+	    {
+		return (noiseenabled && (TestBit(soundselect, 7)));
+	    }
+
+	    inline bool noiseenabledright()
+	    {
+		return (noiseenabled && (TestBit(soundselect, 3)));
+	    }
+
+	    inline void reloadnoiselengthcounter()
+	    {
+		noiselengthcounter = (64 - (noisesoundlength & 0x3F));
+		noisesoundlength &= 0xC0;
+	    }
+
+	    inline void writenoiseenvelope(uint8_t value)
+	    {
+		noisevolumeenvelope = value;
+
+		if (((noisevolumeenvelope & 0xF0) >> 4) == 0)
+		{
+		    noiseenabled = false;
+		}
+	    }
+
+	    inline void noisewritereset(uint8_t value)
+	    {
+		bool lengthwasenable = TestBit(noisefreqhi, 6);
+		noisefreqhi = (value & 0xC0);
+
+		if (apulength() && !lengthwasenable && TestBit(noisefreqhi, 6) && noiselengthcounter > 0)
+		{
+		    noiselengthcounter -= 1;
+
+		    if (noiselengthcounter == 0)
+		    {
+			noiseenabled = false;
+		    }
+		}
+
+		if (TestBit(noisefreqhi, 7))
+		{
+		    noiseresetchannel();
+		}
+	    }
+
+	    inline void noisereloadperiod()
+	    {
+		uint32_t clockdivider = max(((noisefreqlo & 0x07) << 1), 1);
+		noiseperiodtimer = (clockdivider << (((noisefreqlo & 0xF0) >> 4) + 2));
+	    }
+
+	    inline void noiseresetchannel()
+	    {
+		noiseenabled = true;
+		noisereloadperiod();
+		noisefreqhi &= 0x7F;
+
+		noisevolume = ((noisevolumeenvelope & 0xF0) >> 4);
+		noiseenvelopecounter = (noisevolumeenvelope & 0x07);
+		noiseenvelopeenabled = (noiseenvelopecounter != 0);
+
+
+		if ((!TestBit(noisevolumeenvelope, 3) && noisevolume == 0) || (TestBit(noisevolumeenvelope, 3) && noisevolume == 0x0F))
+		{
+		    noiseenvelopeenabled = false;
+		}
+
+		if (noiselengthcounter == 0)
+		{
+		    noiselengthcounter = 64;
+
+		    if (apulength() && TestBit(noisefreqhi, 6))
+		    {
+			noiselengthcounter -= 1;
+		    }
+		}
+	
+		noiselfsr = 0xFFFF;
+
+		if (noisevolume == 0)
+		{
+		    noiseenabled = false;
+		}
+	    }
+
+	    inline void writesoundon(uint8_t value)
+	    {
+		bool wasenabled = TestBit(soundon, 7);
+		soundon = (value & 0x80);
+
+		if (wasenabled && !TestBit(soundon, 7))
+		{
+		    clearregisters();
+		}
+	    }
+
+	    inline void clearregisters()
+	    {
+	    	s1sweep = 0;
+	    	s1negative = false;
+	    	s1sweepenabled = false;
+	    	s1shadowfreq = 0;
+	    	s1sweepcounter = 0;
+	    	s1soundlength = 0;
+
+		if (gameboy != Console::DMG)
+		{
+	    	    s1lengthcounter = 0;
+		}
+
+	    	s1volumeenvelope = 0;
+	    	s1envelopeenabled = false;
+	    	s1envelopecounter = 0;
+	    	s1volume = 0;
+	    	s1freqlo = 0;
+	    	s1freqhi = 0;
+	    	s1periodtimer = 0;
+	    	s1enabled = false;
+
+	    	s2soundlength = 0;
+
+		if (gameboy != Console::DMG)
+		{
+	    	    s2lengthcounter = 0;
+		}
+
+	    	s2volumeenvelope = 0;
+	    	s2envelopeenabled = false;
+	    	s2envelopecounter = 0;
+	    	s2volume = 0;
+	    	s2freqlo = 0;
+	    	s2freqhi = 0;
+	    	s2periodtimer = 0;
+	    	s2enabled = false;
+
+	    	wavesweep = 0;
+	    	wavesoundlength = 0;
+
+		if (gameboy != Console::DMG)
+		{
+	    	    wavelengthcounter = 0;
+		}
+
+	    	wavevolumeenvelope = 0;
+	    	wavevolume = 0;
+	    	wavefreqlo = 0;
+	    	wavefreqhi = 0;
+	    	waveperiodtimer = 0;
+	    	waveenabled = false;
+	    	waveramlengthmask = 0;
+	    	wavepos = 0;
+	    	wavechannelenabled = false;
+	    	wavecurrentsample = 0;
+	    	wavelastplayedsample = 0;
+
+	    	noisesoundlength = 0;
+		
+		if (gameboy != Console::DMG)
+		{
+	    	    noiselengthcounter = 0;
+		}
+
+	    	noisevolumeenvelope = 0;
+	    	noiseenvelopeenabled = false;
+	    	noiseenvelopecounter = 0;
+	    	noiseperiodtimer = 0;
+	    	noisefreqlo = 0;
+	    	noisefreqhi = 0;
+	    	noisevolume = 0;
+	    	noiselfsr = 1;
+	    	noiseenabled = false;
+
+	    	mastervolume = 0;
+	    	soundselect = 0;
+	    	soundon = 0;
+	    }
+
+	    uint8_t readsoundon()
+	    {
+		uint8_t temp = soundon;
+		temp |= 0x70;
+		temp |= ((int)(s1enabled) << 0);
+		temp |= ((int)(s2enabled) << 1);
+		temp |= ((int)(waveenabled) << 2);
+		temp |= ((int)(noiseenabled) << 3);
+
+		return temp;
+	    }
+
     };
 };
 

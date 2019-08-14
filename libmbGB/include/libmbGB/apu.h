@@ -52,11 +52,14 @@ namespace gb
 	    int samplecounter = 0;
 	    int maxsamples = 0;
 
+	    bool prevs1sweepinc = false;
 	    bool prevs1lengthdec = false;
 	    bool prevs1envelopeinc = false;
 	    bool prevs2lengthdec = false;
 	    bool prevs2envelopeinc = false;
 	    bool prevwavelengthdec = false;
+	    bool prevnoiselengthdec = false;
+	    bool prevnoiseenvelopeinc = false;
 
 	    void updateaudio();
 
@@ -88,9 +91,37 @@ namespace gb
 
 	    inline void s1update(int frameseq)
 	    {
+		s1sweeptick(frameseq);
 		s1timertick();
 		s1lengthcountertick(frameseq);
 		s1envelopetick(frameseq);
+	    }
+
+	    inline void s1sweeptick(int frameseq)
+	    {
+		bool sweepinc = TestBit(frameseq, 1);
+
+		if (apumem.s1sweepenabled)
+		{
+		    if (!sweepinc && prevs1sweepinc)
+		    {
+			apumem.s1sweepcounter -= 1;
+
+			if (apumem.s1sweepcounter == 0)
+			{
+			    apumem.s1shadowfreq = apumem.s1sweepcalc();
+			    apumem.s1freqlo = (apumem.s1shadowfreq & 0xFF);
+			    apumem.s1freqhi &= 0xF8;
+			    apumem.s1freqhi |= ((apumem.s1shadowfreq & 0x0700) >> 8);
+
+			    apumem.s1sweepcalc();
+
+			    apumem.s1sweepcounter = (((apumem.s1sweep & 0x70) >> 4) + 1);
+			}
+		    }
+		}
+
+		prevs1sweepinc = sweepinc;
 	    }
 
 	    inline void s1lengthcountertick(int frameseq)
@@ -167,14 +198,7 @@ namespace gb
 	    float gets1outputvol()
 	    {
 		int outputvol = 0;
-		if (apumem.s1enabled)
-		{
-		    outputvol = (apumem.s1dutycycle[s1seqpointer] * apumem.s1volume);
-		}
-		else
-		{
-		    outputvol = 0;
-		}
+		outputvol = (apumem.s1dutycycle[s1seqpointer] * apumem.s1volume);
 
 		return ((float)(outputvol) / divisor);
 	    }
@@ -260,14 +284,7 @@ namespace gb
 	    float gets2outputvol()
 	    {
 		int outputvol = 0;
-		if (apumem.s2enabled)
-		{
-		    outputvol = (apumem.s2dutycycle[s2seqpointer] * apumem.s2volume);
-		}
-		else
-		{
-		    outputvol = 0;
-		}
+		outputvol = (apumem.s2dutycycle[s2seqpointer] * apumem.s2volume);
 
 		return ((float)(outputvol) / divisor);
 	    }
@@ -333,6 +350,110 @@ namespace gb
 		    {
 			outputvol = (apumem.wavecurrentsample >> apumem.wavevolume);
 		    }
+		}
+		else
+		{
+		    outputvol = 0;
+		}
+
+		return ((float)(outputvol) / divisor);
+	    }
+
+	    inline void noiseupdate(int frameseq)
+	    {
+		noisetimertick();
+		noiselengthcountertick(frameseq);
+		noiseenvelopetick(frameseq);
+	    }
+
+	    inline void noiselengthcountertick(int frameseq)
+	    {
+		bool lengthcounterdec = TestBit(frameseq, 0);
+
+		if (TestBit(apumem.noisefreqhi, 6) && apumem.noiselengthcounter > 0)
+		{
+		    if (!lengthcounterdec && prevnoiselengthdec)
+		    {
+			apumem.noiselengthcounter -= 1;
+
+			if (apumem.noiselengthcounter == 0)
+			{
+			    apumem.noiseenabled = false;
+			}
+		    }
+		}
+
+		prevnoiselengthdec = lengthcounterdec;
+	    }
+
+	    inline void noiseenvelopetick(int frameseq)
+	    {
+		bool envelopeinc = TestBit(frameseq, 2);
+
+		if (apumem.noiseenvelopeenabled)
+		{
+		    if (!envelopeinc && prevnoiseenvelopeinc)
+		    {
+			apumem.noiseenvelopecounter -= 1;
+
+			if (apumem.noiseenvelopecounter == 0)
+			{
+			    if (!TestBit(apumem.noisevolumeenvelope, 3))
+			    {
+				apumem.noisevolume -= 1;
+				if (apumem.noisevolume == 0)
+				{
+				    apumem.noiseenvelopeenabled = false;
+				}
+			    }
+			    else
+			    {
+				apumem.noisevolume += 1;
+				if (apumem.noisevolume == 0x0F)
+				{
+				    apumem.noiseenvelopeenabled = false;
+				}
+			    }
+
+			    apumem.noiseenvelopecounter = (apumem.noisevolumeenvelope & 0x7);
+			}
+		    }
+		}
+
+		prevnoiseenvelopeinc = envelopeinc;
+	    }
+
+	    inline void noisetimertick()
+	    {
+		if (apumem.noiseperiodtimer == 0)
+		{
+		    if (((apumem.noisefreqlo & 0xF0) >> 4) < 14)
+		    {
+			int xoredbits = ((apumem.noiselfsr ^ (apumem.noiselfsr >> 1)) & 1);
+			apumem.noiselfsr >>= 1;
+			apumem.noiselfsr |= (xoredbits << 14);
+
+			if (TestBit(apumem.noisefreqlo, 3))
+			{
+			    apumem.noiselfsr = BitReset(apumem.noiselfsr, 6);
+			    apumem.noiselfsr |= (xoredbits << 6);
+			}
+		    }
+
+		    apumem.noisereloadperiod();
+		}
+		else
+		{
+		    apumem.noiseperiodtimer -= 1;
+		}
+	    }
+
+	    float getnoiseoutputvol()
+	    {
+		int outputvol = 0;
+		if (apumem.noiseenabled)
+		{
+		    outputvol = (TestBit((~apumem.noiselfsr), 0) * apumem.noisevolume);
 		}
 		else
 		{
