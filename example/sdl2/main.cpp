@@ -11,10 +11,18 @@ GBCore core;
 
 SDL_Window *window = nullptr;
 SDL_Surface *surface = nullptr;
+SDL_GameController* player1 = nullptr;
+
+int playerinstanceid = 0;
 
 int screenwidth = 160;
 int screenheight = 144;
 int scale = 3;
+
+int xdir = 0;
+int ydir = 0;
+
+const int controllerdeadzone = 8000;
 
 int fpscount = 0;
 Uint32 fpstime = 0;
@@ -25,6 +33,75 @@ using sampleformat = int16_t;
 using sampleformat = float;
 #endif
 
+struct Controller
+{
+    SDL_GameController *controller;
+    SDL_JoystickID prevcontrollerid;
+    SDL_JoystickID controllerid;
+    bool isconnected = false;
+
+    bool open(int id)
+    {
+	if (SDL_IsGameController(id))
+	{
+	    controller = SDL_GameControllerOpen(id);
+	    SDL_Joystick *j = SDL_GameControllerGetJoystick(controller);
+	    controllerid = SDL_JoystickInstanceID(j);
+	    if (controllerid != prevcontrollerid)
+	    {
+		controllerid = prevcontrollerid;
+	    }
+	    prevcontrollerid = controllerid;
+	    isconnected = true;
+	}
+
+	return true;
+    }
+
+    void close()
+    {
+	if (isconnected)
+	{
+	    isconnected = false;
+	    SDL_GameControllerClose(controller);
+	    controller = nullptr;
+	}
+    }
+};
+
+struct JoypadControllers
+{
+    static const int maxcontrollers = 4;
+
+    Controller m_controllers[maxcontrollers];
+
+    int getcontrollerindex(SDL_JoystickID instance)
+    {
+	for (int i = 0; i < maxcontrollers; i++)
+	{
+	    if (m_controllers[i].isconnected && m_controllers[i].controllerid == instance)
+	    {
+		return i;
+	    }
+	}
+	return -1;
+    }
+};
+
+JoypadControllers control;
+
+
+void releaseallkeys()
+{
+    core.keyreleased(Button::A);
+    core.keyreleased(Button::B);
+    core.keyreleased(Button::Start);
+    core.keyreleased(Button::Select);
+    core.keyreleased(Button::Up);
+    core.keyreleased(Button::Down);
+    core.keyreleased(Button::Left);
+    core.keyreleased(Button::Right);
+}
 
 vector<sampleformat> buffer;
 
@@ -102,14 +179,34 @@ bool initsdl()
     SDL_OpenAudio(&audiospec, &obtainedspec);
     SDL_PauseAudio(0);
 
+    if (SDL_NumJoysticks() > 0)
+    {
+	player1 = SDL_GameControllerOpen(0);
+    }
+
     return true;
 }
 
 void stop()
 {
+    if (SDL_NumJoysticks() > 0)
+    {
+	SDL_GameControllerClose(player1);
+    }
+
     SDL_CloseAudio();
     SDL_DestroyWindow(window);
     SDL_Quit();
+}
+
+void addgamecontroller(int id)
+{
+
+}
+
+void removegamecontroller(int id)
+{
+
 }
 
 void drawpixels()
@@ -131,6 +228,16 @@ void drawpixels()
     }
 
     SDL_UpdateWindowSurface(window);
+}
+
+void handleaxis(int direction, Button dir1, Button dir2)
+{
+    switch (direction)
+    {
+	case -1: core.keypressed(dir1); core.keyreleased(dir2); break;
+	case 0: core.keyreleased(dir1); core.keyreleased(dir2); break;
+	case 1: core.keyreleased(dir1); core.keypressed(dir2); break;
+    }
 }
 
 void handleinput(SDL_Event event)
@@ -168,6 +275,84 @@ void handleinput(SDL_Event event)
 	    case SDLK_SPACE: core.keyreleased(Button::Select); break;
 	}
     }
+    else if (event.type == SDL_CONTROLLERBUTTONDOWN)
+    {
+	switch (event.cbutton.button)
+	{
+	    case SDL_CONTROLLER_BUTTON_START: core.keypressed(Button::Start); break;
+	    case SDL_CONTROLLER_BUTTON_BACK: core.keypressed(Button::Select); break;
+	    case SDL_CONTROLLER_BUTTON_A: core.keypressed(Button::A); break;
+	    case SDL_CONTROLLER_BUTTON_B: core.keypressed(Button::B); break;
+	    case SDL_CONTROLLER_BUTTON_DPAD_UP: core.keypressed(Button::Up); break;
+	    case SDL_CONTROLLER_BUTTON_DPAD_DOWN: core.keypressed(Button::Down); break;
+	    case SDL_CONTROLLER_BUTTON_DPAD_LEFT: core.keypressed(Button::Left); break;
+	    case SDL_CONTROLLER_BUTTON_DPAD_RIGHT: core.keypressed(Button::Right); break;
+	}
+    }
+    else if (event.type == SDL_CONTROLLERBUTTONUP)
+    {
+	switch (event.cbutton.button)
+	{
+	    case SDL_CONTROLLER_BUTTON_START: core.keyreleased(Button::Start); break;
+	    case SDL_CONTROLLER_BUTTON_BACK: core.keyreleased(Button::Select); break;
+	    case SDL_CONTROLLER_BUTTON_A: core.keyreleased(Button::A); break;
+	    case SDL_CONTROLLER_BUTTON_B: core.keyreleased(Button::B); break;
+	    case SDL_CONTROLLER_BUTTON_DPAD_UP: core.keyreleased(Button::Up); break;
+	    case SDL_CONTROLLER_BUTTON_DPAD_DOWN: core.keyreleased(Button::Down); break;
+	    case SDL_CONTROLLER_BUTTON_DPAD_LEFT: core.keyreleased(Button::Left); break;
+	    case SDL_CONTROLLER_BUTTON_DPAD_RIGHT: core.keyreleased(Button::Right); break;
+	}
+    }
+    else if (event.type == SDL_CONTROLLERAXISMOTION)
+    {
+	switch (event.caxis.axis)
+	{
+	    case SDL_CONTROLLER_AXIS_LEFTY:
+	    {
+		if (event.caxis.value < -controllerdeadzone)
+		{
+		    ydir = -1;
+		}
+		else if (event.caxis.value > controllerdeadzone)
+		{
+		    ydir = 1;
+		}
+		else if (event.caxis.value == 0)
+		{
+		    ydir = 0;
+		}
+		else
+		{
+		    ydir = 0;
+		}
+
+		handleaxis(ydir, Button::Up, Button::Down);
+	    }
+	    break;
+	    case SDL_CONTROLLER_AXIS_LEFTX:
+	    {
+		if (event.caxis.value < -controllerdeadzone)
+		{
+		    xdir = -1;
+		}
+		else if (event.caxis.value > controllerdeadzone)
+		{
+		    xdir = 1;
+		}
+		else if (event.caxis.value == 0)
+		{
+		    xdir = 0;
+		}
+		else
+		{
+		    xdir = 0;
+		}
+
+		handleaxis(xdir, Button::Left, Button::Right);
+	    }
+	    break;
+	}
+    }
 }
 
 int main(int argc, char* argv[])
@@ -200,10 +385,26 @@ int main(int argc, char* argv[])
     {
 	while (SDL_PollEvent(&event))
 	{
-    	    handleinput(event);
 	    if (event.type == SDL_QUIT)
 	    {
 		quit = true;
+	    }
+	    else if (event.type == SDL_CONTROLLERDEVICEADDED)
+	    {
+		control.m_controllers[event.cdevice.which].open(event.cdevice.which);
+		playerinstanceid = control.getcontrollerindex(event.cdevice.which);
+	    }
+	    else if (event.type == SDL_CONTROLLERDEVICEREMOVED)
+	    {
+		if (playerinstanceid > -1)
+		{
+		    control.m_controllers[playerinstanceid].close();
+		    releaseallkeys();
+		}
+	    }
+	    else
+	    {
+		handleinput(event);
 	    }
 	}
 
