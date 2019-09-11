@@ -287,6 +287,23 @@ void handleinput(SDL_Event event)
 	    case SDL_CONTROLLER_BUTTON_DPAD_DOWN: core.keypressed(Button::Down); break;
 	    case SDL_CONTROLLER_BUTTON_DPAD_LEFT: core.keypressed(Button::Left); break;
 	    case SDL_CONTROLLER_BUTTON_DPAD_RIGHT: core.keypressed(Button::Right); break;
+	    case SDL_CONTROLLER_BUTTON_LEFTSHOULDER: 
+	    {
+		if (!core.savestate())
+		{
+		    exit(1);
+		}
+	    }
+	    break;
+	    case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER: 
+	    {
+		if (!core.loadstate())
+		{
+		    exit(1);
+		}
+	    }
+	    break;
+	    case SDL_CONTROLLER_BUTTON_X: core.paused = !core.paused; break;
 	}
     }
     else if (event.type == SDL_CONTROLLERBUTTONUP)

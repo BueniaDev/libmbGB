@@ -1,0 +1,5 @@
+alias bm='python beemake.py'
+alias bmp='python beemake.py pull'
+alias bmb='python beemake.py build'
+alias bme='python beemake.py example'
+alias bmn='python beemake.py nuke'

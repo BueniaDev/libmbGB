@@ -499,10 +499,12 @@ namespace gb
 		    cout << "True" << endl;
 		    return;
 		}
-
-		s1soundlength = value;
-		reloads1lengthcounter();
-		sets1dutycycle();
+		else
+		{
+		    s1soundlength = value;
+		    reloads1lengthcounter();
+		    sets1dutycycle();
+		}
 	    }
 	    break;
 	    case 0x12:
@@ -523,10 +525,12 @@ namespace gb
 		{
 		    return;
 		}
-
-		s2soundlength = value;
-		reloads2lengthcounter();
-		sets2dutycycle();
+		else
+		{
+		    s2soundlength = value;
+		    reloads2lengthcounter();
+		    sets2dutycycle();
+		}
 	    }
 	    break;
 	    case 0x17:
@@ -559,9 +563,11 @@ namespace gb
 		{
 		    return;
 		}
-
-		wavesoundlength = value;
-		reloadwavelengthcounter();
+		else
+		{
+		    wavesoundlength = value;
+		    reloadwavelengthcounter();
+		}
 	    }
 	    break;
 	    case 0x1C:
@@ -579,9 +585,11 @@ namespace gb
 		{
 		    return;
 		}
-
-		noisesoundlength = (value & 0x3F);
-		reloadnoiselengthcounter();
+		else
+		{
+		    noisesoundlength = (value & 0x3F);
+		    reloadnoiselengthcounter();
+		}
 	    }
 	    break;
 	    case 0x21: writenoiseenvelope(value); break;
