@@ -105,4 +105,6 @@ if (WIN32 AND BUILD_LIBRETRO STREQUAL "OFF")
 else()
 	add_library(mbGB STATIC ${LIBMBGB} ${LIBMBGB_API_HEADERS})
 endif()
+
+target_include_directories(mbGB ${LIBMBGB_INCLUDE_DIR})
 add_library(libmbGB ALIAS mbGB)
