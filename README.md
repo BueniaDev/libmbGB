@@ -85,7 +85,7 @@ Step 3: Compile:
 `cmake .. -G "Unix Makefiles" -DBUILD_HEADLESS="<ON/OFF>" -DBUILD_EXAMPLE="<ON/OFF> -DCMAKE_BUILD_TYPE="<Debug/Release""`
 `make -j4`
 
-# Mac OS:
+## Mac OS:
 
 You will need [homebrew](https://brew.sh), a recent version of Xcode and the Xcode command-line tools to build libmbGB.
 Please note that due to personal financial constraints, libmbGB has not been tested on Mac OS as of yet.
@@ -109,7 +109,7 @@ Step 3: Compile:
 `cmake .. -G "Unix Makefiles" -DBUILD_HEADLESS="<ON/OFF>" -DBUILD_EXAMPLE="<ON/OFF> -DCMAKE_BUILD_TYPE="<Debug/Release""`
 `make -j4`
 
-# Windows:
+## Windows:
 
 You will need [MSYS2](https://msys2.github.io) in order to install libmbGB.
 Make sure to run `pacman -Syu` as needed.
@@ -138,13 +138,19 @@ Step 3: Compile:
 ## Near-term
 
 Improving existing Game Boy (Color) support
+
+Adding Game Boy Advance support
+
 Patching up graphical debugger
+
 Link Cable emulation and netplay support
 
 ## Medium-term
 
 Frontends for numerous systems (via mbGB-ports)
+
 Graphical frontend (via mbGB-Qt)
+
 WebAssembly port
 
 ## Long-term
