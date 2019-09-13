@@ -15,8 +15,6 @@ SDL_GameController* player1 = nullptr;
 
 int playerinstanceid = 0;
 
-int screenwidth = 160;
-int screenheight = 144;
 int scale = 3;
 
 int xdir = 0;
@@ -154,7 +152,7 @@ bool initsdl()
 	return false;
     }
 
-    window = SDL_CreateWindow("mbGB-SDL2", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, (screenwidth * scale), (screenheight * scale), SDL_WINDOW_SHOWN);
+    window = SDL_CreateWindow("mbGB-SDL2", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, (core.screenwidth * scale), (core.screenheight * scale), SDL_WINDOW_SHOWN);
 
     if (window == NULL)
     {
@@ -213,10 +211,12 @@ void drawpixels()
 {
     SDL_Rect pixel = {0, 0, scale, scale};
 
-    for (int i = 0; i < screenwidth; i++)
+    if (!core.isagbmode())
+    {
+    for (int i = 0; i < core.screenwidth; i++)
     {
 	pixel.x = (i * scale);
-	for (int j = 0; j < screenheight; j++)
+	for (int j = 0; j < core.screenheight; j++)
 	{
 	    pixel.y = (j * scale);
 	    uint8_t red = core.getpixel(i, j).red;
@@ -225,6 +225,26 @@ void drawpixels()
 
 	    SDL_FillRect(surface, &pixel, SDL_MapRGBA(surface->format, red, green, blue, 255));
 	}
+    }
+    }
+    else
+    {
+    for (int i = 40; i < 200; i++)
+    {
+	pixel.x = (i * scale);
+	for (int j = 8; j < 152; j++)
+	{
+	    pixel.y = (j * scale);
+	    int xpos = (i - 40);
+	    int ypos = (j - 8);
+	    uint8_t red = core.getpixel(xpos, ypos).red;
+	    uint8_t green = core.getpixel(xpos, ypos).green;
+	    uint8_t blue = core.getpixel(xpos, ypos).blue;
+
+	    SDL_FillRect(surface, &pixel, SDL_MapRGBA(surface->format, red, green, blue, 255));
+	}
+    }
+    
     }
 
     SDL_UpdateWindowSurface(window);

@@ -64,6 +64,7 @@ namespace gb
 	    MMU();
 	    ~MMU();
 
+	    bool agbmode = false;
 	    Console gameboy = Console::Default;
 	    Mode gbmode = Mode::Default;
 	    MBCType gbmbc;
@@ -271,7 +272,7 @@ namespace gb
 
 	    bool isgbcconsole()
 	    {
-		return (gameboy == Console::CGB);
+		return (gameboy == Console::CGB || gameboy == Console::AGB);
 	    }
 
 	    bool isgbcdmgmode()

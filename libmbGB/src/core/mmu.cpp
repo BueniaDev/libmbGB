@@ -37,8 +37,8 @@ namespace gb
 	oam.resize(0xA0, 0);
 	hram.resize(0x7F, 0);
 	rambanks.resize(0x8000, 0);
-	gbcbgpalette.resize(0x40, 0);
-	gbcobjpalette.resize(0x40, 0);
+	gbcbgpalette.resize(0x40, 0xFF);
+	gbcobjpalette.resize(0x40, 0xFF);
 	fill(rom.begin(), rom.end(), 0);
 	fill(vram.begin(), vram.end(), 0);
 	fill(wram.begin(), wram.end(), 0);
@@ -776,7 +776,7 @@ namespace gb
 	    {
 		if (cgbflag)
 		{
-		    gameboy = Console::CGB;
+		    gameboy = (agbmode) ? Console::AGB : Console::CGB;
 		}
 		else
 		{
@@ -834,7 +834,7 @@ namespace gb
 	    {
 		if (cgbflag)
 		{
-		    gameboy = Console::CGB;
+		    gameboy = (agbmode) ? Console::AGB : Console::CGB;
 		}
 		else
 		{
@@ -879,6 +879,7 @@ namespace gb
     bool MMU::loadBIOS(string filename)
     {
 	cout << "MMU::Loading BIOS..." << endl;
+
 	ifstream file(filename.c_str(), ios::in | ios::binary | ios::ate);
 
 	if (file.is_open())

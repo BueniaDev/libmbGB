@@ -89,6 +89,14 @@ namespace gb
 	    string biosname;
 
 	    bool biosload();
+
+	    int screenwidth = 0;
+	    int screenheight = 0;
+
+	    inline bool isagbmode()
+	    {
+		return (coremmu->agbmode);
+	    }
     };
 };
 

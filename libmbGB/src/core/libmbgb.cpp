@@ -77,9 +77,10 @@ namespace gb
 	cout << endl;
 	cout << "Options:" << endl;
 	cout << "-b [FILE], --bios [FILE] \t\t Loads and uses a BIOS file." << endl;
-	cout << "--sys-dmg \t\t Plays ROMs in DMG mode." << endl;
-	cout << "--sys-gbc \t\t Plays ROMs in GBC mode." << endl;
-	cout << "--sys-hybrid \t\t Plays ROMs in hybrid DMG/GBC mode." << endl;
+	cout << "--sys-dmg \t\t Plays ROMs in DMG mode (GB/GBC ROMs only)." << endl;
+	cout << "--sys-gbc \t\t Plays ROMs in GBC mode (GB/GBC ROMs only)." << endl;
+	cout << "--sys-gba \t\t Plays ROMs in GBA mode." << endl;
+	cout << "--sys-hybrid \t\t Plays ROMs in hybrid DMG/GBC mode. (GB/GBC ROMs only)." << endl;
 	cout << "--dotrender \t\t Enables the more accurate dot-based renderer." << endl;
 	cout << "-h, --help \t\t Displays this help message." << endl;
 	cout << endl;
@@ -135,6 +136,12 @@ namespace gb
 		coremmu->gameboy = Console::CGB;
 	    }
 
+	    if ((strcmp(argv[i], "--sys-gba") == 0))
+	    {
+		coremmu->agbmode = true;
+		coremmu->gameboy = Console::AGB;
+	    }
+
 	    if ((strcmp(argv[i], "--sys-hybrid") == 0))
 	    {
 		coremmu->hybrid = true;
@@ -148,6 +155,17 @@ namespace gb
 	    {
 		setdotrender(false);
 	    }
+	}
+
+	if (!isagbmode())
+	{
+	    screenwidth = 160;
+	    screenheight = 144;
+	}
+	else
+	{
+	    screenwidth = 240;
+	    screenheight = 160;
 	}
 
 	return true;

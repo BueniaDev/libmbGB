@@ -58,13 +58,30 @@ namespace gb
 		de.reg = (0x0008);
 		hl.reg = (0x007C);
 	    }
+	    else if (mem.gameboy == Console::AGB)
+	    {
+		af.reg = (0x1100);
+		bc.reg = (0x0100);
+		de.reg = (0x0008);
+		hl.reg = (0x007C);
+	    }
 	}
 	else if (mem.gbmode == Mode::CGB)
 	{
-	    af.reg = (0x1180);
-	    bc.reg = (0x0000);
-	    de.reg = (0xFF56);
-	    hl.reg = (0x000D);   
+	    if (mem.gameboy == Console::CGB)
+	    {
+	        af.reg = (0x1180);
+	        bc.reg = (0x0000);
+	        de.reg = (0xFF56);
+	        hl.reg = (0x000D);
+	    }
+	    else if (mem.gameboy == Console::AGB)
+	    {
+	        af.reg = (0x1100);
+	        bc.reg = (0x0100);
+	        de.reg = (0xFF56);
+	        hl.reg = (0x000D);
+	    } 
 	}
 
 	pc = 0x0100;

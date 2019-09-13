@@ -123,9 +123,9 @@ class examplecommand(Command):
 
 	print 'BeeMake::Running CMake...'
 	if platform.system() == 'Windows':
-	    shell_call('cmake .. -G "MSYS Makefiles" -DBUILD_EXAMPLE="ON"')
+	    shell_call('cmake .. -G "MSYS Makefiles" -DBUILD_EXAMPLE="ON" -DCMAKE_BUILD_TYPE="Release"')
 	else:
-	    shell_call('cmake .. -G "Unix Makefiles" -DBUILD_EXAMPLE="ON"')
+	    shell_call('cmake .. -G "Unix Makefiles" -DBUILD_EXAMPLE="ON" -DCMAKE_BUILD_TYPE="Release"')
 	print ''
 
 	print 'BeeMake::Running make...'

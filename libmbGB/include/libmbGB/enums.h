@@ -17,7 +17,7 @@
 #ifndef LIBMBGB_ENUMS
 #define LIBMBGB_ENUMS
 
-enum class Console {Default, DMG, CGB};
+enum class Console {Default, DMG, CGB, AGB};
 enum class Mode {Default, DMG, CGB};
 enum class MBCType {None, MBC1, MBC2, MBC3, MBC5};
 enum CPUState : uint8_t
