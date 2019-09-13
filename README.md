@@ -15,8 +15,11 @@ And more to come!
 # Quickstart
 
 `git clone --recursive -b rewrite https://github.com/Buenia0/libmbGB.git`
+
 `cd libmbGB && source beemake`
+
 `bm build`
+
 `./build/example/sdl2/example some.gb(c)`
 
 # Building
@@ -28,10 +31,15 @@ For beginning programmers, a simple build script is included to build the librar
 The beemake bash file has some aliases that save some keypresses.
 
 `source beemake`
+
 `bm  -> python beemake.py`
+
 `bmp  -> python beemake.py pull`
+
 `bmb  -> python beemake.py build`
+
 `bme  -> python beemake.py example`
+
 `bmn  -> python beemake.py nuke`
 
 # Commands
