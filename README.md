@@ -14,7 +14,7 @@ And more to come!
 
 # Quickstart
 
-`git clone --recursive -b rewrite https://github.com/Buenia0/libmbGB.git`
+`git clone --recursive https://github.com/Buenia0/libmbGB.git`
 
 `cd libmbGB && source beemake`
 
@@ -84,13 +84,16 @@ For the SDL2 renderer:
 
 Step 2: Clone the repository:
 
-`git clone --recursive -b rewrite https://github.com/Buenia0/libmbGB.git`
+`git clone --recursive https://github.com/Buenia0/libmbGB.git`
+
 `cd libmbGB`
 
 Step 3: Compile:
 
 `mkdir build && cd build`
+
 `cmake .. -G "Unix Makefiles" -DBUILD_HEADLESS="<ON/OFF>" -DBUILD_EXAMPLE="<ON/OFF> -DCMAKE_BUILD_TYPE="<Debug/Release""`
+
 `make -j4`
 
 ## Mac OS:
@@ -108,13 +111,16 @@ For the SDL2 renderer:
 
 Step 2: Clone the repository:
 
-`git clone --recursive -b rewrite https://github.com/Buenia0/libmbGB.git`
+`git clone --recursive https://github.com/Buenia0/libmbGB.git`
+
 `cd libmbGB`
 
 Step 3: Compile:
 
 `mkdir build && cd build`
+
 `cmake .. -G "Unix Makefiles" -DBUILD_HEADLESS="<ON/OFF>" -DBUILD_EXAMPLE="<ON/OFF> -DCMAKE_BUILD_TYPE="<Debug/Release""`
+
 `make -j4`
 
 ## Windows:
@@ -132,13 +138,16 @@ For the SDL2 renderer:
 
 Step 2: Clone the repository:
 
-`git clone --recursive -b rewrite https://github.com/Buenia0/libmbGB.git`
+`git clone --recursive https://github.com/Buenia0/libmbGB.git`
+
 `cd libmbGB`
 
 Step 3: Compile:
 
 `mkdir build && cd build`
+
 `cmake .. -G "MSYS Makefiles" -DBUILD_HEADLESS="<ON/OFF>" -DBUILD_EXAMPLE="<ON/OFF> -DCMAKE_BUILD_TYPE="<Debug/Release""`
+
 `(mingw32-)make -j4`
 
 # Plans
