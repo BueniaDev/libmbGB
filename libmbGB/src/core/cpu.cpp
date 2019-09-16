@@ -328,6 +328,7 @@ namespace gb
 	    enabledelayedinterrupts();
 	    timer.updatetimer();
 	    link.updateserial();
+	    mem.updateoamdma();
 	    gpu.updatelcd();
 
 	    for (int i = 0; i < (2 >> mem.doublespeed); i++)

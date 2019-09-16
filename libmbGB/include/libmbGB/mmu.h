@@ -394,6 +394,31 @@ namespace gb
 	    uint8_t readIO(uint16_t addr);
 	    void writeIO(uint16_t addr, uint8_t value);
 
+	    uint8_t dmastart = 0;
+
+	    enum DmaState : int
+	    {
+		Inactive = -1,
+		Starting = 0,
+		Active = 1,
+		Paused = 2
+	    };
+
+	    enum Bus : int
+	    {
+		None = -1,
+		External = 0,
+		Vram = 1
+	    };
+
+	    DmaState oamdmastate = DmaState::Inactive;
+	    Bus dmabusblock = Bus::None;
+
+	    uint16_t oamtransferaddr;
+	    uint8_t oamtransferbyte;
+	    uint8_t oamdmastart;
+	    int bytesread = 160;
+
 	    poweronfunc poweron;
 	    joypadfunc updatep1;
 	    statirqfunc statirq;
@@ -426,11 +451,65 @@ namespace gb
     	    }
 
 	    inline void writedma(uint8_t value)
-	    {		
-		uint16_t addr = (value << 8);
-		for (int i = 0; i < 0xA0; i++)
+	    {
+		oamdmastart = value;
+		oamdmastate = DmaState::Starting;
+	    }
+
+	    inline void updateoamdma()
+	    {
+		if (oamdmastate == DmaState::Starting)
 		{
-		    writeByte((0xFE00 + i), readByte(addr + i));
+		    if (bytesread != 0)
+		    {
+			oamtransferaddr = (oamdmastart << 8);
+			bytesread = 0;
+		    }
+		    else
+		    {
+			oamtransferbyte = dmacopy(oamtransferaddr);
+			++bytesread;
+
+			oamdmastate = DmaState::Active;
+
+			if ((oamtransferaddr >= 0x8000) && (oamtransferaddr < 0xA000))
+			{
+			    dmabusblock = Bus::Vram;
+			}
+			else
+			{
+			    dmabusblock = Bus::External;
+			}
+		    }
+		}
+		else if (oamdmastate == DmaState::Active)
+		{
+		    oam[(bytesread - 1)] = oamtransferbyte;
+
+		    if (bytesread == 160)
+		    {
+			oamdmastate = DmaState::Inactive;
+			dmabusblock = Bus::None;
+			return;
+		    }
+
+		    oamtransferbyte = dmacopy(oamtransferaddr + bytesread);
+		    ++bytesread;
+		}
+	    }
+
+	    uint8_t readDirectly(uint16_t addr);
+	    void writeDirectly(uint16_t addr, uint8_t value);
+
+	    inline uint8_t dmacopy(uint16_t addr)
+	    {
+		if (addr < 0xF000)
+		{
+		    return readDirectly(addr);
+		}
+		else
+		{
+		    return readDirectly(addr - 0x2000);
 		}
 	    }
 

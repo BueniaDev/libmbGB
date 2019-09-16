@@ -218,7 +218,7 @@ namespace gb
 	return success;
     }
 
-    uint8_t MMU::readByte(uint16_t addr)
+    uint8_t MMU::readDirectly(uint16_t addr)
     {
 	if (addr < 0x4000)
 	{
@@ -329,7 +329,59 @@ namespace gb
 	}
     }
 
-    void MMU::writeByte(uint16_t addr, uint8_t value)
+    uint8_t MMU::readByte(uint16_t addr)
+    {
+	if (addr < 0x8000)
+	{
+	    if (dmabusblock != Bus::External)
+	    {
+		return readDirectly(addr);
+	    }
+	    else
+	    {
+		return oamtransferbyte;
+	    }
+	}
+	else if (addr < 0xA000)
+	{
+	    if (dmabusblock != Bus::Vram)
+	    {
+		return readDirectly(addr);
+	    }
+	    else
+	    {
+		return oamtransferbyte;
+	    }
+	}
+	else if (addr < 0xFE00)
+	{
+	    if (dmabusblock != Bus::External)
+	    {
+		return readDirectly(addr);
+	    }
+	}
+	else if (addr < 0xFEA0)
+	{
+	    if (dmabusblock == Bus::None)
+	    {
+		return readDirectly(addr);
+	    }
+	    else
+	    {
+		return 0xFF;
+	    }
+	}
+	else if (addr < 0xFF00)
+	{
+	    return 0x00;
+	}
+	else
+	{
+	    return readDirectly(addr);
+	}
+    }
+
+    void MMU::writeDirectly(uint16_t addr, uint8_t value)
     {
 	if (addr < 0x8000)
 	{
@@ -413,6 +465,46 @@ namespace gb
 	}
     }
 
+    void MMU::writeByte(uint16_t addr, uint8_t value)
+    {
+	if (addr < 0x8000)
+	{
+	    if (dmabusblock != Bus::External)
+	    {
+		writeDirectly(addr, value);
+	    }
+	}
+	else if (addr < 0xA000)
+	{
+	    if (dmabusblock != Bus::Vram)
+	    {
+		writeDirectly(addr, value);
+	    }
+	}
+	else if (addr < 0xFE00)
+	{
+	    if (dmabusblock != Bus::External)
+	    {
+		writeDirectly(addr, value);
+	    }
+	}
+	else if (addr < 0xFEA0)
+	{
+	    if (dmabusblock == Bus::None)
+	    {
+		writeDirectly(addr, value);
+	    }
+	}
+	else if (addr < 0xFF00)
+	{
+	    return;
+	}
+	else
+	{
+	    writeDirectly(addr, value);
+	}
+    }
+
     uint16_t MMU::readWord(uint16_t addr)
     {
 	return ((readByte(addr + 1) << 8) | (readByte(addr)));
@@ -460,7 +552,7 @@ namespace gb
 	    case 0x43: temp = scrollx; break;
 	    case 0x44: temp = ly; break;
 	    case 0x45: temp = lyc; break;
-	    case 0x46: temp = dma; break;
+	    case 0x46: temp = oamdmastart; break;
 	    case 0x47: temp = bgpalette; break;
 	    case 0x48: temp = objpalette0; break;
 	    case 0x49: temp = objpalette1; break;
