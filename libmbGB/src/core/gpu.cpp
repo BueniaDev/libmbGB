@@ -591,13 +591,9 @@ namespace gb
 	}
 	else
 	{
-	    int tempred = (color & 0x1F);
-	    int tempgreen = ((color >> 5) & 0x1F);
-	    int tempblue = ((color >> 10) & 0x1F);
-
-	    red = ((tempred << 3) | (tempred >> 2));
-	    green = ((tempgreen << 3) | (tempgreen >> 2));
-	    blue = ((tempblue << 3) | (tempblue >> 2));
+	    red = getcolors(color).red;
+	    green = getcolors(color).green;
+	    blue = getcolors(color).blue;
 	}
 
 	if ((pixelx < 0) || (pixelx >= 160))
@@ -981,13 +977,9 @@ namespace gb
 	    {
 		int color = getgbccolor((mapattrib & 0x7), colornum, true);
 
-		int tempred = (color & 0x1F);
-		int tempgreen = ((color >> 5) & 0x1F);
-		int tempblue = ((color >> 10) & 0x1F);
-
-		red = ((tempred << 3) | (tempred >> 2));
-		green = ((tempgreen << 3) | (tempgreen >> 2));
-		blue = ((tempblue << 3) | (tempblue >> 2));
+		red = getcolors(color).red;
+	 	green = getcolors(color).green;
+		blue = getcolors(color).blue;
 	    }
 
 	    uint8_t scanline = gpumem.ly;
@@ -1131,13 +1123,9 @@ namespace gb
 		{
 		    int color = getgbccolor((mapattrib & 0x7), colornum, true);
 
-		    int tempred = (color & 0x1F);
-		    int tempgreen = ((color >> 5) & 0x1F);
-		    int tempblue = ((color >> 10) & 0x1F);
-
-		    red = ((tempred << 3) | (tempred >> 2));
-	 	    green = ((tempgreen << 3) | (tempgreen >> 2));
-		    blue = ((tempblue << 3) | (tempblue >> 2));
+		    red = getcolors(color).red;
+	 	    green = getcolors(color).green;
+		    blue = getcolors(color).blue;
 		}
 
 	        uint8_t scanline = gpumem.ly;
@@ -1256,13 +1244,9 @@ namespace gb
 		    {
 			int color = getgbccolor((flags & 0x7), colornum, false);
 
-			int tempred = (color & 0x1F);
-			int tempgreen = ((color >> 5) & 0x1F);
-			int tempblue = ((color >> 10) & 0x1F);
-
-			red = ((tempred << 3) | (tempred >> 2));
-	 		green = ((tempgreen << 3) | (tempgreen >> 2));
-			blue = ((tempblue << 3) | (tempblue >> 2));
+			red = getcolors(color).red;
+	 		green = getcolors(color).green;
+			blue = getcolors(color).blue;
 		    }
 
 		    if (xpixel >= 160)

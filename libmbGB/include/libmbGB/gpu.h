@@ -146,6 +146,45 @@ namespace gb
 	    uint8_t screenbuffer[144][160];
 	    bool bgpriorline[160] = {false};
 
+	    bool accuratecolors = false;
+
+	    inline RGB getcolors(int color)
+	    {
+		RGB temp;
+
+		int tempred = (color & 0x1F);
+		int tempgreen = ((color >> 5) & 0x1F);
+		int tempblue = ((color >> 10) & 0x1F);
+
+		int red = 0;
+		int green = 0;
+		int blue = 0;
+
+		if (accuratecolors)
+		{
+		    int acctempr = (tempred * 26 + tempgreen * 4 + tempblue * 2);
+		    int acctempg = (tempgreen * 24 + tempblue * 8);
+		    int acctempb = (tempred * 6 + tempgreen * 4 + tempblue * 22);
+
+		    red = (min(960, acctempr) >> 2);
+		    green = (min(960, acctempg) >> 2);
+		    blue = (min(960, acctempb) >> 2);
+		}
+		else
+		{
+		    red = ((tempred << 3) | (tempred >> 2));
+		    green = ((tempgreen << 3) | (tempgreen >> 2));
+		    blue = ((tempblue << 3) | (tempblue >> 2));
+		}
+
+		temp.red = red;
+		temp.green = green;
+		temp.blue = blue;
+
+		return temp;
+	    }
+
+
 	    inline RGB getdmgpalette(int color, int offset, bool bg)
 	    {
 		RGB temp;
@@ -163,17 +202,7 @@ namespace gb
 		    tmpr = (gpumem.gbcobjpalette[tempc] | (gpumem.gbcobjpalette[tempc + 1] << 8));
 		}
 
-		int tempred = (tmpr & 0x1F);
-		int tempgreen = ((tmpr >> 5) & 0x1F);
-		int tempblue = ((tmpr >> 10) & 0x1F);
-
-		int red = ((tempred << 3) | (tempred >> 2));
-		int green = ((tempgreen << 3) | (tempgreen >> 2));
-		int blue = ((tempblue << 3) | (tempblue >> 2));
-
-		temp.red = red;
-		temp.green = green;
-		temp.blue = blue;
+		temp = getcolors(tmpr);
 
 		return temp;
 	    }

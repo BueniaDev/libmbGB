@@ -82,6 +82,7 @@ namespace gb
 	cout << "--sys-gba \t\t Plays ROMs in GBA mode." << endl;
 	cout << "--sys-hybrid \t\t Plays ROMs in hybrid DMG/GBC mode. (GB/GBC ROMs only)." << endl;
 	cout << "--dotrender \t\t Enables the more accurate dot-based renderer." << endl;
+	cout << "--accurate-colors \t\t Improves the accuracy of the displayed colors (GBC only)." << endl;
 	cout << "-h, --help \t\t Displays this help message." << endl;
 	cout << endl;
     }
@@ -154,6 +155,15 @@ namespace gb
 	    else
 	    {
 		setdotrender(false);
+	    }
+
+	    if ((strcmp(argv[i], "--accurate-colors") == 0))
+	    {
+		coregpu->accuratecolors = true;
+	    }
+	    else
+	    {
+		coregpu->accuratecolors = false;
 	    }
 	}
 
