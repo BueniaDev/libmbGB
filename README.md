@@ -156,8 +156,6 @@ Step 3: Compile:
 
 Improving existing Game Boy (Color) support
 
-Adding Game Boy Advance support
-
 Patching up graphical debugger
 
 Link Cable emulation and netplay support
