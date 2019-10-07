@@ -331,7 +331,11 @@ namespace gb
 
     uint8_t MMU::readByte(uint16_t addr)
     {
-	if (addr < 0x8000)
+	if (addr < 0x1000)
+	{
+	    return readDirectly(addr); // Pocket Music relies on this in order to perform OAM DMA transfers properly
+	}
+	else if (addr < 0x8000)
 	{
 	    if (dmabusblock != Bus::External)
 	    {
@@ -877,7 +881,7 @@ namespace gb
 	    }
 	    
 
-	    if (gameboy == Console::CGB && cgbflag && gbmode == Mode::Default)
+	    if (isgbcconsole() && cgbflag && gbmode == Mode::Default)
 	    {
 		gbmode = Mode::CGB;
 	    }

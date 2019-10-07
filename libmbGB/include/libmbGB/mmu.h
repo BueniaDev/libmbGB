@@ -418,6 +418,7 @@ namespace gb
 	    uint8_t oamtransferbyte;
 	    uint8_t oamdmastart;
 	    int bytesread = 160;
+	    int dmadelay = 0;
 
 	    poweronfunc poweron;
 	    joypadfunc updatep1;
