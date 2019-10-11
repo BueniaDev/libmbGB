@@ -290,6 +290,11 @@ namespace gb
 		return hybrid;
 	    }
 
+	    bool isdoublespeed()
+	    {
+		return doublespeed;
+	    }
+
 	    inline void determinembctype(vector<uint8_t>& rom)
 	    {
 		switch (rom[0x0147])

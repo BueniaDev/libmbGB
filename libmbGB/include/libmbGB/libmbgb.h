@@ -84,6 +84,8 @@ namespace gb
 	    void resetcoreretro();
 	    void setsamplerate(int val);
 	    void setaudiocallback(apuoutputfunc cb);
+	    void connectdevice(SerialDevice* connected);
+		void setprintcallback(printfunc cb);
 
 	    string romname;
 	    string biosname;

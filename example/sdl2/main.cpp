@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sstream>
 #include <functional>
+#include <ctime>
 using namespace gb;
 using namespace std;
 using namespace std::placeholders;
@@ -120,15 +121,46 @@ void sdlcallback(sampleformat left, sampleformat right)
     }
 }
 
+void printercallback(vector<RGB> &temp)
+{
+    SDL_Surface* printout = SDL_CreateRGBSurface(0, (160 * scale), ((temp.size() / 160) * scale), 32, 0, 0, 0, 0);
+
+    SDL_Rect pixel = {0, 0, scale, scale};
+
+    int width = (printout->w / scale);
+    int height = (printout->h / scale);
+
+    for (int i = 0; i < width; i++)
+    {
+	pixel.x = (i * scale);
+	for (int j = 0; j < height; j++)
+	{
+	    pixel.y = (j * scale);
+
+	    uint8_t red = temp.at((i + (j * width))).red;
+	    uint8_t green = temp.at((i + (j * width))).green;
+	    uint8_t blue = temp.at((i + (j * width))).blue;
+
+	    SDL_FillRect(printout, &pixel, SDL_MapRGBA(surface->format, red, green, blue, 255));
+	}
+    }
+
+    time_t currenttime = time(nullptr);
+    string filepath = "mbGBPrinter_";
+    filepath.append(std::to_string(currenttime));
+    filepath.append(".bmp");
+
+    SDL_SaveBMP(printout, filepath.c_str());
+    SDL_FreeSurface(printout);
+    cout << "Print saved as " << filepath << endl;
+}
+
 void screenshot()
 {
-    srand(SDL_GetTicks());
-
-    stringstream temp;
-
-    temp << (rand() % 1024) << (rand() % 1024) << (rand() % 1024);
-
-    string screenstring = core.romname + "-" + temp.str() + ".bmp";
+    time_t currenttime = time(nullptr);
+    string screenstring = "mbGB_";
+    screenstring.append(std::to_string(currenttime));
+    screenstring.append(".bmp");
 
     SDL_SaveBMP(surface, screenstring.c_str());
 
@@ -395,6 +427,7 @@ void handleinput(SDL_Event event)
 int main(int argc, char* argv[])
 {
     core.setsamplerate(48000);
+    core.setprintcallback(bind(&printercallback, _1));
     core.setaudiocallback(bind(&sdlcallback, _1, _2));
 
     if (!core.getoptions(argc, argv))

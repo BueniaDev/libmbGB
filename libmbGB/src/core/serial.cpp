@@ -29,6 +29,16 @@ namespace gb
 
     }
 
+    SerialDevice::SerialDevice()
+    {
+
+    }
+
+    SerialDevice::~SerialDevice()
+    {
+
+    }
+
     void Serial::init()
     {
 	initserialclock((serialmem.divider & 0xFF));

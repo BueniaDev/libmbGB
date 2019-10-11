@@ -34,6 +34,7 @@ set(LIBMBGB_API_HEADERS
 	libmbGB/include/libmbGB/libmbgb.h)
 
 set(LIBMBGB
+	libmbGB/src/core/addons.cpp
 	libmbGB/src/core/mmu.cpp
 	libmbGB/src/core/mbc.cpp
 	libmbGB/src/core/cpu.cpp

@@ -165,6 +165,11 @@ namespace gb
 	    {
 		coregpu->accuratecolors = false;
 	    }
+
+	    if ((strcmp(argv[i], "--printer") == 0))
+	    {
+		coreserial->setdevice(coreserial->print);
+	    }
 	}
 
 	if (!isagbmode())
@@ -390,6 +395,11 @@ namespace gb
     {
 	coreapu->setaudiocallback(cb);
     }
+	
+	void GBCore::setprintcallback(printfunc cb)
+	{
+		coreserial->setprintcallback(cb);
+	}
 
     void GBCore::resetcore()
     {
