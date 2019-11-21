@@ -16,21 +16,33 @@
 #include "../../include/libmbGB/input.h"
 using namespace gb;
 using namespace std;
+using namespace std::placeholders;
 
 namespace gb
 {
     Input::Input(MMU& memory) : p1mem(memory)
     {
-	p1mem.setjoypadcallback(bind(&Input::updatejoypad, this));
+		p1mem.addmemoryreadhandler(0xFF00, bind(&Input::readjoypad, this, _1));
+		p1mem.addmemorywritehandler(0xFF00, bind(&Input::writejoypad, this, _1, _2));
+	// p1mem.setjoypadcallback(bind(&Input::updatejoypad, this));
     }
 
     Input::~Input()
     {
-
+		
     }
 
     void Input::init()
     {
+		if (p1mem.isdmgmode() && p1mem.isdmgconsole())
+		{
+			joypad = 0xCF;
+		}
+		else
+		{
+			joypad = 0xFF;
+		}
+		
 	cout << "Input::Initialized" << endl;
     }
 
@@ -62,9 +74,9 @@ namespace gb
 	    controlbits = 0xF;
 	}
 	
-	p1mem.joypad &= 0xF0;
-	p1mem.joypad |= controlbits;
-	p1mem.joypad |= 0xC0;
+	joypad &= 0xF0;
+	joypad |= controlbits;
+	joypad |= 0xC0;
 
 	interruptsignal = joypadpress();
 

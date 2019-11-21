@@ -45,6 +45,73 @@ namespace gb
 	    #elif defined LIBMBGB_FLOAT32
 	    float divisor = 100.f;
 	    #endif
+		
+	    int s1sweep = 0;
+	    bool s1negative = false;
+	    bool s1sweepenabled = false;
+	    uint16_t s1shadowfreq = 0;
+	    int s1sweepcounter = 0;
+	    int s1soundlength = 0;
+	    int s1lengthcounter = 0;
+	    int s1volumeenvelope = 0;
+	    bool s1envelopeenabled = false;
+	    int s1envelopecounter = 0;
+	    int s1volume = 0;
+	    uint8_t s1freqlo = 0;
+	    uint8_t s1freqhi = 0;
+	    int s1periodtimer = 0;
+	    bool s1enabled = false;
+		
+	    int s2soundlength = 0;
+	    int s2lengthcounter = 0;
+	    int s2volumeenvelope = 0;
+	    bool s2envelopeenabled = false;
+	    int s2envelopecounter = 0;
+	    int s2volume = 0;
+	    uint8_t s2freqlo = 0;
+	    uint8_t s2freqhi = 0;
+	    int s2periodtimer = 0;
+	    bool s2enabled = false;
+
+	    int wavesweep = 0;
+	    int wavesoundlength = 0;
+	    int wavelengthcounter = 0;
+	    int wavevolumeenvelope = 0;
+	    int wavevolume = 0;
+	    uint8_t wavefreqlo = 0;
+	    uint8_t wavefreqhi = 0;
+	    int waveperiodtimer = 0;
+	    bool waveenabled = false;
+	    int waveramlengthmask = 0;
+	    int wavepos = 0;
+	    bool wavechannelenabled = false;
+	    uint8_t wavecurrentsample = 0;
+	    uint8_t wavelastplayedsample = 0;
+	    array<uint8_t, 0x10> waveram = {0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF};
+
+	    int noisesoundlength = 0;
+	    int noiselengthcounter = 0;
+	    int noisevolumeenvelope = 0;
+	    bool noiseenvelopeenabled = false;
+	    int noiseenvelopecounter = 0;
+	    int noiseperiodtimer = 0;
+	    uint8_t noisefreqlo = 0;
+	    uint8_t noisefreqhi = 0;
+	    int noisevolume = 0;
+	    uint16_t noiselfsr = 1;
+	    bool noiseenabled = false;
+		
+	    int mastervolume = 0;
+	    int soundselect = 0;
+	    int soundon = 0;
+		
+	    array<int, 8> s1dutycycle;
+	    array<int, 8> s2dutycycle;
+		
+		uint8_t readsoundon();
+		
+		uint8_t readapu(uint16_t addr);
+		void writeapu(uint16_t addr, uint8_t val);
 
 	    int frametimer = 0;
 	    int s1seqpointer = 0;
@@ -89,378 +156,475 @@ namespace gb
 		maxsamples = (int)(2097152 / value);
 	    }
 
-	    inline void s1update(int frameseq)
+	    inline void s1update(int frameseq);
+		void s1sweeptick(int frameseq);
+	    void s1lengthcountertick(int frameseq);
+	    void s1envelopetick(int frameseq);
+	    void s1timertick();
+	    float gets1outputvol();
+		
+	    void s2update(int frameseq);
+	    void s2lengthcountertick(int frameseq);
+	    void s2envelopetick(int frameseq);
+	    void s2timertick();
+	    float gets2outputvol();
+		
+	    void waveupdate(int frameseq);
+	    void wavetimertick();
+	    void wavelengthcountertick(int frameseq);
+	    float getwaveoutputvol();
+		
+	    void noiseupdate(int frameseq);
+	    void noiselengthcountertick(int frameseq);
+	    inline void noiseenvelopetick(int frameseq);
+	    inline void noisetimertick();
+	    float getnoiseoutputvol();
+		
+	    inline bool s1enabledleft()
 	    {
-		s1sweeptick(frameseq);
-		s1timertick();
-		s1lengthcountertick(frameseq);
-		s1envelopetick(frameseq);
+		return (s1enabled && (TestBit(soundselect, 4)));
 	    }
 
-	    inline void s1sweeptick(int frameseq)
+	    inline bool s1enabledright()
 	    {
-		bool sweepinc = TestBit(frameseq, 1);
+		return (s1enabled && (TestBit(soundselect, 0)));
+	    }
+		
+	    inline void writes1sweep(uint8_t value)
+	    {
+		s1sweep = (value & 0x7F);
 
-		if (apumem.s1sweepenabled)
+		if ((((s1sweep & 0x70) >> 4) == 0) || ((s1sweep & 0x07) == 0) || (!TestBit(s1sweep, 3) && s1negative))
 		{
-		    if (!sweepinc && prevs1sweepinc)
+		    s1sweepenabled = false;
+		}
+	    }
+
+	    inline void reloads1lengthcounter()
+	    {
+		s1lengthcounter = (64 - (s1soundlength & 0x3F));
+		s1soundlength &= 0xC0;	
+	    }
+
+	    inline void sets1dutycycle()
+	    {
+		switch ((s1soundlength & 0xC0) >> 6)
+		{
+		    case 0: s1dutycycle = {{false, false, false, false, false, false, false, true}}; break;
+		    case 1: s1dutycycle = {{true, false, false, false, false, false, false, true}}; break;
+		    case 2: s1dutycycle = {{true, false, false, false, false, true, true, true}}; break;
+		    case 3: s1dutycycle = {{false, true, true, true, true, true, true, false}}; break;
+		    default: break;
+		}
+	    }
+
+	    inline void s1writereset(uint8_t value)
+	    {
+		bool lengthwasenable = TestBit(s1freqhi, 6);
+		s1freqhi = (value & 0xC7);
+
+		if (apulengthlow() && !lengthwasenable && TestBit(s1freqhi, 6) && s1lengthcounter > 0)
+		{
+		    s1lengthcounter -= 1;
+
+		    if (s1lengthcounter == 0)
 		    {
-			apumem.s1sweepcounter -= 1;
-
-			if (apumem.s1sweepcounter == 0)
-			{
-			    apumem.s1shadowfreq = apumem.s1sweepcalc();
-			    apumem.s1freqlo = (apumem.s1shadowfreq & 0xFF);
-			    apumem.s1freqhi &= 0xF8;
-			    apumem.s1freqhi |= ((apumem.s1shadowfreq & 0x0700) >> 8);
-
-			    apumem.s1sweepcalc();
-
-			    apumem.s1sweepcounter = (((apumem.s1sweep & 0x70) >> 4) + 1);
-			}
+			s1enabled = false;
 		    }
 		}
 
-		prevs1sweepinc = sweepinc;
+		if (TestBit(s1freqhi, 7))
+		{
+		    s1resetchannel();
+		}
+	    }
+		
+	    inline uint16_t s1sweepcalc()
+	    {
+		uint16_t freqdelta = (s1shadowfreq >> (s1sweep & 0x07));
+
+		if (TestBit(s1sweep, 3))
+		{
+		    freqdelta *= -1;
+		    freqdelta &= 0x7FF;
+
+		    s1negative = true;
+		}
+
+		uint16_t newfreq = ((s1shadowfreq + freqdelta) & 0x7FF);
+
+		if (newfreq > 2047)
+		{
+		    s1sweepenabled = false;
+		    s1enabled = false;
+		}
+
+		return newfreq;
 	    }
 
-	    inline void s1lengthcountertick(int frameseq)
+	    inline void s1resetchannel()
 	    {
-		bool lengthcounterdec = TestBit(frameseq, 0);
+		s1enabled = true;
+		s1reloadperiod();
+		s1freqhi &= 0x7F;
 
-		if (TestBit(apumem.s1freqhi, 6) && apumem.s1lengthcounter > 0)
+		s1shadowfreq = (s1freqlo | ((s1freqhi & 0x7) << 8));
+		s1sweepcounter = ((s1sweep & 0x70) >> 4);
+		s1sweepenabled = (s1sweepcounter != 0 && ((s1sweep & 0x07) != 0));
+		s1sweepcalc();
+
+		s1negative = false;
+
+		s1volume = ((s1volumeenvelope & 0xF0) >> 4);
+		s1envelopecounter = (s1volumeenvelope & 0x07);
+		s1envelopeenabled = (s1envelopecounter != 0);
+
+
+		if ((!TestBit(s1volumeenvelope, 3) && s1volume == 0) || (TestBit(s1volumeenvelope, 3) && s1volume == 0x0F))
 		{
-		    if (!lengthcounterdec && prevs1lengthdec)
-		    {
-			apumem.s1lengthcounter -= 1;
+		    s1envelopeenabled = false;
+		}
 
-			if (apumem.s1lengthcounter == 0)
-			{
-			    apumem.s1enabled = false;
-			}
+		if (s1lengthcounter == 0)
+		{
+		    s1lengthcounter = 64;
+
+		    if (apulengthlow() && TestBit(s1freqhi, 6))
+		    {
+			s1lengthcounter -= 1;
+		    }
+		}
+	    }
+		
+	    inline void s1reloadperiod()
+	    {
+		int frequency = (s1freqlo | ((s1freqhi & 0x07) << 8));
+		s1periodtimer = ((2048 - frequency) << 1);
+	    }
+		
+	    inline bool s2enabledleft()
+	    {
+		return (s2enabled && (TestBit(soundselect, 5)));
+	    }
+
+	    inline bool s2enabledright()
+	    {
+		return (s2enabled && (TestBit(soundselect, 1)));
+	    }
+
+	    inline void reloads2lengthcounter()
+	    {
+		s2lengthcounter = (64 - (s2soundlength & 0x3F));
+		s2soundlength &= 0xC0;	
+	    }
+
+	    inline void sets2dutycycle()
+	    {
+		switch ((s2soundlength & 0xC0) >> 6)
+		{
+		    case 0: s2dutycycle = {{false, false, false, false, false, false, false, true}}; break;
+		    case 1: s2dutycycle = {{true, false, false, false, false, false, false, true}}; break;
+		    case 2: s2dutycycle = {{true, false, false, false, false, true, true, true}}; break;
+		    case 3: s2dutycycle = {{false, true, true, true, true, true, true, false}}; break;
+		    default: break;
+		}
+	    }
+
+	    inline void s2writereset(uint8_t value)
+	    {
+		bool lengthwasenable = TestBit(s2freqhi, 6);
+		s2freqhi = (value & 0xC7);
+
+		if (apulengthlow() && !lengthwasenable && TestBit(s2freqhi, 6) && s2lengthcounter > 0)
+		{
+		    s2lengthcounter -= 1;
+
+		    if (s2lengthcounter == 0)
+		    {
+			s2enabled = false;
 		    }
 		}
 
-		prevs1lengthdec = lengthcounterdec;
+		if (TestBit(s2freqhi, 7))
+		{
+		    s2resetchannel();
+		}
 	    }
 
-	    inline void s1envelopetick(int frameseq)
+	    inline void s2resetchannel()
 	    {
-		bool envelopeinc = TestBit(frameseq, 2);
+		s2enabled = true;
+		s2reloadperiod();
+		s2freqhi &= 0x7F;
 
-		if (apumem.s1envelopeenabled)
+		s2volume = ((s2volumeenvelope & 0xF0) >> 4);
+		s2envelopecounter = (s2volumeenvelope & 0x07);
+		s2envelopeenabled = (s2envelopecounter != 0);
+
+
+		if ((!TestBit(s2volumeenvelope, 3) && s2volume == 0) || (TestBit(s2volumeenvelope, 3) && s2volume == 0x0F))
 		{
-		    if (!envelopeinc && prevs1envelopeinc)
+		    s2envelopeenabled = false;
+		}
+
+		if (s2lengthcounter == 0)
+		{
+		    s2lengthcounter = 64;
+
+		    if (apulengthlow() && TestBit(s2freqhi, 6))
 		    {
-			apumem.s1envelopecounter -= 1;
+			s2lengthcounter -= 1;
+		    }
+		}
+	    }
 
-			if (apumem.s1envelopecounter == 0)
-			{
-			    if (!TestBit(apumem.s1volumeenvelope, 3))
-			    {
-				apumem.s1volume -= 1;
-				if (apumem.s1volume == 0)
-				{
-				    apumem.s1envelopeenabled = false;
-				}
-			    }
-			    else
-			    {
-				apumem.s1volume += 1;
-				if (apumem.s1volume == 0x0F)
-				{
-				    apumem.s1envelopeenabled = false;
-				}
-			    }
+	    inline void s2reloadperiod()
+	    {
+		int frequency = (s2freqlo | ((s2freqhi & 0x07) << 8));
+		s2periodtimer = ((2048 - frequency) << 1);
+	    }
+		
+	    inline bool waveenabledleft()
+	    {
+		return (waveenabled && (TestBit(soundselect, 6)));
+	    }
 
-			    apumem.s1envelopecounter = (apumem.s1volumeenvelope & 0x7);
-			}
+	    inline bool waveenabledright()
+	    {
+		return (waveenabled && (TestBit(soundselect, 2)));
+	    }
+		
+	    inline void reloadwavelengthcounter()
+	    {
+		wavelengthcounter = (256 - wavesoundlength);
+		wavesoundlength = 0;	
+	    }
+
+	    inline void wavereloadperiod()
+	    {
+		int frequency = (wavefreqlo | ((wavefreqhi & 0x07) << 8));
+		waveperiodtimer = (2048 - frequency);
+	    }
+
+	    inline void wavewritereset(uint8_t value)
+	    {
+		bool lengthwasenable = TestBit(wavefreqhi, 6);
+		wavefreqhi = (value & 0xC7);
+
+		if (apulengthlow() && !lengthwasenable && TestBit(wavefreqhi, 6) && wavelengthcounter > 0)
+		{
+		    wavelengthcounter -= 1;
+
+		    if (wavelengthcounter == 0)
+		    {
+			waveenabled = false;
 		    }
 		}
 
-		prevs1envelopeinc = envelopeinc;
-	    }
-
-	    inline void s1timertick()
-	    {
-		if (apumem.s1periodtimer == 0)
+		if (TestBit(wavefreqhi, 7))
 		{
-		    s1seqpointer = ((s1seqpointer + 1) & 7);
-
-		    apumem.s1reloadperiod();
-		}
-		else
-		{
-		    apumem.s1periodtimer -= 1;
+		    waveresetchannel();
 		}
 	    }
 
-	    float gets1outputvol()
+	    inline void waveresetchannel()
 	    {
-		int outputvol = 0;
-		outputvol = (apumem.s1dutycycle[s1seqpointer] * apumem.s1volume);
+		waveenabled = true;
+		wavereloadperiod();
+		wavefreqhi &= 0x7F;
 
-		return ((float)(outputvol) / divisor);
-	    }
-
-	    inline void s2update(int frameseq)
-	    {
-		s2timertick();
-		s2lengthcountertick(frameseq);
-		s2envelopetick(frameseq);
-	    }
-
-	    inline void s2lengthcountertick(int frameseq)
-	    {
-		bool lengthcounterdec = TestBit(frameseq, 0);
-
-		if (TestBit(apumem.s2freqhi, 6) && apumem.s2lengthcounter > 0)
+		if (wavelengthcounter == 0)
 		{
-		    if (!lengthcounterdec && prevs2lengthdec)
+		    wavelengthcounter = 256;
+
+		    if (apulengthlow() && TestBit(wavefreqhi, 6))
 		    {
-			apumem.s2lengthcounter -= 1;
-
-			if (apumem.s2lengthcounter == 0)
-			{
-			    apumem.s2enabled = false;
-			}
+			wavelengthcounter -= 1;
 		    }
 		}
 
-		prevs2lengthdec = lengthcounterdec;
+		wavepos = 0;
+		waveenabled = TestBit(wavesweep, 7);
+		wavecurrentsample = wavelastplayedsample;
+	    }
+		
+	    inline bool noiseenabledleft()
+	    {
+		return (noiseenabled && (TestBit(soundselect, 7)));
 	    }
 
-	    inline void s2envelopetick(int frameseq)
+	    inline bool noiseenabledright()
 	    {
-		bool envelopeinc = TestBit(frameseq, 2);
+		return (noiseenabled && (TestBit(soundselect, 3)));
+	    }
+		
+	    inline void reloadnoiselengthcounter()
+	    {
+		noiselengthcounter = (64 - (noisesoundlength & 0x3F));
+		noisesoundlength &= 0xC0;
+	    }
 
-		if (apumem.s2envelopeenabled)
+	    inline void writenoiseenvelope(uint8_t value)
+	    {
+		noisevolumeenvelope = value;
+
+		if (((noisevolumeenvelope & 0xF0) >> 4) == 0)
 		{
-		    if (!envelopeinc && prevs2envelopeinc)
+		    noiseenabled = false;
+		}
+	    }
+
+	    inline void noisewritereset(uint8_t value)
+	    {
+		bool lengthwasenable = TestBit(noisefreqhi, 6);
+		noisefreqhi = (value & 0xC0);
+
+		if (apulengthlow() && !lengthwasenable && TestBit(noisefreqhi, 6) && noiselengthcounter > 0)
+		{
+		    noiselengthcounter -= 1;
+
+		    if (noiselengthcounter == 0)
 		    {
-			apumem.s2envelopecounter -= 1;
-
-			if (apumem.s2envelopecounter == 0)
-			{
-			    if (!TestBit(apumem.s2volumeenvelope, 3))
-			    {
-				apumem.s2volume -= 1;
-				if (apumem.s2volume == 0)
-				{
-				    apumem.s2envelopeenabled = false;
-				}
-			    }
-			    else
-			    {
-				apumem.s2volume += 1;
-				if (apumem.s2volume == 0x0F)
-				{
-				    apumem.s2envelopeenabled = false;
-				}
-			    }
-
-			    apumem.s2envelopecounter = (apumem.s2volumeenvelope & 0x7);
-			}
+			noiseenabled = false;
 		    }
 		}
 
-		prevs2envelopeinc = envelopeinc;
-	    }
-
-	    inline void s2timertick()
-	    {
-		if (apumem.s2periodtimer == 0)
+		if (TestBit(noisefreqhi, 7))
 		{
-		    s2seqpointer = ((s2seqpointer + 1) & 7);
-
-		    apumem.s2reloadperiod();
-		}
-		else
-		{
-		    apumem.s2periodtimer -= 1;
+		    noiseresetchannel();
 		}
 	    }
 
-	    float gets2outputvol()
+	    inline void noisereloadperiod()
 	    {
-		int outputvol = 0;
-		outputvol = (apumem.s2dutycycle[s2seqpointer] * apumem.s2volume);
-
-		return ((float)(outputvol) / divisor);
+		uint32_t clockdivider = max(((noisefreqlo & 0x07) << 1), 1);
+		noiseperiodtimer = (clockdivider << (((noisefreqlo & 0xF0) >> 4) + 2));
 	    }
 
-	    inline void wavetimertick()
+	    inline void noiseresetchannel()
 	    {
-		if (apumem.waveperiodtimer == 0)
+		noiseenabled = true;
+		noisereloadperiod();
+		noisefreqhi &= 0x7F;
+
+		noisevolume = ((noisevolumeenvelope & 0xF0) >> 4);
+		noiseenvelopecounter = (noisevolumeenvelope & 0x07);
+		noiseenvelopeenabled = (noiseenvelopecounter != 0);
+
+
+		if ((!TestBit(noisevolumeenvelope, 3) && noisevolume == 0) || (TestBit(noisevolumeenvelope, 3) && noisevolume == 0x0F))
 		{
-		    apumem.wavelastplayedsample = apumem.wavecurrentsample;
-		    apumem.wavepos = ((apumem.wavepos + 1) & apumem.waveramlengthmask);
+		    noiseenvelopeenabled = false;
+		}
+
+		if (noiselengthcounter == 0)
+		{
+		    noiselengthcounter = 64;
+
+		    if (apulengthlow() && TestBit(noisefreqhi, 6))
+		    {
+			noiselengthcounter -= 1;
+		    }
+		}
 	
-		    int playingbankoffs = (((apumem.wavesweep & 0x40) >> 6) * 32);
+		noiselfsr = 0xFFFF;
 
-		    int sampleindex = ((apumem.wavepos + playingbankoffs) & 0x3F);
-		    uint8_t samplebyte = apumem.waveram[sampleindex >> 1];
-
-		    apumem.wavecurrentsample = (TestBit(sampleindex, 0) ? (samplebyte & 0x0F) : (samplebyte >> 4));
-
-		    apumem.wavereloadperiod();
-		}
-		else
+		if (noisevolume == 0)
 		{
-		    apumem.waveperiodtimer -= 1;
+		    noiseenabled = false;
+		}
+	    }
+		
+	    inline void writesoundon(uint8_t value)
+	    {
+		bool wasenabled = TestBit(soundon, 7);
+		soundon = (value & 0x80);
+
+		if (wasenabled && !TestBit(soundon, 7))
+		{
+		    clearregisters();
 		}
 	    }
 
-	    inline void wavelengthcountertick(int frameseq)
+	    inline void clearregisters()
 	    {
-		bool lengthcounterdec = TestBit(frameseq, 0);
+	    	s1sweep = 0;
+	    	s1negative = false;
+	    	s1sweepenabled = false;
+	    	s1shadowfreq = 0;
+	    	s1sweepcounter = 0;
+	    	s1soundlength = 0;
 
-		if (TestBit(apumem.wavefreqhi, 6) && apumem.wavelengthcounter > 0)
+		if (apumem.gameboy != Console::DMG)
 		{
-		    if (!lengthcounterdec && prevwavelengthdec)
-		    {
-			apumem.wavelengthcounter -= 1;
-
-			if (apumem.wavelengthcounter == 0)
-			{
-			    apumem.waveenabled = false;
-			}
-		    }
+	    	    s1lengthcounter = 0;
 		}
 
-		prevwavelengthdec = lengthcounterdec;
-	    }
+	    	s1volumeenvelope = 0;
+	    	s1envelopeenabled = false;
+	    	s1envelopecounter = 0;
+	    	s1volume = 0;
+	    	s1freqlo = 0;
+	    	s1freqhi = 0;
+	    	s1periodtimer = 0;
+	    	s1enabled = false;
 
-	    inline void waveupdate(int frameseq)
-	    {
-		wavetimertick();
-		wavelengthcountertick(frameseq);
-	    }
+	    	s2soundlength = 0;
 
-	    float getwaveoutputvol()
-	    {
-		int outputvol = 0;
-		if (apumem.waveenabled)
+		if (apumem.gameboy != Console::DMG)
 		{
-		    if (TestBit(apumem.wavevolumeenvelope, 7))
-		    {
-			outputvol = (apumem.wavecurrentsample) - (apumem.wavecurrentsample >> 2);
-		    }
-		    else
-		    {
-			outputvol = (apumem.wavecurrentsample >> apumem.wavevolume);
-		    }
-		}
-		else
-		{
-		    outputvol = 0;
+	    	    s2lengthcounter = 0;
 		}
 
-		return ((float)(outputvol) / divisor);
-	    }
+	    	s2volumeenvelope = 0;
+	    	s2envelopeenabled = false;
+	    	s2envelopecounter = 0;
+	    	s2volume = 0;
+	    	s2freqlo = 0;
+	    	s2freqhi = 0;
+	    	s2periodtimer = 0;
+	    	s2enabled = false;
 
-	    inline void noiseupdate(int frameseq)
-	    {
-		noisetimertick();
-		noiselengthcountertick(frameseq);
-		noiseenvelopetick(frameseq);
-	    }
+	    	wavesweep = 0;
+	    	wavesoundlength = 0;
 
-	    inline void noiselengthcountertick(int frameseq)
-	    {
-		bool lengthcounterdec = TestBit(frameseq, 0);
-
-		if (TestBit(apumem.noisefreqhi, 6) && apumem.noiselengthcounter > 0)
+		if (apumem.gameboy != Console::DMG)
 		{
-		    if (!lengthcounterdec && prevnoiselengthdec)
-		    {
-			apumem.noiselengthcounter -= 1;
-
-			if (apumem.noiselengthcounter == 0)
-			{
-			    apumem.noiseenabled = false;
-			}
-		    }
+	    	    wavelengthcounter = 0;
 		}
 
-		prevnoiselengthdec = lengthcounterdec;
-	    }
+	    	wavevolumeenvelope = 0;
+	    	wavevolume = 0;
+	    	wavefreqlo = 0;
+	    	wavefreqhi = 0;
+	    	waveperiodtimer = 0;
+	    	waveenabled = false;
+	    	waveramlengthmask = 0;
+	    	wavepos = 0;
+	    	wavechannelenabled = false;
+	    	wavecurrentsample = 0;
+	    	wavelastplayedsample = 0;
 
-	    inline void noiseenvelopetick(int frameseq)
-	    {
-		bool envelopeinc = TestBit(frameseq, 2);
-
-		if (apumem.noiseenvelopeenabled)
+	    	noisesoundlength = 0;
+		
+		if (apumem.gameboy != Console::DMG)
 		{
-		    if (!envelopeinc && prevnoiseenvelopeinc)
-		    {
-			apumem.noiseenvelopecounter -= 1;
-
-			if (apumem.noiseenvelopecounter == 0)
-			{
-			    if (!TestBit(apumem.noisevolumeenvelope, 3))
-			    {
-				apumem.noisevolume -= 1;
-				if (apumem.noisevolume == 0)
-				{
-				    apumem.noiseenvelopeenabled = false;
-				}
-			    }
-			    else
-			    {
-				apumem.noisevolume += 1;
-				if (apumem.noisevolume == 0x0F)
-				{
-				    apumem.noiseenvelopeenabled = false;
-				}
-			    }
-
-			    apumem.noiseenvelopecounter = (apumem.noisevolumeenvelope & 0x7);
-			}
-		    }
+	    	    noiselengthcounter = 0;
 		}
 
-		prevnoiseenvelopeinc = envelopeinc;
-	    }
+	    	noisevolumeenvelope = 0;
+	    	noiseenvelopeenabled = false;
+	    	noiseenvelopecounter = 0;
+	    	noiseperiodtimer = 0;
+	    	noisefreqlo = 0;
+	    	noisefreqhi = 0;
+	    	noisevolume = 0;
+	    	noiselfsr = 1;
+	    	noiseenabled = false;
 
-	    inline void noisetimertick()
-	    {
-		if (apumem.noiseperiodtimer == 0)
-		{
-		    if (((apumem.noisefreqlo & 0xF0) >> 4) < 14)
-		    {
-			int xoredbits = ((apumem.noiselfsr ^ (apumem.noiselfsr >> 1)) & 1);
-			apumem.noiselfsr >>= 1;
-			apumem.noiselfsr |= (xoredbits << 14);
-
-			if (TestBit(apumem.noisefreqlo, 3))
-			{
-			    apumem.noiselfsr = BitReset(apumem.noiselfsr, 6);
-			    apumem.noiselfsr |= (xoredbits << 6);
-			}
-		    }
-
-		    apumem.noisereloadperiod();
-		}
-		else
-		{
-		    apumem.noiseperiodtimer -= 1;
-		}
-	    }
-
-	    float getnoiseoutputvol()
-	    {
-		int outputvol = 0;
-		if (apumem.noiseenabled)
-		{
-		    outputvol = (TestBit((~apumem.noiselfsr), 0) * apumem.noisevolume);
-		}
-		else
-		{
-		    outputvol = 0;
-		}
-
-		return ((float)(outputvol) / divisor);
+	    	mastervolume = 0;
+	    	soundselect = 0;
+	    	soundon = 0;
 	    }
 
 	    inline int getframesequencer()

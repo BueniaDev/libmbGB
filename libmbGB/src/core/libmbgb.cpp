@@ -168,8 +168,14 @@ namespace gb
 
 	    if ((strcmp(argv[i], "--printer") == 0))
 	    {
-		coreserial->setdevice(coreserial->print);
+		isprinterenabled = true;
 	    }
+	    else
+	    {
+		isprinterenabled = false;
+	    }
+
+	    cout << hex << (int)(isprinterenabled) << endl;
 	}
 
 	if (!isagbmode())
@@ -221,6 +227,8 @@ namespace gb
 
     bool GBCore::loadstate()
     {
+	paused = true;
+
 	stringstream savestate;
 
 	savestate << romname << ".mbsave";
@@ -232,7 +240,7 @@ namespace gb
 	if (!corecpu->loadcpu(savename))
 	{
 	    cout << "mbGB::Save state could not be loaded." << endl;
-	    ret = false;
+	    return false;
 	}
 
 	int offs = corecpu->cpusize();
@@ -240,17 +248,18 @@ namespace gb
 	if (!coremmu->loadmmu(offs, savename))
 	{
 	    cout << "mbGB::Save state could not be loaded." << endl;
-	    ret = false;
+	    return false;
 	}
 
 	cout << "mbGB::Save state succesfully loaded." << endl;
 	ret = true;
-	
+	paused = false;
 	return ret;
     }
 
     bool GBCore::savestate()
     {
+	paused = true;
 	stringstream savestate;
 
 	savestate << romname << ".mbsave";
@@ -275,6 +284,7 @@ namespace gb
 
 	cout << "mbGB::Save state succesfully written." << endl;
 	ret = true;
+	paused = false;
 	
 	return ret;
     }
@@ -343,10 +353,20 @@ namespace gb
     {
 	coregpu->setdotrender(val);
     }
+	
+	int GBCore::runinstruction()
+	{
+		return corecpu->runinstruction();
+	}
 
     void GBCore::runcore()
     {
-	overspentcycles = corecpu->runfor((70224 << coremmu->doublespeed) + overspentcycles);
+	while (totalcycles < (70224 << coremmu->doublespeed))
+	{
+	    totalcycles += runinstruction();
+	}
+	
+	totalcycles = 0;
     }
 
     bool GBCore::initcore()
@@ -395,11 +415,6 @@ namespace gb
     {
 	coreapu->setaudiocallback(cb);
     }
-	
-	void GBCore::setprintcallback(printfunc cb)
-	{
-		coreserial->setprintcallback(cb);
-	}
 
     void GBCore::resetcore()
     {

@@ -48,6 +48,19 @@ namespace gb
 	    void shutdown();
 
 	    void updatejoypad();
+		
+		uint8_t joypad = 0;
+		
+		uint8_t readjoypad(uint16_t addr)
+		{
+			return (joypad | 0xC0);
+		}
+		
+	    void writejoypad(uint16_t addr, uint8_t value)
+	    {
+			joypad = ((joypad & 0x0F) | (value & 0x30));
+			updatejoypad();
+	    }
 
 	    inline void keypressed(Button button)
 	    {
@@ -64,7 +77,7 @@ namespace gb
 
 	    inline bool joypadpress()
 	    {
-		return ((p1mem.joypad & 0x0F) != 0x0F);
+		return ((joypad & 0x0F) != 0x0F);
 	    }
 
 	    bool interruptsignal = false;
@@ -72,12 +85,12 @@ namespace gb
 
 	    inline bool buttonkeysselected()
 	    {
-		return !TestBit(p1mem.joypad, 5);
+		return !TestBit(joypad, 5);
 	    }
 
 	    inline bool directionkeysselected()
 	    {
-		return !TestBit(p1mem.joypad, 4);
+		return !TestBit(joypad, 4);
 	    }
     };
 };

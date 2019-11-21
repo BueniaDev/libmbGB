@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(libmbGB)
 
 option(BUILD_EXAMPLE "Enables the example renderer (requires SDL2)." OFF)
+option(BUILD_LINK "Enables the link cable example (experimental, requires SDL2)." OFF)
 option(BUILD_HEADLESS "Enables the headless renderer." OFF)
 option(BUILD_LIBRETRO "Enables the Libretro core." OFF)
 option(BUILD_GUI "Enables the ImGUI renderer (requires SDL2)." OFF)
@@ -29,6 +30,7 @@ set(LIBMBGB_API_HEADERS
 	libmbGB/include/libmbGB/gpu.h
 	libmbGB/include/libmbGB/apu.h
 	libmbGB/include/libmbGB/timers.h
+	libmbGB/include/libmbGB/addons.h
 	libmbGB/include/libmbGB/serial.h
 	libmbGB/include/libmbGB/input.h
 	libmbGB/include/libmbGB/libmbgb.h)
@@ -60,6 +62,10 @@ endif()
 
 if (BUILD_HEADLESS STREQUAL "ON")
 	add_subdirectory(example/headless)
+endif()
+
+if (BUILD_LINK STREQUAL "ON")
+	add_subdirectory(example/linkcable)
 endif()
 
 if (BUILD_LIBRETRO STREQUAL "ON")

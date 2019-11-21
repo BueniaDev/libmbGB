@@ -16,12 +16,17 @@
 
 #include "../../include/libmbGB/serial.h"
 using namespace gb;
+using namespace std::placeholders;
 
 namespace gb
 {
     Serial::Serial(MMU& memory) : serialmem(memory)
     {
-
+		for (int i = 0xFF01; i <= 0xFF02; i++)
+		{
+			serialmem.addmemoryreadhandler(i, bind(&Serial::readserial, this, _1));
+			serialmem.addmemorywritehandler(i, bind(&Serial::writeserial, this, _1, _2));
+		}
     }
 
     Serial::~Serial()
@@ -29,19 +34,24 @@ namespace gb
 
     }
 
-    SerialDevice::SerialDevice()
-    {
-
-    }
-
-    SerialDevice::~SerialDevice()
-    {
-
-    }
-
     void Serial::init()
     {
-	initserialclock((serialmem.divider & 0xFF));
+		if (serialmem.isdmgmode())
+		{
+		    if (serialmem.isdmgconsole())
+		    {
+			initserialclock(0xCC);
+		    }
+		    else
+		    {
+			initserialclock(0x7C);
+		    }
+		}
+		else
+		{
+		    initserialclock(0xA0);
+		}
+		
 	cout << "Serial::Initialized" << endl;
     }
 
@@ -49,30 +59,62 @@ namespace gb
     {
 	cout << "Serial::Shutting down..." << endl;
     }
+	
+	uint8_t Serial::readserial(uint16_t addr)
+	{
+		uint8_t temp = 0;
+		
+		switch ((addr & 0xFF))
+		{
+			case 0x01: temp = (linkready) ? bytetorecieve : 0xFF; break;
+			case 0x02: temp = (sc & 0x7E); break;
+		}
+		
+		return temp;
+	}
+	
+	void Serial::writeserial(uint16_t addr, uint8_t val)
+	{
+		switch ((addr & 0xFF))
+		{
+			case 0x01: bytetotransfer = val; break;
+			case 0x02: 
+			{
+			    sc = val;
+			    pendingrecieve = false;
+			}
+			break;
+		}
+	}
 
     void Serial::updateserial()
     {
-	serialclock += 4;
-
-	if (bitstoshift == 0 && TestBit(serialmem.sc, 7))
+	if (!TestBit(sc, 7) || pendingrecieve)
 	{
-	    bitstoshift = 8;
+	    return;
 	}
 
-	if (bitstoshift > 0 && !transfersignal && prevtransfersignal)
+	int cycles = (serialmem.doublespeed) ? 256 : 512;
+
+	if (TestBit(sc, 0))
 	{
-	    shiftserialbit();
+	    serialclock += 4;
+
+	    if (serialclock == cycles)
+	    {
+		serialclock = 0;
+		shiftcounter += 1;
+
+		if (shiftcounter == 8)
+		{
+		    signalready();
+		    shiftcounter = 0;
+		}
+	    }
 	}
-
-	prevtransfersignal = transfersignal;
-
-	bool serialinc = (TestBit(serialclock, selectclockbit()) && usinginternalclock());
-
-	if (!serialinc && previnc)
+	else
 	{
-	    transfersignal = !transfersignal;
+	    signalready();
 	}
-
-	previnc = serialinc;
     }
 };

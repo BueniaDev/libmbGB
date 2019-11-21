@@ -16,11 +16,20 @@
 
 #include "../../include/libmbGB/mmu.h"
 using namespace gb;
+using namespace std::placeholders;
 
 namespace gb
 {
     MMU::MMU()
     {
+	addmemoryreadhandler(0xFF03, bind(&MMU::readempty, this, _1));
+	addmemorywritehandler(0xFF03, bind(&MMU::writeempty, this, _1, _2));
+
+	for (int i = 8; i < 0xF; i++)
+	{
+	    addmemoryreadhandler((0xFF00 + i), bind(&MMU::readempty, this, _1));
+	    addmemorywritehandler((0xFF00 + i), bind(&MMU::writeempty, this, _1, _2));
+	}
     }
 
     MMU::~MMU()
@@ -82,6 +91,8 @@ namespace gb
 	oam.clear();
 	hram.clear();
 	rambanks.clear();
+	gbcbgpalette.clear();
+	gbcobjpalette.clear();
 
 	vram.resize(0x4000, 0);
 	sram.resize(0x2000, 0);
@@ -96,11 +107,9 @@ namespace gb
 
 	if (!file.is_open())
 	{
-	    cout << "CPU::Error opening CPU state" << endl;
+	    cout << "CPU::Error opening MMU state" << endl;
 	    return false;
 	}
-
-	cout << hex << (int)(interruptenabled) << endl;
 
 	file.seekg(offset);
 
@@ -110,7 +119,6 @@ namespace gb
 	file.read((char*)&wram[0], 0x8000);
 	file.read((char*)&oam[0], 0xA0);
 	file.read((char*)&hram[0], 0x7F);
-	readio(file);
 	file.read((char*)&gbcbgpalette[0], 0x40);
 	file.read((char*)&gbcobjpalette[0], 0x40);
 	file.read((char*)&doublespeed, sizeof(doublespeed));
@@ -119,7 +127,7 @@ namespace gb
 	file.read((char*)&higherrombankbits, sizeof(higherrombankbits));
 	file.read((char*)&rommode, sizeof(rommode));
 	file.read((char*)&ramenabled, sizeof(ramenabled));
-	cout << hex << (int)(interruptenabled) << endl;
+	file.read((char*)&externalrampres, sizeof(externalrampres));
 	file.close();
 	return true;
     }
@@ -130,7 +138,7 @@ namespace gb
 
 	if (!file.is_open())
 	{
-	    cout << "CPU::Error opening CPU state" << endl;
+	    cout << "CPU::Error opening MMU state" << endl;
 	    return false;
 	}
 
@@ -140,7 +148,6 @@ namespace gb
 	file.write((char*)&wram[0], 0x8000);
 	file.write((char*)&oam[0], 0xA0);
 	file.write((char*)&hram[0], 0x7F);
-	writeio(file);
 	file.write((char*)&gbcbgpalette[0], 0x40);
 	file.write((char*)&gbcobjpalette[0], 0x40);
 	file.write((char*)&doublespeed, sizeof(doublespeed));
@@ -148,8 +155,8 @@ namespace gb
 	file.write((char*)&currentrambank, sizeof(currentrambank));
 	file.write((char*)&higherrombankbits, sizeof(higherrombankbits));
 	file.write((char*)&rommode, sizeof(rommode));
-	file.write((char*)&ramenabled, sizeof(ramenabled));	
-	cout << hex << (int)(interruptenabled) << endl;
+	file.write((char*)&ramenabled, sizeof(ramenabled));
+	file.write((char*)&externalrampres, sizeof(externalrampres));
 	file.close();
 	return true;
     }
@@ -307,14 +314,6 @@ namespace gb
 	{
 	    return 0x00;
 	}
-	else if (addr < 0xFF30)
-	{
-	    return readIO(addr);
-	}
-	else if (addr < 0xFF40)
-	{
-	    return waveram[addr - 0xFF30];
-	}
 	else if (addr < 0xFF80)
 	{
 	    return readIO(addr);
@@ -439,22 +438,6 @@ namespace gb
 	{
 	    return;
 	}
-	else if (addr < 0xFF10)
-	{
-	    writeIO(addr, value);
-	}
-	else if ((addr < 0xFF24))
-	{
-	    writeIO(addr, value);
-	}
-	else if (addr < 0xFF30)
-	{
-	    writeIO(addr, value);
-	}
-	else if (addr < 0xFF40)
-	{
-	    waveram[addr - 0xFF30] = value;
-	}
 	else if (addr < 0xFF80)
 	{
 	    writeIO(addr, value);
@@ -524,44 +507,36 @@ namespace gb
     {
 	uint8_t temp = 0;
 	
+	if (addr >= 0xFF10 && (addr <= 0xFF26))
+	{
+		temp = memoryreadhandlers.at((addr - 0xFF00))(addr);
+	}
+	else if ((addr >= 0xFF30) && (addr < 0xFF40))
+	{
+		temp = memoryreadhandlers.at((addr - 0xFF00))(addr);
+	}
+	else if ((addr >= 0xFF40) && (addr < 0xFF46))
+	{
+		temp = memoryreadhandlers.at((addr - 0xFF00))(addr);
+	}
+	else if ((addr >= 0xFF47) && (addr <= 0xFF4B))
+	{
+		temp = memoryreadhandlers.at((addr - 0xFF00))(addr);
+	}
+	else
+	{
+	
 	switch ((addr & 0xFF))
 	{
-	    case 0x00: temp = (joypad | 0xC0); break;
-	    case 0x01: temp = sb; break;
-	    case 0x02: temp = readsc(); break;
-	    case 0x04: temp = (divider >> 8); break;
-	    case 0x05: temp = tima; break;
-	    case 0x06: temp = tma; break;
-	    case 0x07: temp = (tac | 0xF8); break;
+	    case 0x00: temp = memoryreadhandlers.at((addr - 0xFF00))(addr); break;
+	    case 0x01: temp = memoryreadhandlers.at((addr - 0xFF00))(addr); break;
+	    case 0x02: temp = memoryreadhandlers.at((addr - 0xFF00))(addr); break;
+	    case 0x04: temp = memoryreadhandlers.at((addr - 0xFF00))(addr); break;
+	    case 0x05: temp = memoryreadhandlers.at((addr - 0xFF00))(addr); break;
+	    case 0x06: temp = memoryreadhandlers.at((addr - 0xFF00))(addr); break;
+	    case 0x07: temp = memoryreadhandlers.at((addr - 0xFF00))(addr); break;
 	    case 0x0F: temp = (interruptflags | 0xE0); break;
-	    case 0x10: temp = (s1sweep | 0x80); break;
-	    case 0x11: temp = (s1soundlength | 0x3F); break;
-	    case 0x12: temp = s1volumeenvelope; break;
-	    case 0x14: temp = (s1freqhi | 0xBF); break;
-	    case 0x16: temp = (s2soundlength | 0x3F); break;
-	    case 0x17: temp = s2volumeenvelope; break;
-	    case 0x19: temp = (s2freqhi | 0xBF); break;
-	    case 0x1A: temp = (wavesweep | 0x7F); break;
-	    case 0x1C: temp = (wavevolumeenvelope | 0x9F); break;
-	    case 0x1E: temp = (wavefreqhi | 0xBF); break;
-	    case 0x21: temp = noisevolumeenvelope; break;
-	    case 0x22: temp = noisefreqlo; break;
-	    case 0x23: temp = (noisefreqhi | 0xBF); break;
-	    case 0x24: temp = mastervolume; break;
-	    case 0x25: temp = soundselect; break;
-	    case 0x26: temp = readsoundon(); break;
-	    case 0x40: temp = lcdc; break;
-	    case 0x41: temp = (stat | 0x80); break;
-	    case 0x42: temp = scrolly; break;
-	    case 0x43: temp = scrollx; break;
-	    case 0x44: temp = ly; break;
-	    case 0x45: temp = lyc; break;
 	    case 0x46: temp = oamdmastart; break;
-	    case 0x47: temp = bgpalette; break;
-	    case 0x48: temp = objpalette0; break;
-	    case 0x49: temp = objpalette1; break;
-	    case 0x4A: temp = windowy; break;
-	    case 0x4B: temp = windowx; break;
 	    case 0x4D: temp = (key1 | (isgbcmode() ? 0x7E : 0xFF)); break;
 	    case 0x4F: temp = (vrambank | 0xFE); break;
 	    case 0x68: temp = (isgbcconsole()) ? gbcbgpaletteindex : 0xFF; break;
@@ -572,140 +547,43 @@ namespace gb
 	    default: temp = 0xFF; break;
 	}
 	
+	}
+	
 	return temp;
     }
 
     void MMU::writeIO(uint16_t addr, uint8_t value)
     {
+	if (addr >= 0xFF10 && (addr <= 0xFF26))
+	{
+		memorywritehandlers.at((addr - 0xFF00))(addr, value);
+	}
+	else if (addr >= 0xFF30 && (addr < 0xFF40))
+	{
+		memorywritehandlers.at((addr - 0xFF00))(addr, value);
+	}
+	else if (addr >= 0xFF40 && (addr < 0xFF46))
+	{
+		memorywritehandlers.at((addr - 0xFF00))(addr, value);
+	}
+	else if (addr >= 0xFF47 && (addr <= 0xFF4B))
+	{
+		memorywritehandlers.at((addr - 0xFF00))(addr, value);
+	}
+	else
+	{
+
 	switch ((addr & 0xFF))
 	{
-	    case 0x00: writejoypad(value); break;
-	    case 0x01: sb = value; break;
-	    case 0x02: writesc(value); break;
-	    case 0x04: writediv(); break;
-	    case 0x05: tima = value; break;
-	    case 0x06: tma = value; break;
-	    case 0x07: tac = (value & 0x07); break;
+	    case 0x00: memorywritehandlers.at((addr - 0xFF00))(addr, value); break;
+	    case 0x01: memorywritehandlers.at((addr - 0xFF00))(addr, value); break;
+	    case 0x02: memorywritehandlers.at((addr - 0xFF00))(addr, value); break;
+	    case 0x04: memorywritehandlers.at((addr - 0xFF00))(addr, value); break;
+	    case 0x05: memorywritehandlers.at((addr - 0xFF00))(addr, value); break;
+	    case 0x06: memorywritehandlers.at((addr - 0xFF00))(addr, value); break;
+	    case 0x07: memorywritehandlers.at((addr - 0xFF00))(addr, value); break;
 	    case 0x0F: writeif(value); break;
-	    case 0x10: writes1sweep(value); break;
-	    case 0x11:
-	    {
-		if (!TestBit(soundon, 7) && !isdmgconsole())
-		{
-		    cout << "True" << endl;
-		    return;
-		}
-		else
-		{
-		    s1soundlength = value;
-		    reloads1lengthcounter();
-		    sets1dutycycle();
-		}
-	    }
-	    break;
-	    case 0x12:
-	    {
-		s1volumeenvelope = value;
-
-		if (((s1volumeenvelope & 0xF0) >> 4) == 0)
-		{
-		    s1enabled = false;
-		}
-	    }
-	    break;
-	    case 0x13: s1freqlo = value; break;
-	    case 0x14: s1writereset(value); break;
-	    case 0x16:
-	    {
-		if (!TestBit(soundon, 7) && !isdmgconsole())
-		{
-		    return;
-		}
-		else
-		{
-		    s2soundlength = value;
-		    reloads2lengthcounter();
-		    sets2dutycycle();
-		}
-	    }
-	    break;
-	    case 0x17:
-	    {
-		s2volumeenvelope = value;
-
-		if (((s2volumeenvelope & 0xF0) >> 4) == 0)
-		{
-		    s2enabled = false;
-		}
-	    }
-	    break;
-	    case 0x18: s2freqlo = value; break;
-	    case 0x19: s2writereset(value); break;
-	    case 0x1A:
-	    {
-		wavesweep = (value & 0x80);
-
-		if (!TestBit(wavesweep, 7))
-		{
-		    waveenabled = false;
-		}
-
-		waveramlengthmask = 0x1F;
-	    }
-	    break;
-	    case 0x1B:
-	    {
-		if (!TestBit(soundon, 7) && !isdmgconsole())
-		{
-		    return;
-		}
-		else
-		{
-		    wavesoundlength = value;
-		    reloadwavelengthcounter();
-		}
-	    }
-	    break;
-	    case 0x1C:
-	    {
-		wavevolumeenvelope = (value & 0xE0);
-		int wavevolumeshift = ((wavevolumeenvelope & 0x60) >> 5);
-		wavevolume = (wavevolumeshift) ? (wavevolumeshift - 1) : 4;
-	    }
-	    break;
-	    case 0x1D: wavefreqlo = value; break;
-	    case 0x1E: wavewritereset(value); break;
-	    case 0x20:
-	    {
-		if (!TestBit(soundon, 7) && !isdmgconsole())
-		{
-		    return;
-		}
-		else
-		{
-		    noisesoundlength = (value & 0x3F);
-		    reloadnoiselengthcounter();
-		}
-	    }
-	    break;
-	    case 0x21: writenoiseenvelope(value); break;
-	    case 0x22: noisefreqlo = value; break;
-	    case 0x23: noisewritereset(value); break;
-	    case 0x24: mastervolume = value; break;
-	    case 0x25: soundselect = value; break;
-	    case 0x26: writesoundon(value); break;
-	    case 0x40: writelcdc(value); break;
-	    case 0x41: writestat(value); break;
-	    case 0x42: scrolly = value; break;
-	    case 0x43: scrollx = value; break;
-	    case 0x44: break; // LY should not be written to
-	    case 0x45: lyc = value; break;
 	    case 0x46: writedma(value); break;
-	    case 0x47: bgpalette = value; break;
-	    case 0x48: objpalette0 = value; break;
-	    case 0x49: objpalette1 = value; break;
-	    case 0x4A: windowy = value; break;
-	    case 0x4B: windowx = value; break;
 	    case 0x4D: 
 	    {
 		key1 = value;
@@ -848,6 +726,7 @@ namespace gb
 	    }
 	    break;
 	    default: break;
+	}
 	}
     }
 

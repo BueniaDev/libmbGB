@@ -35,19 +35,42 @@ using namespace std;
 
 namespace gb
 {
-    union Register
+
+    struct Register
     {
-	struct
+	uint8_t hi;
+	uint8_t lo;
+
+	uint16_t getreg()
 	{
-	    #ifdef IS_LITTLE_ENDIAN
-	        uint8_t lo;
-	        uint8_t hi;
-	    #else
-	        uint8_t hi;
-		uint8_t lo;
-	    #endif
-	};
-	uint16_t reg;
+	    return ((hi << 8) | lo);
+	}
+
+	void setreg(uint16_t val)
+	{
+	    hi = (val >> 8);
+	    lo = (val & 0xFF);
+	}
+
+	uint8_t gethi()
+	{
+	    return hi;
+	}
+
+	void sethi(uint8_t val)
+	{
+	    hi = val;
+	}
+
+	uint8_t getlo()
+	{
+	    return lo;
+	}
+
+	void setlo(uint8_t val)
+	{
+	    lo = val;
+	}
     };
 
     class LIBMBGB_API CPU
@@ -65,6 +88,11 @@ namespace gb
 
 	    bool loadcpu(string filename);
 	    bool savecpu(string filename);
+
+	    array<uint8_t, 15> cpustate;
+
+	    array<uint8_t, 15> savecpu();
+	    void loadcpu(array<uint8_t, 15>& data);
 
 	    bool loaded = false;
 
@@ -85,6 +113,7 @@ namespace gb
 		size += sizeof(uint8_t);
 		size += sizeof(interruptmasterenable);
 		size += sizeof(enableinterruptsdelayed);
+		size += gpu.gpusize();
 
 		return size;
 	    }
@@ -103,6 +132,7 @@ namespace gb
 	    uint16_t sp;
 
 	    int runfor(int cycles);
+		int runinstruction();
 	    void hardwaretick(int cycles);
 	    void haltedtick(int cycles);
 	    int executenextopcode(uint8_t opcode);
@@ -204,14 +234,14 @@ namespace gb
 
 	    inline void compareg()
 	    {
-		af.hi = ~af.hi;
+		af.sethi(~af.gethi());
 		setsubtract(true);
 		sethalf(true);
 	    }
 
 	    inline void daa()
 	    {
-		uint8_t temp = af.hi;
+		uint8_t temp = af.gethi();
 
 		if (issubtract())
 		{
@@ -227,13 +257,13 @@ namespace gb
 		}
 		else
 		{
-		    if (iscarry() || af.hi > 0x99)
+		    if (iscarry() || af.gethi() > 0x99)
 		    {
 			temp += 0x60;
 			setcarry(true);
 		    }
 
-		    if (ishalf() || (af.hi & 0x0F) > 0x09)
+		    if (ishalf() || (af.gethi() & 0x0F) > 0x09)
 		    {
 			temp += 0x06;
 		    }
@@ -247,21 +277,21 @@ namespace gb
 
 	    inline uint8_t addreg(uint8_t reg)
 	    {
-		uint8_t temp = (af.hi + reg);
+		uint8_t temp = (af.gethi() + reg);
 		setzero(temp == 0);
 		setsubtract(false);
-		sethalf(((af.hi & 0x0F) + (reg & 0x0F)) > 0x0F);
-		setcarry((af.hi + reg) > 0xFF);
+		sethalf(((af.gethi() & 0x0F) + (reg & 0x0F)) > 0x0F);
+		setcarry((af.gethi() + reg) > 0xFF);
 		return temp;
 	    }
 
 	    inline uint8_t adcreg(uint8_t reg)
 	    {
 		uint16_t carrybit = (iscarry() ? 1 : 0);
-		uint16_t temp = (af.hi + reg + carrybit);
+		uint16_t temp = (af.gethi() + reg + carrybit);
 		setzero((temp & 0xFF) == 0);
 		setsubtract(false);
-		sethalf(((af.hi & 0x0F) + (reg & 0x0F) + carrybit) > 0x0F);
+		sethalf(((af.gethi() & 0x0F) + (reg & 0x0F) + carrybit) > 0x0F);
 		setcarry(temp > 0xFF);
 		return temp;
 	    }
@@ -293,28 +323,28 @@ namespace gb
 
 	    inline uint8_t subreg(uint8_t reg)
 	    {
-		uint8_t temp = (af.hi - reg);
+		uint8_t temp = (af.gethi() - reg);
 		setzero(temp == 0);
 		setsubtract(true);
-		sethalf(((af.hi & 0x0F) - (reg & 0x0F)) < 0);
-		setcarry(af.hi < reg);
+		sethalf(((af.gethi() & 0x0F) - (reg & 0x0F)) < 0);
+		setcarry(af.gethi() < reg);
 		return temp;
 	    }
 
 	    inline uint8_t sbcreg(uint8_t reg)
 	    {
 		uint8_t carrybit = (iscarry() ? 1 : 0);
-		uint8_t temp = (af.hi - (reg + carrybit));
+		uint8_t temp = (af.gethi() - (reg + carrybit));
 		setzero(temp == 0);
 		setsubtract(true);
-		sethalf(((af.hi & 0x0F) < (reg & 0x0F) + carrybit));
-		setcarry(af.hi < (reg + carrybit));
+		sethalf(((af.gethi() & 0x0F) < (reg & 0x0F) + carrybit));
+		setcarry(af.gethi() < (reg + carrybit));
 		return temp;
 	    }
 
 	    inline void andreg(uint8_t reg)
 	    {
-		af.hi = (af.hi & reg);
+		af.sethi((af.gethi() & reg));
 		setzero(af.hi == 0);
 		setsubtract(false);
 		sethalf(true);
@@ -323,8 +353,8 @@ namespace gb
 
 	    inline void orreg(uint8_t reg)
 	    {
-		af.hi = (af.hi | reg);
-		setzero(af.hi == 0);
+		af.sethi((af.gethi() | reg));
+		setzero(af.gethi() == 0);
 		setsubtract(false);
 		sethalf(false);
 		setcarry(false);
@@ -332,8 +362,8 @@ namespace gb
 
 	    inline void xorreg(uint8_t reg)
 	    {
-		af.hi = (af.hi ^ reg);
-		setzero(af.hi == 0);
+		af.sethi((af.gethi() ^ reg));
+		setzero(af.gethi() == 0);
 		setsubtract(false);
 		sethalf(false);
 		setcarry(false);
@@ -341,11 +371,11 @@ namespace gb
 
 	    inline void cmpreg(uint8_t reg)
 	    {
-		uint8_t temp = (af.hi - reg);
+		uint8_t temp = (af.gethi() - reg);
 		setzero(temp == 0);
 		setsubtract(true);
-		sethalf(((af.hi & 0x0F) - (reg & 0x0F)) < 0);
-		setcarry(af.hi < reg);
+		sethalf(((af.gethi() & 0x0F) - (reg & 0x0F)) < 0);
+		setcarry(af.gethi() < reg);
 	    }
 
 	    inline uint8_t incregbyte(uint8_t reg)
@@ -382,7 +412,7 @@ namespace gb
 
 	    inline void loadhltosp()
 	    {
-		sp = hl.reg;
+		sp = hl.getreg();
 		hardwaretick(4);
 	    }
 
@@ -394,7 +424,7 @@ namespace gb
 
 	    inline void jumptohl()
 	    {
-		pc = hl.reg;
+		pc = hl.getreg();
 	    }
 
 	    inline int jumpcond(uint16_t addr, bool cond)
@@ -662,7 +692,7 @@ namespace gb
 		++pc;
 		haltedtick(4);
 
-		mem.lcdc &= 0x7F;
+		gpu.lcdc &= 0x7F;
 
 		state = CPUState::Stopped;
 	    }
@@ -691,50 +721,50 @@ namespace gb
 
 	    void setzero(bool val)
 	    {
-		uint8_t temp = af.lo;
+		uint8_t temp = af.getlo();
 		temp = (val) ? BitSet(temp, 7) : BitReset(temp, 7);
-		af.lo = temp;
+		af.setlo(temp);
 	    }
 
 	    bool iszero()
 	    {
-		return TestBit(af.lo, 7);
+		return TestBit(af.getlo(), 7);
 	    }
 
 	    void setsubtract(bool val)
 	    {
-		uint8_t temp = af.lo;
+		uint8_t temp = af.getlo();
 		temp = (val) ? BitSet(temp, 6) : BitReset(temp, 6);
-		af.lo = temp;
+		af.setlo(temp);
 	    }
 
 	    bool issubtract()
 	    {
-		return TestBit(af.lo, 6);
+		return TestBit(af.getlo(), 6);
 	    }
 
 	    void sethalf(bool val)
 	    {
-		uint8_t temp = af.lo;
+		uint8_t temp = af.getlo();
 		temp = (val) ? BitSet(temp, 5) : BitReset(temp, 5);
-		af.lo = temp;
+		af.setlo(temp);
 	    }
 
 	    bool ishalf()
 	    {
-		return TestBit(af.lo, 5);
+		return TestBit(af.getlo(), 5);
 	    }
 
 	    void setcarry(bool val)
 	    {
-		uint8_t temp = af.lo;
+		uint8_t temp = af.getlo();
 		temp = (val) ? BitSet(temp, 4) : BitReset(temp, 4);
-		af.lo = temp;
+		af.setlo(temp);
 	    }
 
 	    bool iscarry()
 	    {
-		return TestBit(af.lo, 4);
+		return TestBit(af.getlo(), 4);
 	    }
 	
     };

@@ -46,41 +46,41 @@ namespace gb
 	{
 	    if (mem.gameboy == Console::DMG)
 	    {
-		af.reg = (0x01B0);
-		bc.reg = (0x0013);
-		de.reg = (0x00D8);
-		hl.reg = (0x014D);
+		af.setreg(0x01B0);
+		bc.setreg(0x0013);
+		de.setreg(0x00D8);
+		hl.setreg(0x014D);
 	    }
 	    else if (mem.gameboy == Console::CGB)
 	    {
-		af.reg = (0x1180);
-		bc.reg = (0x0000);
-		de.reg = (0x0008);
-		hl.reg = (0x007C);
+		af.setreg(0x1180);
+		bc.setreg(0x0000);
+		de.setreg(0x0008);
+		hl.setreg(0x007C);
 	    }
 	    else if (mem.gameboy == Console::AGB)
 	    {
-		af.reg = (0x1100);
-		bc.reg = (0x0100);
-		de.reg = (0x0008);
-		hl.reg = (0x007C);
+		af.setreg(0x1100);
+		bc.setreg(0x0100);
+		de.setreg(0x0008);
+		hl.setreg(0x007C);
 	    }
 	}
 	else if (mem.gbmode == Mode::CGB)
 	{
 	    if (mem.gameboy == Console::CGB)
 	    {
-	        af.reg = (0x1180);
-	        bc.reg = (0x0000);
-	        de.reg = (0xFF56);
-	        hl.reg = (0x000D);
+	        af.setreg(0x1180);
+	        bc.setreg(0x0000);
+	        de.setreg(0xFF56);
+	        hl.setreg(0x000D);
 	    }
 	    else if (mem.gameboy == Console::AGB)
 	    {
-	        af.reg = (0x1100);
-	        bc.reg = (0x0100);
-	        de.reg = (0xFF56);
-	        hl.reg = (0x000D);
+	        af.setreg(0x1100);
+	        bc.setreg(0x0100);
+	        de.setreg(0xFF56);
+	        hl.setreg(0x000D);
 	    } 
 	}
 
@@ -97,10 +97,10 @@ namespace gb
 
     void CPU::initbios()
     {
-	af.reg = (0x0000);
-	bc.reg = (0x0000);
-	de.reg = (0x0000);
-	hl.reg = (0x0000);   
+	af.setreg(0x0000);
+	bc.setreg(0x0000);
+	de.setreg(0x0000);
+	hl.setreg(0x0000);   
 
 	pc = 0;
 	sp = 0;
@@ -120,6 +120,7 @@ namespace gb
 
     bool CPU::loadcpu(string filename)
     {
+	printregs();
 	ifstream file(filename.c_str(), ios::binary);
 
 	if (!file.is_open())
@@ -138,17 +139,12 @@ namespace gb
 	file.read((char*)&de.lo, sizeof(de.lo));
 	file.read((char*)&hl.hi, sizeof(hl.hi));
 	file.read((char*)&hl.lo, sizeof(hl.lo));
-
 	file.read((char*)&pc, sizeof(pc));
 	file.read((char*)&sp, sizeof(sp));
 	file.read((char*)&state, sizeof(uint8_t));
 	file.read((char*)&interruptmasterenable, sizeof(interruptmasterenable));
 	file.read((char*)&enableinterruptsdelayed, sizeof(enableinterruptsdelayed));
-
-	printregs();
-
-	loaded = true;
-
+	gpu.loadgpu(file);
 	file.close();
 	return true;
     }
@@ -163,8 +159,6 @@ namespace gb
 	    return false;
 	}
 
-	printregs();
-
 	file.write((char*)&af.hi, sizeof(af.hi));
 	file.write((char*)&af.lo, sizeof(af.lo));
 	file.write((char*)&bc.hi, sizeof(bc.hi));
@@ -173,23 +167,22 @@ namespace gb
 	file.write((char*)&de.lo, sizeof(de.lo));
 	file.write((char*)&hl.hi, sizeof(hl.hi));
 	file.write((char*)&hl.lo, sizeof(hl.lo));
-
 	file.write((char*)&pc, sizeof(pc));
 	file.write((char*)&sp, sizeof(sp));
 	file.write((char*)&state, sizeof(uint8_t));
 	file.write((char*)&interruptmasterenable, sizeof(interruptmasterenable));
 	file.write((char*)&enableinterruptsdelayed, sizeof(enableinterruptsdelayed));
-
+	gpu.savegpu(file);
 	file.close();
 	return true;
     }
 
     void CPU::printregs()
     {
-	cout << "AF: " << hex << (int)(af.reg) << endl;
-	cout << "BC: " << hex << (int)(bc.reg) << endl;
-	cout << "DE: " << hex << (int)(de.reg) << endl;
-	cout << "HL: " << hex << (int)(hl.reg) << endl;
+	cout << "AF: " << hex << (int)(af.getreg()) << endl;
+	cout << "BC: " << hex << (int)(bc.getreg()) << endl;
+	cout << "DE: " << hex << (int)(de.getreg()) << endl;
+	cout << "HL: " << hex << (int)(hl.getreg()) << endl;
 	cout << "PC: " << hex << (int)(pc) << endl;
 	cout << "SP: " << hex << (int)(sp) << endl;
 	cout << "IF: " << hex << (int)(mem.readByte(0xFF0F)) << endl;
@@ -200,7 +193,9 @@ namespace gb
 	cout << "LCD: " << (int)(mem.ispending(1)) << endl;
 	cout << "TIMA: " << hex << (int)(mem.readByte(0xFF05)) << endl;
 	cout << "LCDC: " << hex << (int)(mem.readByte(0xFF40)) << endl;
+	cout << "STAT: " << hex << (int)(mem.readByte(0xFF41)) << endl;
 	cout << "LY: " << hex << (int)(mem.readByte(0xFF44)) << endl;
+	cout << "LYC: " << hex << (int)(mem.readByte(0xFF45)) << endl;
 	cout << "Scanline counter: " << dec << (int)(gpu.scanlinecounter) << endl;
 	cout << "Opcode: " << hex << (int)(mem.readByte(pc)) << endl;
 	cout << endl;
@@ -282,34 +277,42 @@ namespace gb
 
 	pc = addr;
     }
-
-    int CPU::runfor(int cycles)
-    {
-	while (cycles > 0)
+	
+	int CPU::runinstruction()
 	{
+		int cycles = 0;
 	    if (state == CPUState::Stopped)
 	    {
 		stoppedtick();
-		cycles -= 4;
-		continue;
+		cycles = 4;
+		return cycles;
 	    }
 
-	    cycles -= handleinterrupts();
+	    cycles += handleinterrupts();
 
 	    if (state == CPUState::Running)
 	    {
-		cycles -= executenextopcode(mem.readByte(pc++));
+		cycles += executenextopcode(mem.readByte(pc++));
 	    }
 	    else if (state == CPUState::HaltBug)
 	    {
-		cycles -= executenextopcode(mem.readByte(pc));
+		cycles += executenextopcode(mem.readByte(pc));
 		state = CPUState::Running;
 	    }
 	    else if (state == CPUState::Halted)
 	    {
 		haltedtick(4);
-		cycles -= 4;
+		cycles += 4;
 	    }
+		
+	    return cycles;
+	}
+
+    int CPU::runfor(int cycles)
+    {
+	while (cycles > 0)
+	{
+	    cycles -= runinstruction();
 	}
 
 	return cycles;

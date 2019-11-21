@@ -57,6 +57,52 @@ namespace gb
 	    void init();
 	    void shutdown();
 
+	    inline int gpusize()
+	    {
+		int size = 0;
+		size += sizeof(lcdc);
+		size += sizeof(stat);
+		size += sizeof(scrolly);
+		size += sizeof(scrollx);
+		size += sizeof(ly);
+		size += sizeof(lyc);
+		size += sizeof(windowy);
+		size += sizeof(windowx);
+		size += sizeof(bgpalette);
+		size += sizeof(objpalette0);
+		size += sizeof(objpalette1);
+		return size;
+	    }
+
+	    inline void loadgpu(ifstream& file)
+	    {
+		file.read((char*)&lcdc, sizeof(lcdc));
+		file.read((char*)&stat, sizeof(stat));
+		file.read((char*)&scrolly, sizeof(scrolly));
+		file.read((char*)&scrollx, sizeof(scrollx));
+		file.read((char*)&ly, sizeof(ly));
+		file.read((char*)&lyc, sizeof(lyc));
+		file.read((char*)&windowy, sizeof(windowy));
+		file.read((char*)&windowx, sizeof(windowx));
+		file.read((char*)&bgpalette, sizeof(bgpalette));
+		file.read((char*)&objpalette0, sizeof(objpalette0));
+		file.read((char*)&objpalette1, sizeof(objpalette1));
+	    }
+
+	    inline void savegpu(ofstream& file)
+	    {
+		file.write((char*)&lcdc, sizeof(lcdc));
+		file.write((char*)&stat, sizeof(stat));
+		file.write((char*)&scrolly, sizeof(scrolly));
+		file.write((char*)&scrollx, sizeof(scrollx));
+		file.write((char*)&ly, sizeof(ly));
+		file.write((char*)&lyc, sizeof(lyc));
+		file.write((char*)&windowy, sizeof(windowy));
+		file.write((char*)&windowx, sizeof(windowx));
+		file.write((char*)&bgpalette, sizeof(bgpalette));
+		file.write((char*)&objpalette0, sizeof(objpalette0));
+		file.write((char*)&objpalette1, sizeof(objpalette1));
+	    }
 
 	    inline void clearscreen()
 	    {
@@ -71,10 +117,99 @@ namespace gb
 	    void updatelcd();
 	    void updately();
 	    void updatelycomparesignal();
-	    void checkstatinterrupt();
 	    bool isly0 = false;
 
 	    bool dotrender = false;
+		
+	    uint8_t lcdc = 0x91;
+	    uint8_t stat = 0x01;
+	    uint8_t scrolly = 0x00;
+	    uint8_t scrollx = 0x00;
+	    uint8_t windowy = 0x00;
+	    uint8_t windowx = 0x00;
+	    uint8_t ly = 0x00;
+		uint8_t lylastcycle = 0xFF;
+	    uint8_t lyc = 0x00;
+	    uint8_t bgpalette = 0xFC;
+	    uint8_t objpalette0 = 0xFF;
+	    uint8_t objpalette1 = 0xFF;
+		
+		uint8_t readlcd(uint16_t addr);
+		void writelcd(uint16_t addr, uint8_t val);
+		
+	    inline bool islcdenabled()
+	    {
+		return TestBit(lcdc, 7);
+	    }
+
+	    inline bool iswinenabled()
+	    {
+		return TestBit(lcdc, 5);
+	    }
+
+	    inline bool isobjenabled()
+	    {
+		return TestBit(lcdc, 1);
+	    }
+
+	    inline bool isbgenabled()
+	    {
+		return TestBit(lcdc, 0);
+	    }
+
+	    inline void setstatmode(int mode)
+	    {
+		stat = ((stat & 0xFC) | mode);
+	    }
+		
+	    inline void writelcdc(uint8_t value)
+	    {
+		bool wasenabled = TestBit(value, 7);
+		lcdc = value;
+		updatepoweronstate(wasenabled);
+	    }
+		
+	    inline void writestat(uint8_t value)
+	    {
+		stat = ((value & 0x78) | (stat & 0x07));
+		if ((gpumem.isdmgconsole() || gpumem.ishybridconsole()) && TestBit(lcdc, 7) && !TestBit(stat, 1))
+		{
+		    statinterruptsignal = true;
+		}
+	    }
+
+	    inline void setlycompare(bool cond)
+	    {
+		if (cond)
+		{
+		    stat = BitSet(stat, 2);
+		}
+		else
+		{
+		    stat = BitReset(stat, 2);
+		}
+	    }
+
+	    inline int getstatmode()
+	    {
+		return (stat & 0x3);
+	    }
+
+	    inline void checkstatinterrupt()
+	    {
+		statinterruptsignal |= (TestBit(stat, 3) && getstatmode() == 0);
+		statinterruptsignal |= (TestBit(stat, 4) && getstatmode() == 1);
+		statinterruptsignal |= (TestBit(stat, 5) && getstatmode() == 2);
+		statinterruptsignal |= (TestBit(stat, 6) && TestBit(stat, 2));
+
+		if (statinterruptsignal && !previnterruptsignal)
+		{
+		    gpumem.requestinterrupt(1);
+		}
+
+		previnterruptsignal = statinterruptsignal;
+		statinterruptsignal = false;
+	    }
 
 
 	    inline bool isdotrender()
@@ -220,9 +355,9 @@ namespace gb
 	    uint8_t bgattr = 0;
 	    uint8_t winattr = 0;
 	    int bgcolor = 0;
-	    int bgpalette = 0;
+	    int bgpal = 0;
 	    int objcolor = 0;
-	    int objpalette = 0;
+	    int objpal = 0;
 	    bool bgprior = false;
 	    bool objprior = false;
 	    bool objdmgpalette = false;
@@ -297,7 +432,7 @@ namespace gb
 	    {
 	        int cycles = (256 << gpumem.doublespeed);
 
-	        int scxmod = (gpumem.scrollx % 8);
+	        int scxmod = (scrollx % 8);
 
     	        if ((scxmod > 0) && (scxmod < 5))
 	        {
@@ -313,32 +448,32 @@ namespace gb
 
 	    inline bool mode2check()
 	    {
-		return TestBit(gpumem.stat, 5);
+		return TestBit(stat, 5);
 	    }
 
 	    inline bool mode1check()
 	    {
-		return TestBit(gpumem.stat, 4);
+		return TestBit(stat, 4);
 	    }
 
 	    inline bool mode0check()
 	    {
-		return TestBit(gpumem.stat, 3);
+		return TestBit(stat, 3);
 	    }
 
 	    inline int statmode()
 	    {
-		return (gpumem.stat & 0x03);
+		return (stat & 0x03);
 	    }
 
 	    inline bool lycompcheck()
 	    {
-		return TestBit(gpumem.stat, 6);
+		return TestBit(stat, 6);
 	    }
 
 	    inline bool lycompequal()
 	    {
-		return TestBit(gpumem.stat, 2);
+		return TestBit(stat, 2);
 	    }
     };
 };

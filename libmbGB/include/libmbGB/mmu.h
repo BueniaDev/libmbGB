@@ -57,6 +57,9 @@ namespace gb
     using statirqfunc = function<bool()>;
     using screenfunc = function<void()>;
     using apulengthfunc = function<bool()>;
+	
+	using memoryreadfunc = function<uint8_t(uint16_t)>;
+	using memorywritefunc = function<void(uint16_t, uint8_t)>;
 
     class LIBMBGB_API MMU
     {
@@ -72,6 +75,19 @@ namespace gb
 	    void init();
 	    void initnot();
 	    void shutdown();
+		
+		array<memoryreadfunc, 0x80> memoryreadhandlers;
+		array<memorywritefunc, 0x80> memorywritehandlers;
+		
+		void addmemoryreadhandler(uint16_t addr, memoryreadfunc cb)
+		{
+			memoryreadhandlers.at((addr - 0xFF00)) = cb;
+		}
+		
+		void addmemorywritehandler(uint16_t addr, memorywritefunc cb)
+		{
+			memorywritehandlers.at((addr - 0xFF00)) = cb;
+		}
 
 	    inline void initio()
 	    {
@@ -79,30 +95,23 @@ namespace gb
 		{
 		    if (isdmgconsole())
 		    {
-			joypad = 0xCF;
 			divider = 0xABCC;
 		    }
 		    else
 		    {
-			joypad = 0xFF;
 			divider = 0x267C;
 		    }
 		}
 		else
 		{
-		    joypad = 0xFF;
 		    divider = 0x1EA0;
 		}
 
 		interruptenabled = 0x00;
-		bgpalette = 0xFC;
 		interruptflags = 0xE0;
-		ly = 0x90;
-		stat = 0x01;
 	    	tima = 0x00;
 	    	tma = 0x00;
 	        tac = 0xF8;
-		lcdc = 0x91;
 		vrambank = 0;
 		wrambank = 1;
 		writeByte(0xFF4D, 0x7E);
@@ -114,7 +123,6 @@ namespace gb
 
 	    inline void resetio()
 	    {
-	        joypad = 0x00;
 	        sb = 0x00;
 	    	sc = 0x00;
 	    	divider = 0x0000;
@@ -122,78 +130,23 @@ namespace gb
 	    	tma = 0x00;
 	        tac = 0x00;
 	        interruptflags = 0x00;
-	        lcdc = 0x00;
-	        stat = 0x00;
-	        scrolly = 0x00;
-	        scrollx = 0x00;
-	        windowy = 0x00;
-	        windowx = 0x00;
-	        ly = 0x00;
-	        lyc = 0x00;
 	        dma = 0x00;
-	        bgpalette = 0x00;
-	        objpalette0 = 0x00;
-	        objpalette1 = 0x00;
 	        key1 = 0x00;
 	        interruptenabled = 0x00;
 	    	dmaactive = false;
 	    }
 
-	    inline void readio(ifstream& file)
+	    uint8_t readempty(uint16_t addr)
 	    {
-	        file.read((char*)&joypad, sizeof(joypad));
-	        file.read((char*)&sb, sizeof(sb));
-	    	file.read((char*)&sc, sizeof(sc));
-	    	file.read((char*)&divider, sizeof(divider));
-	    	file.read((char*)&tima, sizeof(tima));
-	    	file.read((char*)&tma, sizeof(tma));
-	        file.read((char*)&tac, sizeof(tac));
-	        file.read((char*)&interruptflags, sizeof(interruptflags));
-	        file.read((char*)&lcdc, sizeof(lcdc));
-	        file.read((char*)&stat, sizeof(stat));
-	        file.read((char*)&scrolly, sizeof(scrolly));
-	        file.read((char*)&scrollx, sizeof(scrollx));
-	        file.read((char*)&windowy, sizeof(windowy));
-	        file.read((char*)&windowx, sizeof(windowx));
-	        file.read((char*)&ly, sizeof(ly));
-	        file.read((char*)&lyc, sizeof(lyc));
-	        file.read((char*)&dma, sizeof(dma));
-	        file.read((char*)&bgpalette, sizeof(bgpalette));
-	        file.read((char*)&objpalette0, sizeof(objpalette0));
-	        file.read((char*)&objpalette1, sizeof(objpalette1));
-	        file.read((char*)&key1, sizeof(key1));
-	        file.read((char*)&interruptenabled, sizeof(interruptenabled));
-	    	file.read((char*)&dmaactive, sizeof(dmaactive));
+		return 0xFF;
 	    }
 
-	    inline void writeio(ofstream& file)
+	    void writeempty(uint16_t addr, uint8_t val)
 	    {
-		file.write((char*)&joypad, sizeof(joypad));
-	        file.write((char*)&sb, sizeof(sb));
-	    	file.write((char*)&sc, sizeof(sc));
-	    	file.write((char*)&divider, sizeof(divider));
-	    	file.write((char*)&tima, sizeof(tima));
-	    	file.write((char*)&tma, sizeof(tma));
-	        file.write((char*)&tac, sizeof(tac));
-	        file.write((char*)&interruptflags, sizeof(interruptflags));
-	        file.write((char*)&lcdc, sizeof(lcdc));
-	        file.write((char*)&stat, sizeof(stat));
-	        file.write((char*)&scrolly, sizeof(scrolly));
-	        file.write((char*)&scrollx, sizeof(scrollx));
-	        file.write((char*)&windowy, sizeof(windowy));
-	        file.write((char*)&windowx, sizeof(windowx));
-	        file.write((char*)&ly, sizeof(ly));
-	        file.write((char*)&lyc, sizeof(lyc));
-	        file.write((char*)&dma, sizeof(dma));
-	        file.write((char*)&bgpalette, sizeof(bgpalette));
-	        file.write((char*)&objpalette0, sizeof(objpalette0));
-	        file.write((char*)&objpalette1, sizeof(objpalette1));
-	        file.write((char*)&key1, sizeof(key1));
-	        file.write((char*)&interruptenabled, sizeof(interruptenabled));
-	    	file.write((char*)&dmaactive, sizeof(dmaactive));
+		return;
 	    }
 
-	    bool loadmmu(int offset, string filename);
+	    bool loadmmu(int offs, string filename);
 	    bool savemmu(string filename);
 
 	    bool loadbackup(string filename);
@@ -431,31 +384,6 @@ namespace gb
 	    screenfunc screen;
 	    apulengthfunc apulength;
 
-	    inline void lcdchecklyc()
-	    {
-		if (!TestBit(lcdc, 7))
-		{
-		    return;
-		}
-
-		if ((lyc && ly == lyc) || (!lyc && ly == 153))
-		{
-		    if (!TestBit(stat, 2))
-		    {
-			stat = BitSet(stat, 2);
-
-			if (TestBit(stat, 6))
-			{
-			    checkstatinterrupt();
-			}
-		    }
-		}
-		else
-		{
-		    stat = BitReset(stat, 2);
-		}
-    	    }
-
 	    inline void writedma(uint8_t value)
 	    {
 		oamdmastart = value;
@@ -517,44 +445,6 @@ namespace gb
 		{
 		    return readDirectly(addr - 0x2000);
 		}
-	    }
-
-	    inline bool islcdenabled()
-	    {
-		return TestBit(lcdc, 7);
-	    }
-
-	    inline bool iswinenabled()
-	    {
-		return TestBit(lcdc, 5);
-	    }
-
-	    inline bool isobjenabled()
-	    {
-		return TestBit(lcdc, 1);
-	    }
-
-	    inline bool isbgenabled()
-	    {
-		return TestBit(lcdc, 0);
-	    }
-
-	    inline void setstatmode(int mode)
-	    {
-		stat = ((stat & 0xFC) | mode);
-	    }
-
-	    inline void writejoypad(uint8_t value)
-	    {
-		joypad = ((joypad & 0x0F) | (value & 0x30));
-		updatep1();
-	    }
-
-	    inline void writelcdc(uint8_t value)
-	    {
-		bool wasenabled = TestBit(value, 7);
-		lcdc = value;
-		poweron(wasenabled);
 	    }
 
 	    inline void writediv()
@@ -638,58 +528,6 @@ namespace gb
 		ifwrittenthiscycle = true;
 	    }
 
-	    inline void writestat(uint8_t value)
-	    {
-		stat = ((value & 0x78) | (stat & 0x07));
-		if ((isdmgconsole() || ishybridconsole()) && TestBit(lcdc, 7) && !TestBit(stat, 1))
-		{
-		    statinterruptsignal = true;
-		}
-	    }
-
-	    inline uint16_t readdiv()
-	    {
-		return divider;
-	    }
-
-	    inline void incdiv(int cycles)
-	    {
-		divider += cycles;
-	    }
-
-	    inline void setlycompare(bool cond)
-	    {
-		if (cond)
-		{
-		    stat = BitSet(stat, 2);
-		}
-		else
-		{
-		    stat = BitReset(stat, 2);
-		}
-	    }
-
-	    inline int getstatmode()
-	    {
-		return (stat & 0x3);
-	    }
-
-	    inline void checkstatinterrupt()
-	    {
-		statinterruptsignal |= (TestBit(stat, 3) && getstatmode() == 0);
-		statinterruptsignal |= (TestBit(stat, 4) && getstatmode() == 1);
-		statinterruptsignal |= (TestBit(stat, 5) && getstatmode() == 2);
-		statinterruptsignal |= (TestBit(stat, 6) && TestBit(stat, 2));
-
-		if (statinterruptsignal && !previnterruptsignal)
-		{
-		    requestinterrupt(1);
-		}
-
-		previnterruptsignal = statinterruptsignal;
-		statinterruptsignal = false;
-	    }
-
 	    bool ifwrittenthiscycle = false;
 	
 
@@ -697,7 +535,6 @@ namespace gb
 	    bool previnterruptsignal = false;
 	    bool isdivinterrupt = true;
 
-	    uint8_t joypad = 0x00;
 	    uint8_t sb = 0x00;
 	    uint8_t sc = 0x00;
 	    uint16_t divider = 0x0000;
@@ -705,543 +542,11 @@ namespace gb
 	    uint8_t tma = 0x00;
 	    uint8_t tac = 0x00;
 	    uint8_t interruptflags = 0xE1;
-	    uint8_t lcdc = 0x91;
-	    uint8_t stat = 0x01;
-	    uint8_t scrolly = 0x00;
-	    uint8_t scrollx = 0x00;
-	    uint8_t windowy = 0x00;
-	    uint8_t windowx = 0x00;
-	    uint8_t ly = 0x00;
-	    uint8_t lyc = 0x00;
 	    uint8_t dma = 0x00;
-	    uint8_t bgpalette = 0xFC;
-	    uint8_t objpalette0 = 0xFF;
-	    uint8_t objpalette1 = 0xFF;
 	    uint8_t key1 = 0x00;
 	    uint8_t interruptenabled = 0x00;
 	    bool dmaactive = false;
 	    uint8_t lylastcycle = 0xFF;
-
-	    int s1sweep = 0;
-	    bool s1negative = false;
-	    bool s1sweepenabled = false;
-	    uint16_t s1shadowfreq = 0;
-	    int s1sweepcounter = 0;
-	    int s1soundlength = 0;
-	    int s1lengthcounter = 0;
-	    int s1volumeenvelope = 0;
-	    bool s1envelopeenabled = false;
-	    int s1envelopecounter = 0;
-	    int s1volume = 0;
-	    uint8_t s1freqlo = 0;
-	    uint8_t s1freqhi = 0;
-	    int s1periodtimer = 0;
-	    bool s1enabled = false;
-
-	    int s2soundlength = 0;
-	    int s2lengthcounter = 0;
-	    int s2volumeenvelope = 0;
-	    bool s2envelopeenabled = false;
-	    int s2envelopecounter = 0;
-	    int s2volume = 0;
-	    uint8_t s2freqlo = 0;
-	    uint8_t s2freqhi = 0;
-	    int s2periodtimer = 0;
-	    bool s2enabled = false;
-
-	    int wavesweep = 0;
-	    int wavesoundlength = 0;
-	    int wavelengthcounter = 0;
-	    int wavevolumeenvelope = 0;
-	    int wavevolume = 0;
-	    uint8_t wavefreqlo = 0;
-	    uint8_t wavefreqhi = 0;
-	    int waveperiodtimer = 0;
-	    bool waveenabled = false;
-	    int waveramlengthmask = 0;
-	    int wavepos = 0;
-	    bool wavechannelenabled = false;
-	    uint8_t wavecurrentsample = 0;
-	    uint8_t wavelastplayedsample = 0;
-	    array<uint8_t, 0x10> waveram = {0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF};
-
-	    int noisesoundlength = 0;
-	    int noiselengthcounter = 0;
-	    int noisevolumeenvelope = 0;
-	    bool noiseenvelopeenabled = false;
-	    int noiseenvelopecounter = 0;
-	    int noiseperiodtimer = 0;
-	    uint8_t noisefreqlo = 0;
-	    uint8_t noisefreqhi = 0;
-	    int noisevolume = 0;
-	    uint16_t noiselfsr = 1;
-	    bool noiseenabled = false;
-
-	    int mastervolume = 0;
-	    int soundselect = 0;
-	    int soundon = 0;
-
-	    array<int, 8> s1dutycycle;
-	    array<int, 8> s2dutycycle;
-
-	    inline bool s1enabledleft()
-	    {
-		return (s1enabled && (TestBit(soundselect, 4)));
-	    }
-
-	    inline bool s1enabledright()
-	    {
-		return (s1enabled && (TestBit(soundselect, 0)));
-	    }
-
-	    inline void writes1sweep(uint8_t value)
-	    {
-		s1sweep = (value & 0x7F);
-
-		if ((((s1sweep & 0x70) >> 4) == 0) || ((s1sweep & 0x07) == 0) || (!TestBit(s1sweep, 3) && s1negative))
-		{
-		    s1sweepenabled = false;
-		}
-	    }
-
-	    inline void reloads1lengthcounter()
-	    {
-		s1lengthcounter = (64 - (s1soundlength & 0x3F));
-		s1soundlength &= 0xC0;	
-	    }
-
-	    inline void sets1dutycycle()
-	    {
-		switch ((s1soundlength & 0xC0) >> 6)
-		{
-		    case 0: s1dutycycle = {{false, false, false, false, false, false, false, true}}; break;
-		    case 1: s1dutycycle = {{true, false, false, false, false, false, false, true}}; break;
-		    case 2: s1dutycycle = {{true, false, false, false, false, true, true, true}}; break;
-		    case 3: s1dutycycle = {{false, true, true, true, true, true, true, false}}; break;
-		    default: break;
-		}
-	    }
-
-	    inline void s1writereset(uint8_t value)
-	    {
-		bool lengthwasenable = TestBit(s1freqhi, 6);
-		s1freqhi = (value & 0xC7);
-
-		if (apulength() && !lengthwasenable && TestBit(s1freqhi, 6) && s1lengthcounter > 0)
-		{
-		    s1lengthcounter -= 1;
-
-		    if (s1lengthcounter == 0)
-		    {
-			s1enabled = false;
-		    }
-		}
-
-		if (TestBit(s1freqhi, 7))
-		{
-		    s1resetchannel();
-		}
-	    }
-
-	    inline uint16_t s1sweepcalc()
-	    {
-		uint16_t freqdelta = (s1shadowfreq >> (s1sweep & 0x07));
-
-		if (TestBit(s1sweep, 3))
-		{
-		    freqdelta *= -1;
-		    freqdelta &= 0x7FF;
-
-		    s1negative = true;
-		}
-
-		uint16_t newfreq = ((s1shadowfreq + freqdelta) & 0x7FF);
-
-		if (newfreq > 2047)
-		{
-		    s1sweepenabled = false;
-		    s1enabled = false;
-		}
-
-		return newfreq;
-	    }
-
-	    inline void s1resetchannel()
-	    {
-		s1enabled = true;
-		s1reloadperiod();
-		s1freqhi &= 0x7F;
-
-		s1shadowfreq = (s1freqlo | ((s1freqhi & 0x7) << 8));
-		s1sweepcounter = ((s1sweep & 0x70) >> 4);
-		s1sweepenabled = (s1sweepcounter != 0 && ((s1sweep & 0x07) != 0));
-		s1sweepcalc();
-
-		s1negative = false;
-
-		s1volume = ((s1volumeenvelope & 0xF0) >> 4);
-		s1envelopecounter = (s1volumeenvelope & 0x07);
-		s1envelopeenabled = (s1envelopecounter != 0);
-
-
-		if ((!TestBit(s1volumeenvelope, 3) && s1volume == 0) || (TestBit(s1volumeenvelope, 3) && s1volume == 0x0F))
-		{
-		    s1envelopeenabled = false;
-		}
-
-		if (s1lengthcounter == 0)
-		{
-		    s1lengthcounter = 64;
-
-		    if (apulength() && TestBit(s1freqhi, 6))
-		    {
-			s1lengthcounter -= 1;
-		    }
-		}
-	    }
-
-	    inline void s1reloadperiod()
-	    {
-		int frequency = (s1freqlo | ((s1freqhi & 0x07) << 8));
-		s1periodtimer = ((2048 - frequency) << 1);
-	    }
-
-	    inline bool s2enabledleft()
-	    {
-		return (s2enabled && (TestBit(soundselect, 5)));
-	    }
-
-	    inline bool s2enabledright()
-	    {
-		return (s2enabled && (TestBit(soundselect, 1)));
-	    }
-
-	    inline void reloads2lengthcounter()
-	    {
-		s2lengthcounter = (64 - (s2soundlength & 0x3F));
-		s2soundlength &= 0xC0;	
-	    }
-
-	    inline void sets2dutycycle()
-	    {
-		switch ((s2soundlength & 0xC0) >> 6)
-		{
-		    case 0: s2dutycycle = {{false, false, false, false, false, false, false, true}}; break;
-		    case 1: s2dutycycle = {{true, false, false, false, false, false, false, true}}; break;
-		    case 2: s2dutycycle = {{true, false, false, false, false, true, true, true}}; break;
-		    case 3: s2dutycycle = {{false, true, true, true, true, true, true, false}}; break;
-		    default: break;
-		}
-	    }
-
-	    inline void s2writereset(uint8_t value)
-	    {
-		bool lengthwasenable = TestBit(s2freqhi, 6);
-		s2freqhi = (value & 0xC7);
-
-		if (apulength() && !lengthwasenable && TestBit(s2freqhi, 6) && s2lengthcounter > 0)
-		{
-		    s2lengthcounter -= 1;
-
-		    if (s2lengthcounter == 0)
-		    {
-			s2enabled = false;
-		    }
-		}
-
-		if (TestBit(s2freqhi, 7))
-		{
-		    s2resetchannel();
-		}
-	    }
-
-	    inline void s2resetchannel()
-	    {
-		s2enabled = true;
-		s2reloadperiod();
-		s2freqhi &= 0x7F;
-
-		s2volume = ((s2volumeenvelope & 0xF0) >> 4);
-		s2envelopecounter = (s2volumeenvelope & 0x07);
-		s2envelopeenabled = (s2envelopecounter != 0);
-
-
-		if ((!TestBit(s2volumeenvelope, 3) && s2volume == 0) || (TestBit(s2volumeenvelope, 3) && s2volume == 0x0F))
-		{
-		    s2envelopeenabled = false;
-		}
-
-		if (s2lengthcounter == 0)
-		{
-		    s2lengthcounter = 64;
-
-		    if (apulength() && TestBit(s2freqhi, 6))
-		    {
-			s2lengthcounter -= 1;
-		    }
-		}
-	    }
-
-	    inline void s2reloadperiod()
-	    {
-		int frequency = (s2freqlo | ((s2freqhi & 0x07) << 8));
-		s2periodtimer = ((2048 - frequency) << 1);
-	    }
-
-	    inline bool waveenabledleft()
-	    {
-		return (waveenabled && (TestBit(soundselect, 6)));
-	    }
-
-	    inline bool waveenabledright()
-	    {
-		return (waveenabled && (TestBit(soundselect, 2)));
-	    }
-
-	    inline void reloadwavelengthcounter()
-	    {
-		wavelengthcounter = (256 - wavesoundlength);
-		wavesoundlength = 0;	
-	    }
-
-	    inline void wavereloadperiod()
-	    {
-		int frequency = (wavefreqlo | ((wavefreqhi & 0x07) << 8));
-		waveperiodtimer = (2048 - frequency);
-	    }
-
-	    inline void wavewritereset(uint8_t value)
-	    {
-		bool lengthwasenable = TestBit(wavefreqhi, 6);
-		wavefreqhi = (value & 0xC7);
-
-		if (apulength() && !lengthwasenable && TestBit(wavefreqhi, 6) && wavelengthcounter > 0)
-		{
-		    wavelengthcounter -= 1;
-
-		    if (wavelengthcounter == 0)
-		    {
-			waveenabled = false;
-		    }
-		}
-
-		if (TestBit(wavefreqhi, 7))
-		{
-		    waveresetchannel();
-		}
-	    }
-
-	    inline void waveresetchannel()
-	    {
-		waveenabled = true;
-		wavereloadperiod();
-		wavefreqhi &= 0x7F;
-
-		if (wavelengthcounter == 0)
-		{
-		    wavelengthcounter = 256;
-
-		    if (apulength() && TestBit(wavefreqhi, 6))
-		    {
-			wavelengthcounter -= 1;
-		    }
-		}
-
-		wavepos = 0;
-		waveenabled = TestBit(wavesweep, 7);
-		wavecurrentsample = wavelastplayedsample;
-	    }
-
-	    inline bool noiseenabledleft()
-	    {
-		return (noiseenabled && (TestBit(soundselect, 7)));
-	    }
-
-	    inline bool noiseenabledright()
-	    {
-		return (noiseenabled && (TestBit(soundselect, 3)));
-	    }
-
-	    inline void reloadnoiselengthcounter()
-	    {
-		noiselengthcounter = (64 - (noisesoundlength & 0x3F));
-		noisesoundlength &= 0xC0;
-	    }
-
-	    inline void writenoiseenvelope(uint8_t value)
-	    {
-		noisevolumeenvelope = value;
-
-		if (((noisevolumeenvelope & 0xF0) >> 4) == 0)
-		{
-		    noiseenabled = false;
-		}
-	    }
-
-	    inline void noisewritereset(uint8_t value)
-	    {
-		bool lengthwasenable = TestBit(noisefreqhi, 6);
-		noisefreqhi = (value & 0xC0);
-
-		if (apulength() && !lengthwasenable && TestBit(noisefreqhi, 6) && noiselengthcounter > 0)
-		{
-		    noiselengthcounter -= 1;
-
-		    if (noiselengthcounter == 0)
-		    {
-			noiseenabled = false;
-		    }
-		}
-
-		if (TestBit(noisefreqhi, 7))
-		{
-		    noiseresetchannel();
-		}
-	    }
-
-	    inline void noisereloadperiod()
-	    {
-		uint32_t clockdivider = max(((noisefreqlo & 0x07) << 1), 1);
-		noiseperiodtimer = (clockdivider << (((noisefreqlo & 0xF0) >> 4) + 2));
-	    }
-
-	    inline void noiseresetchannel()
-	    {
-		noiseenabled = true;
-		noisereloadperiod();
-		noisefreqhi &= 0x7F;
-
-		noisevolume = ((noisevolumeenvelope & 0xF0) >> 4);
-		noiseenvelopecounter = (noisevolumeenvelope & 0x07);
-		noiseenvelopeenabled = (noiseenvelopecounter != 0);
-
-
-		if ((!TestBit(noisevolumeenvelope, 3) && noisevolume == 0) || (TestBit(noisevolumeenvelope, 3) && noisevolume == 0x0F))
-		{
-		    noiseenvelopeenabled = false;
-		}
-
-		if (noiselengthcounter == 0)
-		{
-		    noiselengthcounter = 64;
-
-		    if (apulength() && TestBit(noisefreqhi, 6))
-		    {
-			noiselengthcounter -= 1;
-		    }
-		}
-	
-		noiselfsr = 0xFFFF;
-
-		if (noisevolume == 0)
-		{
-		    noiseenabled = false;
-		}
-	    }
-
-	    inline void writesoundon(uint8_t value)
-	    {
-		bool wasenabled = TestBit(soundon, 7);
-		soundon = (value & 0x80);
-
-		if (wasenabled && !TestBit(soundon, 7))
-		{
-		    clearregisters();
-		}
-	    }
-
-	    inline void clearregisters()
-	    {
-	    	s1sweep = 0;
-	    	s1negative = false;
-	    	s1sweepenabled = false;
-	    	s1shadowfreq = 0;
-	    	s1sweepcounter = 0;
-	    	s1soundlength = 0;
-
-		if (gameboy != Console::DMG)
-		{
-	    	    s1lengthcounter = 0;
-		}
-
-	    	s1volumeenvelope = 0;
-	    	s1envelopeenabled = false;
-	    	s1envelopecounter = 0;
-	    	s1volume = 0;
-	    	s1freqlo = 0;
-	    	s1freqhi = 0;
-	    	s1periodtimer = 0;
-	    	s1enabled = false;
-
-	    	s2soundlength = 0;
-
-		if (gameboy != Console::DMG)
-		{
-	    	    s2lengthcounter = 0;
-		}
-
-	    	s2volumeenvelope = 0;
-	    	s2envelopeenabled = false;
-	    	s2envelopecounter = 0;
-	    	s2volume = 0;
-	    	s2freqlo = 0;
-	    	s2freqhi = 0;
-	    	s2periodtimer = 0;
-	    	s2enabled = false;
-
-	    	wavesweep = 0;
-	    	wavesoundlength = 0;
-
-		if (gameboy != Console::DMG)
-		{
-	    	    wavelengthcounter = 0;
-		}
-
-	    	wavevolumeenvelope = 0;
-	    	wavevolume = 0;
-	    	wavefreqlo = 0;
-	    	wavefreqhi = 0;
-	    	waveperiodtimer = 0;
-	    	waveenabled = false;
-	    	waveramlengthmask = 0;
-	    	wavepos = 0;
-	    	wavechannelenabled = false;
-	    	wavecurrentsample = 0;
-	    	wavelastplayedsample = 0;
-
-	    	noisesoundlength = 0;
-		
-		if (gameboy != Console::DMG)
-		{
-	    	    noiselengthcounter = 0;
-		}
-
-	    	noisevolumeenvelope = 0;
-	    	noiseenvelopeenabled = false;
-	    	noiseenvelopecounter = 0;
-	    	noiseperiodtimer = 0;
-	    	noisefreqlo = 0;
-	    	noisefreqhi = 0;
-	    	noisevolume = 0;
-	    	noiselfsr = 1;
-	    	noiseenabled = false;
-
-	    	mastervolume = 0;
-	    	soundselect = 0;
-	    	soundon = 0;
-	    }
-
-	    uint8_t readsoundon()
-	    {
-		uint8_t temp = soundon;
-		temp |= 0x70;
-		temp |= ((int)(s1enabled) << 0);
-		temp |= ((int)(s2enabled) << 1);
-		temp |= ((int)(waveenabled) << 2);
-		temp |= ((int)(noiseenabled) << 3);
-
-		return temp;
-	    }
 
     };
 };

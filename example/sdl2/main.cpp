@@ -9,6 +9,8 @@ using namespace std;
 using namespace std::placeholders;
 
 GBCore core;
+GBPrinter print;
+LinkCable link;
 
 SDL_Window *window = nullptr;
 SDL_Surface *surface = nullptr;
@@ -427,12 +429,26 @@ void handleinput(SDL_Event event)
 int main(int argc, char* argv[])
 {
     core.setsamplerate(48000);
-    core.setprintcallback(bind(&printercallback, _1));
     core.setaudiocallback(bind(&sdlcallback, _1, _2));
 
     if (!core.getoptions(argc, argv))
     {
 	return 1;
+    }
+
+    if (core.isprinterenabled)
+    {
+	print.setprintcallback(bind(&printercallback, _1));
+	print.setprintreccallback(bind(&Serial::recieve, &*core.coreserial, _1));
+	core.coreserial->setlinkcallback(bind(&GBPrinter::printerready, &print, _1, _2));
+    }
+    else
+    {
+	auto serial1 = bind(&Serial::recieve, &*core.coreserial, _1);
+	auto serial2 = bind(&Serial::disrecieve, &*core.coreserial, _1);
+	link.setlinkreccallbacks(serial1, serial2);
+	
+	core.coreserial->setlinkcallback(bind(&LinkCable::link1ready, &link, _1, _2));
     }
  
     if (!core.initcore())

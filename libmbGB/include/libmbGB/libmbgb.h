@@ -33,6 +33,7 @@
 #include "serial.h"
 #include "cpu.h"
 #include "gpu.h"
+#include "addons.h"
 #include "input.h"
 #include "timers.h"
 #include "libmbgb_api.h"
@@ -77,6 +78,7 @@ namespace gb
 	    bool paused = false;
 
 	    int overspentcycles = 0;
+		int runinstruction();
 	    void runcore();
 	    bool initcore();
 	    bool initcore(const char *filename, const uint8_t* buffer, int size);
@@ -84,8 +86,7 @@ namespace gb
 	    void resetcoreretro();
 	    void setsamplerate(int val);
 	    void setaudiocallback(apuoutputfunc cb);
-	    void connectdevice(SerialDevice* connected);
-		void setprintcallback(printfunc cb);
+	    bool isprinterenabled = false;
 
 	    string romname;
 	    string biosname;
@@ -94,6 +95,8 @@ namespace gb
 
 	    int screenwidth = 0;
 	    int screenheight = 0;
+
+	    int totalcycles = 0;
 
 	    inline bool isagbmode()
 	    {
