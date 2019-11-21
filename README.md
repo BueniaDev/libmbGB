@@ -158,8 +158,6 @@ Improving existing Game Boy (Color) support
 
 Patching up graphical debugger
 
-Link Cable emulation and netplay support
-
 ## Medium-term
 
 Frontends for numerous systems (via mbGB-ports)
