@@ -86,7 +86,16 @@ namespace gb
 	    void resetcoreretro();
 	    void setsamplerate(int val);
 	    void setaudiocallback(apuoutputfunc cb);
+	    void setrumblecallback(rumblefunc cb);
 	    bool isprinterenabled = false;
+		bool ismobileenabled = false;
+
+	    MobileAdapterGB *mobilegb = NULL;
+
+	    void setmobileadapter(MobileAdapterGB *gb)
+	    {
+		mobilegb = gb;
+	    }
 
 	    string romname;
 	    string biosname;

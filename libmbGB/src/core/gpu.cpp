@@ -150,6 +150,7 @@ namespace gb
 		    {
 			gpumem.hdmaactive = false;
 		    }
+
 		    gpumem.hdmatransfer();
 		    gpumem.hdmalength -= 1;
 		}
@@ -473,7 +474,7 @@ namespace gb
 	}
 	else
 	{
-	    tileaddr += (0x1000 + ((int8_t)(tile) << 4));
+	    tileaddr += (0x1000 + ((int8_t)tile << 4));
 	}
 
 	y &= 7;
@@ -680,8 +681,8 @@ namespace gb
 
     void GPU::rendercgbbgpixel()
     {
-	int scy = ((ly + scrolly) & 0xFF);
-	int scx = ((pixelx + scrollx) & 0xFF);
+	int scy = (ly + scrolly);
+	int scx = (pixelx + scrollx);
 	int tx = (scx & 7);
 
 	if (tx == 0 || pixelx == 0)

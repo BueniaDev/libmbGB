@@ -255,18 +255,18 @@ void regview()
 
     ImGui::Begin("Registers");
     ImGui::SetWindowSize("Registers", ImVec2(400, 300));
-    ImGui::Text("AF: %04x", core.corecpu->af.reg);
+    ImGui::Text("AF: %04x", core.corecpu->af.getreg());
     ImGui::SameLine();
     ImGui::Indent(80.f);
-    ImGui::Text("BC: %04x", core.corecpu->bc.reg);
+    ImGui::Text("BC: %04x", core.corecpu->bc.getreg());
     ImGui::SameLine();
     ImGui::Indent(80.f);
     ImGui::NewLine();
     ImGui::Unindent(160.f);
-    ImGui::Text("DE: %04x", core.corecpu->de.reg);
+    ImGui::Text("DE: %04x", core.corecpu->de.getreg());
     ImGui::SameLine();
     ImGui::Indent(80.f);
-    ImGui::Text("HL: %04x", core.corecpu->hl.reg);
+    ImGui::Text("HL: %04x", core.corecpu->hl.getreg());
     ImGui::SameLine();
     ImGui::Indent(80.f);
     ImGui::NewLine();

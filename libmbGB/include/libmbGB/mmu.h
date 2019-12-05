@@ -57,6 +57,7 @@ namespace gb
     using statirqfunc = function<bool()>;
     using screenfunc = function<void()>;
     using apulengthfunc = function<bool()>;
+    using rumblefunc = function<void(bool)>;
 	
 	using memoryreadfunc = function<uint8_t(uint16_t)>;
 	using memorywritefunc = function<void(uint16_t, uint8_t)>;
@@ -164,6 +165,7 @@ namespace gb
 	    array<uint8_t, 4> specialrombanks = {0x00, 0x20, 0x40, 0x60};
 
 	    bool externalrampres = false;
+	    bool isrumblepres = false;
 	    bool biosload = false;
 	    uint8_t currentrombank = 1;
 	    uint8_t currentrambank = 0;
@@ -178,6 +180,13 @@ namespace gb
 	    bool ismanual = false;
 	    bool hybrid = false;
 	    bool doublespeed = false;
+
+	    rumblefunc setrumble;
+
+	    inline void setrumblecallback(rumblefunc cb)
+	    {
+		setrumble = cb;
+	    }
 
 	    bool dump = false;
 
@@ -268,7 +277,7 @@ namespace gb
 		    case 25: gbmbc = MBCType::MBC5; externalrampres = false; mbctype = "MBC5"; batteryenabled = false; break;
 		    case 26: gbmbc = MBCType::MBC5; externalrampres = true; mbctype = "MBC5 + RAM"; batteryenabled = false; break;
 		    case 27: gbmbc = MBCType::MBC5; externalrampres = true; mbctype = "MBC5 + RAM + BATTERY"; batteryenabled = true; break;
-		    case 30: gbmbc = MBCType::MBC5; externalrampres = true; mbctype = "MBC5 + RUMBLE + RAM + BATTERY"; batteryenabled = true; break;
+		    case 30: gbmbc = MBCType::MBC5; externalrampres = true; isrumblepres = true; mbctype = "MBC5 + RUMBLE + RAM + BATTERY"; batteryenabled = true; break;
 		    default: cout << "MMU::Error - Unrecognized MBC type" << endl; exit(1); break;
 		}
 	    }
@@ -308,8 +317,10 @@ namespace gb
 		    case 0: banks = 0; mbcramsize = 0; ramsize = "None"; break;
 		    case 1: banks = 1; mbcramsize = 2; ramsize = "2 KB"; break;
 		    case 2: banks = 1; mbcramsize = 8; ramsize = "8 KB"; break;
-		    case 3: banks = 4; mbcramsize = 32; ramsize = "32 KB"; break; 
-	    	    default: cout << "MMU::Error - Unrecognzied RAM quantity given in cartridge" << endl; exit(1); break;
+		    case 3: banks = 4; mbcramsize = 32; ramsize = "32 KB"; break;
+		    case 4: banks = 16; mbcramsize = 128; ramsize = "128 KB"; break;
+		    case 5: banks = 8; mbcramsize = 64; ramsize = "64 KB"; break;
+	    	    default: cout << "MMU::Error - Unrecognized RAM quantity given in cartridge" << endl; exit(1); break;
 		}
 
 		return banks;

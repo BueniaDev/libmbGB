@@ -201,20 +201,20 @@ namespace gb
 	}
 	else if ((addr >= 0xA000) && (addr < 0xC000))
 	{
-	    if (ramenabled)
+	    if (currentrambank <= 3)
 	    {
-		int ramaddr = 0;
-		if (currentrambank != 0)
-		{
-		    ramaddr = (currentrambank * 0x2000);
-		}
-
-		temp = rambanks[(addr - 0xA000) + ramaddr];
+		uint16_t currentaddr = (currentrambank * 0x2000);
+		temp = rambanks[(addr - 0xA000) + currentaddr];
 	    }
 	    else
 	    {
+		// TODO: RTC
 		temp = 0xFF;
 	    }
+	}
+	else
+	{
+	    temp = 0xFF;
 	}
 
 	return temp;
@@ -242,18 +242,32 @@ namespace gb
 	}
 	else if (addr < 0x6000)
 	{
-	    currentrambank = (value & 0x07);
+	    if (value <= 3)
+	    {
+		currentrambank = value;
+		currentrambank &= (numrambanks - 1);
+	    }
+	    else
+	    {
+		// TODO: RTC
+	    }
+	}
+	else if (addr < 0x8000)
+	{
+	    // TODO: RTC
 	}
 	else if ((addr >= 0xA000) && (addr < 0xC000))
 	{
-	    if (ramenabled)
+	    if (currentrambank <= 3)
 	    {
-		uint16_t ramaddr = (currentrambank * 0x2000);
-		rambanks[(addr - 0xA000) + ramaddr] = value;
+		uint16_t currentaddr = (currentrambank * 0x2000);
+		rambanks[(addr - 0xA000) + currentaddr] = value;
+	    }
+	    else
+	    {
+		// TODO: RTC
 	    }
 	}
-
-	return;
     }
 
     uint8_t MMU::mbc5read(uint16_t addr)
@@ -306,8 +320,26 @@ namespace gb
 	}
 	else if (addr < 0x6000)
 	{
-	    currentrambank = (value & 0x0F);
+	    currentrambank = (isrumblepres) ? (value & 0x07) : (value & 0x0F);
 	    currentrambank &= (numrambanks - 1);
+
+	    if (isrumblepres == true)
+	    {
+		if (TestBit(value, 3))
+		{
+		    if (setrumble)
+		    {
+		        setrumble(true);
+		    }
+		}
+		else
+		{
+		    if (setrumble)
+		    {
+		        setrumble(false);
+		    }
+		}
+	    }
 	}
 	else if ((addr >= 0xA000) && (addr < 0xC000))
 	{

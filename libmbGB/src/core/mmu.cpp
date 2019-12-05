@@ -45,7 +45,7 @@ namespace gb
 	wram.resize(0x8000, 0);
 	oam.resize(0xA0, 0);
 	hram.resize(0x7F, 0);
-	rambanks.resize(0x8000, 0);
+	rambanks.resize(0x10000, 0);
 	gbcbgpalette.resize(0x40, 0xFF);
 	gbcobjpalette.resize(0x40, 0xFF);
 	fill(rom.begin(), rom.end(), 0);

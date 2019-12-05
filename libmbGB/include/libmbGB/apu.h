@@ -100,6 +100,8 @@ namespace gb
 	    int noisevolume = 0;
 	    uint16_t noiselfsr = 1;
 	    bool noiseenabled = false;
+
+	    bool issoundon = true;
 		
 	    int mastervolume = 0;
 	    int soundselect = 0;
@@ -542,6 +544,7 @@ namespace gb
 
 		if (wasenabled && !TestBit(soundon, 7))
 		{
+		    issoundon = false;
 		    clearregisters();
 		}
 	    }

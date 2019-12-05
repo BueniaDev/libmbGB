@@ -56,6 +56,12 @@ namespace gb
 	coreinput->init();
 	coreserial->init();
 	loadbackup();
+
+	if (ismobileenabled && (mobilegb != NULL))
+	{
+	    mobilegb->loadadapterdata();
+	}
+
 	cout << "mbGB::Initialized" << endl;
     }
 
@@ -67,6 +73,12 @@ namespace gb
 	coregpu->shutdown();
 	corecpu->shutdown();
 	savebackup();
+
+	if (ismobileenabled && (mobilegb != NULL))
+	{
+	    mobilegb->saveadapterdata();
+	}
+
 	coremmu->shutdown();
 	cout << "mbGB::Shutting down..." << endl;
     }
@@ -174,8 +186,15 @@ namespace gb
 	    {
 		isprinterenabled = false;
 	    }
-
-	    cout << hex << (int)(isprinterenabled) << endl;
+		
+	    if ((strcmp(argv[i], "--mobile") == 0))
+	    {
+		ismobileenabled = true;
+	    }
+	    else
+	    {
+		ismobileenabled = false;
+	    }
 	}
 
 	if (!isagbmode())
@@ -409,6 +428,11 @@ namespace gb
     void GBCore::setsamplerate(int val)
     {
 	coreapu->setsamplerate(val);
+    }
+
+    void GBCore::setrumblecallback(rumblefunc cb)
+    {
+	coremmu->setrumblecallback(cb);
     }
 
     void GBCore::setaudiocallback(apuoutputfunc cb)

@@ -40,7 +40,7 @@ namespace gb
 		
 		if (addr <= 0xFF26)
 		{
-		
+
 		switch ((addr & 0xFF))
 		{
 			case 0x10: temp = (s1sweep | 0x80); break;
@@ -59,8 +59,8 @@ namespace gb
 			case 0x24: temp = mastervolume; break;
 			case 0x25: temp = soundselect; break;
 			case 0x26: temp = readsoundon(); break;
+			default: temp = 0xFF; break;
 		}
-		
 		}
 		else if ((addr >= 0xFF30) && (addr < 0xFF40))
 		{
@@ -76,14 +76,23 @@ namespace gb
 	
 	void APU::writeapu(uint16_t addr, uint8_t value)
 	{
+		bool isoff = (TestBit(soundon, 7));
+
 		if (addr <= 0xFF26)
 		{
+			if (addr != 0xFF26 && !issoundon && apumem.isdmgconsole())
+			{
+			    cout << "Sound disabled" << endl;
+			    cout << hex << (int)(addr) << endl;
+			    // return;
+			}
+
 			switch ((addr & 0xFF))
 			{
 				case 0x10: writes1sweep(value); break;
 				case 0x11:
 				{
-					if (!TestBit(soundon, 7) && !apumem.isdmgconsole())
+					if (!issoundon && !apumem.isdmgconsole())
 					{
 						return;
 					}
@@ -109,7 +118,7 @@ namespace gb
 				case 0x14: s1writereset(value); break;
 				case 0x16:
 				{
-					if (!TestBit(soundon, 7) && !apumem.isdmgconsole())
+					if (!issoundon && !apumem.isdmgconsole())
 					{
 						return;
 					}
@@ -147,7 +156,7 @@ namespace gb
 				break;
 				case 0x1B:
 				{
-					if (!TestBit(soundon, 7) && !apumem.isdmgconsole())
+					if (!issoundon && !apumem.isdmgconsole())
 					{
 						return;
 					}
@@ -169,7 +178,7 @@ namespace gb
 				case 0x1E: wavewritereset(value); break;
 				case 0x20:
 				{
-					if (!TestBit(soundon, 7) && !apumem.isdmgconsole())
+					if (!issoundon && !apumem.isdmgconsole())
 					{
 						return;
 					}

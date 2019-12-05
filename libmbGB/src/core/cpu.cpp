@@ -280,7 +280,7 @@ namespace gb
 	
 	int CPU::runinstruction()
 	{
-		int cycles = 0;
+	    int cycles = 0;
 	    if (state == CPUState::Stopped)
 	    {
 		stoppedtick();

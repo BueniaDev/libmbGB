@@ -30,6 +30,187 @@ namespace gb
 {
     using linkfunc = function<void(uint8_t)>;
     using printfunc = function<void(vector<RGB> &)>;
+	
+	class LIBMBGB_API MobileAdapterGB
+	{
+		public:
+			MobileAdapterGB();
+			~MobileAdapterGB();
+			
+			uint8_t linkbyte = 0;
+			uint8_t adapterbyte = 0;
+			
+			uint8_t commandid = 0;
+			uint8_t packetdatalength = 0;
+			uint16_t calculatedchecksum = 0;
+			uint16_t comparechecksum = 0;
+			vector<uint8_t> packetdata;
+			
+			linkfunc adaptrec;
+			
+		    void setadaptreccallback(linkfunc cb)
+			{
+				adaptrec = cb;
+			}
+			
+			void transfer()
+			{
+				if (adaptrec)
+				{
+					adaptrec(linkbyte);
+				}
+			}
+			
+			void mobileadapterready(uint8_t byte, bool ismode)
+			{
+				if (ismode)
+				{
+					adapterbyte = byte;
+					update();
+				}
+				else
+				{
+					return;
+				}
+			}
+			
+			enum State : int
+			{
+				AwaitingPacket = 0,
+				PacketHeader = 1,
+				PacketData = 2,
+				PacketChecksum = 3,
+				AcknowledgingPacket = 4,
+				EchoPacket = 5,
+			};
+			
+			int statesteps = 0;
+			int packetsize = 0;
+			
+			State adapterstate;
+
+			array<uint8_t, 192> adapterdata;
+
+			bool linebusy = false;
+
+			uint32_t getipaddr()
+			{
+			    uint32_t temp = 0;
+
+			    if (packetdatalength >= 6)
+			    {
+				for (int i = 0; i < 4; i++)
+				{
+				    // Hack to grab value in big-endian format
+				    temp |= (packetdata[6 + i] << (8 * (~i & 3)));
+				}
+			    }
+			    else
+			    {
+				cout << "Error - Mobile adapter tried opening a tcp connection without a server address" << endl;
+				temp = 0;
+			    }
+
+			    return temp;
+			}
+
+			uint16_t getport()
+			{
+			    uint16_t temp = 0;
+
+			    if (packetdatalength >= 6)
+			    {
+				for (int i = 0; i < 2; i++)
+				{
+				    // Hack to grab value in big-endian format
+				    temp |= (packetdata[10 + i] << (8 * (~i & 1)));
+				}
+			    }
+			    else
+			    {
+				cout << "Error - Mobile adapter tried opening a tcp connection without a port" << endl;
+				temp = 0;
+			    }
+
+			    return temp;
+			}
+
+			uint32_t ipaddr = 0;
+			uint16_t port = 0;
+			
+			void update();
+			void processbyte();
+			void processcommand();
+			void processpop();
+
+			bool popsessionstarted = false;
+
+			bool loadadapterdata()
+			{
+			    bool success = false;
+
+			    fstream file("mobiledata.mbmob", ios::in | ios::binary);
+
+			    if (!file.is_open())
+			    {
+				cout << "Mobile adapter data could not be read." << endl;
+				success = false;
+			    }
+			    else
+			    {
+				file.read((char*)&adapterdata[0], 192);
+				cout << "Mobile adapter data succesfully loaded." << endl;
+				success = true;
+			    }
+
+			    return success;
+			}
+
+			bool saveadapterdata()
+			{
+			    bool success = false;
+
+			    fstream file("mobiledata.mbmob", ios::out | ios::binary);
+
+			    if (!file.is_open())
+			    {
+				cout << "Mobile adapter data could not be written." << endl;
+				success = false;
+			    }
+			    else
+			    {
+				file.write((char*)&adapterdata[0], 192);
+				cout << "Mobile adapter data succesfully stored." << endl;
+				success = true;
+			    }
+
+			    return success;
+			}
+
+			void strtodata(uint8_t* data, string input)
+			{
+			    for (int x = 0; x < (int)(input.size()); x++)
+			    {
+				char ascii = input[x];
+				*data = ascii;
+				data += 1;
+			    }
+			}
+
+			string datatostr(uint8_t* data, uint32_t length)
+			{
+			    string temp = "";
+
+			    for (int x = 0; x < (int)(length); x++)
+			    {
+				char ascii = *data;
+				temp += ascii;
+				data += 1;
+			    }
+
+			    return temp;
+			}
+	};
 
     class LIBMBGB_API GBPrinter
     {
@@ -60,11 +241,7 @@ namespace gb
 		}
 		else
 		{
-		    if (byte != 0xDD)
-		    {
-		        cout << "External transfer" << endl;
-			exit(1);
-		    }
+		    return;
 		}
 	    }
 

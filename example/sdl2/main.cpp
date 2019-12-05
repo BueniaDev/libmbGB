@@ -11,10 +11,15 @@ using namespace std::placeholders;
 GBCore core;
 GBPrinter print;
 LinkCable link;
+MobileAdapterGB mobile;
 
 SDL_Window *window = nullptr;
 SDL_Surface *surface = nullptr;
 SDL_GameController* player1 = nullptr;
+SDL_Haptic *haptic = nullptr;
+
+bool isrumbling = false;
+bool isrumbleenabled = false;
 
 int playerinstanceid = 0;
 
@@ -214,6 +219,33 @@ bool initsdl()
     if (SDL_NumJoysticks() > 0)
     {
 	player1 = SDL_GameControllerOpen(0);
+
+	haptic = SDL_HapticOpen(0);
+
+	if (haptic == NULL)
+	{
+	    return false;
+	}
+
+	if (SDL_HapticRumbleSupported(haptic))
+	{
+	    cout << "Rumble supported" << endl;
+	}
+	else
+	{
+	    cout << "Rumble not supported" << endl;
+	}
+
+	if (SDL_HapticRumbleInit(haptic) != 0)
+	{
+	    return false;
+	}
+
+	isrumbleenabled = true;
+    }
+    else
+    {
+	isrumbleenabled = false;
     }
 
     return true;
@@ -223,12 +255,42 @@ void stop()
 {
     if (SDL_NumJoysticks() > 0)
     {
+	SDL_HapticClose(haptic);
 	SDL_GameControllerClose(player1);
     }
 
     SDL_CloseAudio();
     SDL_DestroyWindow(window);
     SDL_Quit();
+}
+
+void hapticcallback(bool isenabled)
+{
+    if (!isrumbleenabled)
+    {
+	return;
+    }
+
+    if (isenabled && !isrumbling)
+    {
+	if (SDL_HapticRumblePlay(haptic, 0.5, 2000) != 0)
+	{
+	    cout << "Error playing rumble! SDL_Error: " << SDL_GetError() << endl;
+	    exit(1);
+	}
+
+	isrumbling = true;
+    }
+    else if (!isenabled && isrumbling)
+    {
+	if (SDL_HapticRumbleStop(haptic) != 0)
+	{
+	    cout << "Error stopping rumble! SDL_Error: " << SDL_GetError() << endl;
+	    exit(1);
+	}
+
+	isrumbling = false;
+    }
 }
 
 void addgamecontroller(int id)
@@ -431,12 +493,20 @@ int main(int argc, char* argv[])
     core.setsamplerate(48000);
     core.setaudiocallback(bind(&sdlcallback, _1, _2));
 
+    core.setrumblecallback(bind(&hapticcallback, _1));
+
     if (!core.getoptions(argc, argv))
     {
 	return 1;
     }
 
-    if (core.isprinterenabled)
+    if (core.ismobileenabled)
+    {
+	mobile.setadaptreccallback(bind(&Serial::recieve, &*core.coreserial, _1));
+	core.coreserial->setlinkcallback(bind(&MobileAdapterGB::mobileadapterready, &mobile, _1, _2));
+	core.setmobileadapter(&mobile);
+    }
+    else if (core.isprinterenabled)
     {
 	print.setprintcallback(bind(&printercallback, _1));
 	print.setprintreccallback(bind(&Serial::recieve, &*core.coreserial, _1));
