@@ -280,7 +280,7 @@ namespace gb
 	}
 	else if ((addr >= 0xA000) && (addr < 0xC000))
 	{
-	    if (ramenabled)
+	    if (ramenabled && mbcramsize > 0)
 	    {
 		int ramaddr = 0;
 		if (currentrambank != 0)
@@ -292,7 +292,7 @@ namespace gb
 	    }
 	    else
 	    {
-		temp = 0xFF;
+		temp = 0x00;
 	    }
 	}
 

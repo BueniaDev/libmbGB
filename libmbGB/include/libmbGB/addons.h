@@ -23,6 +23,7 @@
 #include <functional>
 #include <bitset>
 #include <cmath> // This is required for ceil, which is used to calculate the printout's height
+#include <ctime>
 using namespace gb;
 using namespace std;
 
@@ -144,6 +145,7 @@ namespace gb
 			void processpop();
 
 			bool popsessionstarted = false;
+			int poptransferstate = 0;
 
 			bool loadadapterdata()
 			{
@@ -209,6 +211,14 @@ namespace gb
 			    }
 
 			    return temp;
+			}
+
+			inline bool isxmas()
+			{
+				time_t t = time(NULL);
+				tm* timeptr = localtime(&t);
+
+				return (timeptr->tm_mon == 11);
 			}
 	};
 

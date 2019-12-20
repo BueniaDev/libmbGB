@@ -103,6 +103,7 @@ namespace gb
 	if (!islcdenabled()) // Checks if LCD is disabled
 	{
 	    scanlinecounter = 0; // Disabling this breaks The Powerpuff Girls: Battle Him (obscure title, I know)
+	    currentscanline = 0;
 	    windowlinecounter = 0;
 	    ly = 0; // Disabling this...
 	    setstatmode(0); // or this breaks Dr. Mario
@@ -1212,10 +1213,10 @@ namespace gb
 	for (int i = (spritelimit - 1); i >= 0; i--)
 	{
 	    uint8_t index = (i * 4);
-	    uint8_t ypos = gpumem.readByte(0xFE00 + index) - 16;
-	    uint8_t xpos = gpumem.readByte(0xFE00 + index + 1) - 8;
-	    uint8_t patternnum = gpumem.readByte(0xFE00 + index + 2);
-	    uint8_t flags = gpumem.readByte(0xFE00 + index + 3);
+	    uint8_t ypos = gpumem.readDirectly(0xFE00 + index) - 16;
+	    uint8_t xpos = gpumem.readDirectly(0xFE00 + index + 1) - 8;
+	    uint8_t patternnum = gpumem.readDirectly(0xFE00 + index + 2);
+	    uint8_t flags = gpumem.readDirectly(0xFE00 + index + 3);
 
 	    bool priority = TestBit(flags, 7);
 	    bool yflip = TestBit(flags, 6);

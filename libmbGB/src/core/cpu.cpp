@@ -280,6 +280,22 @@ namespace gb
 	
 	int CPU::runinstruction()
 	{
+	    /*
+	    if (pc == 0x3E02)
+	    {
+		breakpoint = true;
+	    }
+
+	    if (breakpoint == true)
+	    {
+		printregs();
+		if (pc == 0x3E37)
+		{
+		    exit(1);
+		}
+	    }
+	    */
+
 	    int cycles = 0;
 	    if (state == CPUState::Stopped)
 	    {

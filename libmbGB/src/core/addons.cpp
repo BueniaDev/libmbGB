@@ -598,6 +598,11 @@ namespace gb
 
 	size_t usermatch = popdata.find("USER");
 	size_t passmatch = popdata.find("PASS");
+	size_t quitmatch = popdata.find("QUIT");
+	size_t statmatch = popdata.find("STAT");
+	size_t topmatch = popdata.find("TOP");
+	size_t delematch = popdata.find("DELE");
+	size_t retrmatch = popdata.find("RETR");
 
 	if (usermatch != string::npos)
 	{
@@ -607,8 +612,27 @@ namespace gb
 	{
 	    popcommand = 2;
 	}
-
-	if ((packetdatalength == 1) && (!popsessionstarted))
+	else if (quitmatch != string::npos)
+	{
+	    popcommand = 3;
+	}
+	else if (statmatch != string::npos)
+	{
+	    popcommand = 4;
+	}
+	else if (topmatch != string::npos)
+	{
+	    popcommand = 5;
+	}
+	else if (delematch != string::npos)
+	{
+	    popcommand = 6;
+	}
+	else if (retrmatch != string::npos)
+	{
+	    popcommand = 7;
+	}
+	else if ((packetdatalength == 1) && (!popsessionstarted))
 	{
 	    popsessionstarted = true;
 	    cout << "Initialzing POP server..." << endl;
@@ -619,6 +643,11 @@ namespace gb
 	    popsessionstarted = false;
 	    cout << "Shutting down POP server..." << endl;
 	    popcommand = 9;
+	}
+	else
+	{
+	    cout << "Unrecognized pop command" << endl;
+	    exit(1);
 	}
 
 	switch (popcommand)
@@ -641,9 +670,153 @@ namespace gb
 		responseid = 0x95;
 	    }
 	    break;
+	    case 0x03:
+	    {
+		popresponse = "+OK\r\n";
+		responseid = 0x95;
+	    }
+	    break;
+	    case 0x04:
+	    {
+		popresponse = "+OK 1\r\n";
+		responseid = 0x95;
+	    }
+	    break;
+	    case 0x05:
+	    {
+		popresponse = "+OK\r\n";
+		responseid = 0x95;
+		poptransferstate = 0x1;
+	    }
+	    break;
+	    case 0x06:
+	    {
+		popresponse = "+OK\r\n";
+		responseid = 0x95;
+	    }
+	    break;
+	    case 0x07:
+	    {
+		popresponse = "+OK\r\n";
+		responseid = 0x95;
+		poptransferstate = 0x11;
+	    }
+	    break;
+	    case 0x09:
+	    {
+		popresponse = "+OK\r\n";
+		responseid = 0x9F;
+	    }
+	    break;
 	    default:
 	    {
+		exit(1);
 		popresponse = "-ERR\r\n";
+		responseid = 0x95;
+	    }
+	    break;
+	}
+
+	switch (poptransferstate)
+	{
+	    case 0x01:
+	    {
+		poptransferstate = 2;
+	    }
+	    break;
+	    case 0x02:
+	    {
+		popresponse = "Date: Sun, Dec 24 2019 08:55:00 - 0600\r\n";
+		poptransferstate = 3;
+		responseid = 0x95;
+	    }
+	    break;
+	    case 0x03:
+	    {
+		popresponse = isxmas() ? "Subject: Merry Christmas!\r\n" : "Subject: Buenia says hi!\r\n";
+		poptransferstate = 4;
+		responseid = 0x95;
+	    }
+	    break;
+	    case 0x04:
+	    {
+		popresponse = "From: buenia@test.com\r\n";
+		poptransferstate = 5;
+		responseid = 0x95;
+	    }
+	    break;
+	    case 0x05:
+	    {
+		popresponse = "To: user@test.com\r\n";
+		poptransferstate = 6;
+		responseid = 0x95;
+	    }
+	    break;
+	    case 0x06:
+	    {
+		popresponse = "Content-Type: text/plain\r\n\r\n";
+		poptransferstate = 7;
+		responseid = 0x95;
+	    }
+	    break;
+	    case 0x07:
+	    {
+		popresponse = ".\r\n";
+		poptransferstate = 0;
+		responseid = 0x95;
+	    }
+	    break;
+	    case 0x11:
+	    {
+		poptransferstate = 0x12;
+	    }
+	    break;
+	    case 0x12:
+	    {
+		popresponse = "Date: Sun, Dec 24 2019 08:55:00 - 0600\r\n";
+		poptransferstate = 0x13;
+		responseid = 0x95;
+	    }
+	    break;
+	    case 0x13:
+	    {
+		popresponse = isxmas() ? "Subject: Merry Christmas!\r\n" : "Subject: Buenia says hi!\r\n";
+		poptransferstate = 0x14;
+		responseid = 0x95;
+	    }
+	    break;
+	    case 0x14:
+	    {
+		popresponse = "From: buenia@test.com\r\n";
+		poptransferstate = 0x15;
+		responseid = 0x95;
+	    }
+	    break;
+	    case 0x15:
+	    {
+		popresponse = "To: user@test.com\r\n";
+		poptransferstate = 0x16;
+		responseid = 0x95;
+	    }
+	    break;
+	    case 0x16:
+	    {
+		popresponse = "Content-Type: text/plain\r\n\r\n";
+		poptransferstate = 0x17;
+		responseid = 0x95;
+	    }
+	    break;
+	    case 0x17:
+	    {
+		popresponse = isxmas() ? "Happy holidays from libmbGB!\r\n\r\n" : "Hello from libmbGB!\r\n\r\n";
+		poptransferstate = 0x18;
+		responseid = 0x95;
+	    }
+	    break;
+	    case 0x18:
+	    {
+		popresponse = ".\r\n";
+		poptransferstate = 0;
 		responseid = 0x95;
 	    }
 	    break;

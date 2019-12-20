@@ -143,6 +143,10 @@ namespace gb
 	    bool interruptmasterenable = false;
 	    bool enableinterruptsdelayed = false;
 
+	    bool breakpoint = false;
+	    bool breakpoint2 = false;
+	    bool prevdoublespeed = false;
+
 	    void enabledelayedinterrupts();
 
 	    void printregs();
@@ -699,17 +703,22 @@ namespace gb
 
 	    inline void doubleexec()
 	    {
-		++pc;		
-	
+		++pc;
+		
 		uint8_t key1 = mem.key1;
 
 		if (TestBit(key1, 0))
 		{
-		    mem.doublespeed = !mem.doublespeed;
+		   mem.doublespeed = !mem.doublespeed;
 		}
 
-		uint8_t doubletemp = (key1 & 0x7E) | (((mem.doublespeed) ? 1 : 0) << 7);
+		prevdoublespeed = mem.doublespeed;
+
+		uint8_t doubletemp = ((mem.key1 & 0x7E) | (mem.doublespeed << 7));
 		mem.key1 = doubletemp;
+		gpu.scanlinecounter = 0;
+		timer.divider = 0;
+		link.serialclock = 0;
 	    }
 
 	    inline void stoppedtick()

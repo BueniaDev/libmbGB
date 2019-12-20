@@ -28,6 +28,7 @@
 #include <sstream>
 #include <functional>
 #include <array>
+#include <ctime>
 #include "enums.h"
 #include "mmu.h"
 #include "serial.h"
@@ -95,6 +96,14 @@ namespace gb
 	    void setmobileadapter(MobileAdapterGB *gb)
 	    {
 		mobilegb = gb;
+	    }
+
+	    inline bool isxmas()
+	    {
+		time_t t = time(NULL);
+		tm* timeptr = localtime(&t);
+
+		return (timeptr->tm_mon == 11);
 	    }
 
 	    string romname;

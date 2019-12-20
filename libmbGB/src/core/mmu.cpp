@@ -121,6 +121,8 @@ namespace gb
 	file.read((char*)&hram[0], 0x7F);
 	file.read((char*)&gbcbgpalette[0], 0x40);
 	file.read((char*)&gbcobjpalette[0], 0x40);
+	file.read((char*)&gbcbgpaletteindex, sizeof(gbcbgpaletteindex));
+	file.read((char*)&gbcobjpaletteindex, sizeof(gbcobjpaletteindex));
 	file.read((char*)&doublespeed, sizeof(doublespeed));
 	file.read((char*)&currentrombank, sizeof(currentrombank));
 	file.read((char*)&currentrambank, sizeof(currentrambank));
@@ -150,6 +152,8 @@ namespace gb
 	file.write((char*)&hram[0], 0x7F);
 	file.write((char*)&gbcbgpalette[0], 0x40);
 	file.write((char*)&gbcobjpalette[0], 0x40);
+	file.write((char*)&gbcbgpaletteindex, sizeof(gbcbgpaletteindex));
+	file.write((char*)&gbcobjpaletteindex, sizeof(gbcobjpaletteindex));
 	file.write((char*)&doublespeed, sizeof(doublespeed));
 	file.write((char*)&currentrombank, sizeof(currentrombank));
 	file.write((char*)&currentrambank, sizeof(currentrambank));
@@ -330,9 +334,9 @@ namespace gb
 
     uint8_t MMU::readByte(uint16_t addr)
     {
-	if (addr < 0x1000)
+	if (addr < 0x4000)
 	{
-	    return readDirectly(addr); // Pocket Music relies on this in order to perform OAM DMA transfers properly
+	    return readDirectly(addr); // Pocket Music and Disney's Aladdin (GBC ver.) rely on this in order to perform OAM DMA transfers properly
 	}
 	else if (addr < 0x8000)
 	{

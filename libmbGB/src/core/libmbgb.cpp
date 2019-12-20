@@ -38,6 +38,11 @@ namespace gb
 
     void GBCore::preinit()
     {
+	if (isxmas())
+	{
+	    cout << "Happy holidays from libmbGB!" << endl;
+	}
+
 	coremmu->init();
     }
 

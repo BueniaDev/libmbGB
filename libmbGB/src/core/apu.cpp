@@ -34,179 +34,188 @@ namespace gb
     {
     }
 	
-	uint8_t APU::readapu(uint16_t addr)
+    uint8_t APU::readapu(uint16_t addr)
+    {
+	uint8_t temp = 0;
+		
+	if (addr <= 0xFF26)
 	{
-		uint8_t temp = 0;
-		
-		if (addr <= 0xFF26)
-		{
-
-		switch ((addr & 0xFF))
-		{
-			case 0x10: temp = (s1sweep | 0x80); break;
-			case 0x11: temp = (s1soundlength | 0x3F); break;
-			case 0x12: temp = s1volumeenvelope; break;
-			case 0x14: temp = (s1freqhi | 0xBF); break;
-			case 0x16: temp = (s2soundlength | 0x3F); break;
-			case 0x17: temp = s2volumeenvelope; break;
-			case 0x19: temp = (s2freqhi | 0xBF); break;
-			case 0x1A: temp = (wavesweep | 0x7F); break;
-			case 0x1C: temp = (wavevolumeenvelope | 0x9F); break;
-			case 0x1E: temp = (wavefreqhi | 0xBF); break;
-			case 0x21: temp = noisevolumeenvelope; break;
-			case 0x22: temp = noisefreqlo; break;
-			case 0x23: temp = (noisefreqhi | 0xBF); break;
-			case 0x24: temp = mastervolume; break;
-			case 0x25: temp = soundselect; break;
-			case 0x26: temp = readsoundon(); break;
-			default: temp = 0xFF; break;
-		}
-		}
-		else if ((addr >= 0xFF30) && (addr < 0xFF40))
-		{
-			temp = waveram[addr - 0xFF30];
-		}
-		else
-		{
-			temp = 0xFF;
-		}
-		
-		return temp;
+	    switch ((addr & 0xFF))
+	    {
+		case 0x10: temp = (s1sweep | 0x80); break;
+		case 0x11: temp = (s1soundlength | 0x3F); break;
+		case 0x12: temp = s1volumeenvelope; break;
+		case 0x14: temp = (s1freqhi | 0xBF); break;
+		case 0x16: temp = (s2soundlength | 0x3F); break;
+		case 0x17: temp = s2volumeenvelope; break;
+		case 0x19: temp = (s2freqhi | 0xBF); break;
+		case 0x1A: temp = (wavesweep | 0x7F); break;
+		case 0x1C: temp = (wavevolumeenvelope | 0x9F); break;
+		case 0x1E: temp = (wavefreqhi | 0xBF); break;
+		case 0x21: temp = noisevolumeenvelope; break;
+		case 0x22: temp = noisefreqlo; break;
+		case 0x23: temp = (noisefreqhi | 0xBF); break;
+		case 0x24: temp = mastervolume; break;
+		case 0x25: temp = soundselect; break;
+		case 0x26: temp = readsoundon(); break;
+		default: temp = 0xFF; break;
+	    }
 	}
+	else if ((addr >= 0xFF30) && (addr < 0xFF40))
+	{
+	    temp = waveram[addr - 0xFF30];
+	}
+	else
+	{
+	    temp = 0xFF;
+	}
+		
+	return temp;
+    }
 	
-	void APU::writeapu(uint16_t addr, uint8_t value)
+    void APU::writeapu(uint16_t addr, uint8_t value)
+    {
+	if (addr <= 0xFF26)
 	{
-		bool isoff = (TestBit(soundon, 7));
-
-		if (addr <= 0xFF26)
+	    if (!issoundon && addr != 0xFF26)
+	    {
+		switch (addr)
 		{
-			if (addr != 0xFF26 && !issoundon && apumem.isdmgconsole())
+		    case 0x11:
+		    {
+			if (apumem.isdmgconsole())
 			{
-			    cout << "Sound disabled" << endl;
-			    cout << hex << (int)(addr) << endl;
-			    // return;
+			    s1soundlength = value;
+			    reloads1lengthcounter();
+			    sets1dutycycle();
 			}
-
-			switch ((addr & 0xFF))
+		    }
+		    break;
+		    case 0x16:
+		    {
+			if (apumem.isdmgconsole())
 			{
-				case 0x10: writes1sweep(value); break;
-				case 0x11:
-				{
-					if (!issoundon && !apumem.isdmgconsole())
-					{
-						return;
-					}
-					else
-					{
-						s1soundlength = value;
-						reloads1lengthcounter();
-						sets1dutycycle();
-					}
-				}
-				break;
-				case 0x12:
-				{
-					s1volumeenvelope = value;
-
-					if (((s1volumeenvelope & 0xF0) >> 4) == 0)
-					{
-						s1enabled = false;
-					}
-				}
-				break;
-				case 0x13: s1freqlo = value; break;
-				case 0x14: s1writereset(value); break;
-				case 0x16:
-				{
-					if (!issoundon && !apumem.isdmgconsole())
-					{
-						return;
-					}
-					else
-					{
-						s2soundlength = value;
-						reloads2lengthcounter();
-						sets2dutycycle();
-					}
-				}
-				break;
-				case 0x17:
-				{
-					s2volumeenvelope = value;
-
-					if (((s2volumeenvelope & 0xF0) >> 4) == 0)
-					{
-						s2enabled = false;
-					}
-				}
-				break;
-				case 0x18: s2freqlo = value; break;
-				case 0x19: s2writereset(value); break;
-				case 0x1A:
-				{
-					wavesweep = (value & 0x80);
-
-					if (!TestBit(wavesweep, 7))
-					{
-						waveenabled = false;
-					}
-
-					waveramlengthmask = 0x1F;
-				}
-				break;
-				case 0x1B:
-				{
-					if (!issoundon && !apumem.isdmgconsole())
-					{
-						return;
-					}
-					else
-					{
-						wavesoundlength = value;
-						reloadwavelengthcounter();
-					}
-				}
-				break;
-				case 0x1C:
-				{
-					wavevolumeenvelope = (value & 0xE0);
-					int wavevolumeshift = ((wavevolumeenvelope & 0x60) >> 5);
-					wavevolume = (wavevolumeshift) ? (wavevolumeshift - 1) : 4;
-				}
-				break;
-				case 0x1D: wavefreqlo = value; break;
-				case 0x1E: wavewritereset(value); break;
-				case 0x20:
-				{
-					if (!issoundon && !apumem.isdmgconsole())
-					{
-						return;
-					}
-					else
-					{
-						noisesoundlength = (value & 0x3F);
-						reloadnoiselengthcounter();
-					}
-				}
-				break;
-				case 0x21: writenoiseenvelope(value); break;
-				case 0x22: noisefreqlo = value; break;
-				case 0x23: noisewritereset(value); break;
-				case 0x24: mastervolume = value; break;
-				case 0x25: soundselect = value; break;
-				case 0x26: writesoundon(value); break;	
-				default: return; break;
+			    s2soundlength = value;
+			    reloads2lengthcounter();
+			    sets2dutycycle();
 			}
+		    }
+		    break;
+		    case 0x1B:
+		    {
+			if (apumem.isdmgconsole())
+			{
+			    wavesoundlength = value;
+			    reloadwavelengthcounter();
+			}
+		    }
+		    break;
+		    case 0x20:
+		    {
+			if (apumem.isdmgconsole())
+			{
+			    noisesoundlength = (value & 0x3F);
+			    reloadnoiselengthcounter();
+			}
+		    }
+		    break;
 		}
-		else if ((addr >= 0xFF30) && (addr < 0xFF40))
+
+		return;
+	    }
+
+	    switch ((addr & 0xFF))
+	    {
+		case 0x10: writes1sweep(value); break;
+		case 0x11:
 		{
-			waveram[addr - 0xFF30] = value;
+		    s1soundlength = value;
+		    reloads1lengthcounter();
+		    sets1dutycycle();
 		}
-		else
+		break;
+		case 0x12:
 		{
-			return;
+		    s1volumeenvelope = value;
+
+		    if (((s1volumeenvelope & 0xF0) >> 4) == 0)
+		    {
+			s1enabled = false;
+		    }
 		}
+		break;
+		case 0x13: s1freqlo = value; break;
+		case 0x14: s1writereset(value); break;
+		case 0x16:
+		{
+		    s2soundlength = value;
+		    reloads2lengthcounter();
+		    sets2dutycycle();
+		}
+		break;
+		case 0x17:
+		{
+		    s2volumeenvelope = value;
+
+		    if (((s2volumeenvelope & 0xF0) >> 4) == 0)
+		    {
+			s2enabled = false;
+		    }
+		}
+		break;
+		case 0x18: s2freqlo = value; break;
+		case 0x19: s2writereset(value); break;
+		case 0x1A:
+		{
+		    wavesweep = (value & 0x80);
+
+		    if (!TestBit(wavesweep, 7))
+		    {
+			waveenabled = false;
+		    }
+
+		    waveramlengthmask = 0x1F;
+		}
+		break;
+		case 0x1B:
+		{
+		    wavesoundlength = value;
+		    reloadwavelengthcounter();
+		}
+		break;
+		case 0x1C:
+		{
+		    wavevolumeenvelope = (value & 0xE0);
+		    int wavevolumeshift = ((wavevolumeenvelope & 0x60) >> 5);
+		    wavevolume = (wavevolumeshift) ? (wavevolumeshift - 1) : 4;
+		}
+		break;
+		case 0x1D: wavefreqlo = value; break;
+		case 0x1E: wavewritereset(value); break;
+		case 0x20:
+		{
+		    noisesoundlength = (value & 0x3F);
+		    reloadnoiselengthcounter();
+		}
+		break;
+		case 0x21: writenoiseenvelope(value); break;
+		case 0x22: noisefreqlo = value; break;
+		case 0x23: noisewritereset(value); break;
+		case 0x24: mastervolume = value; break;
+		case 0x25: soundselect = value; break;
+		case 0x26: writesoundon(value); break;	
+		default: return; break;
+	    }
 	}
+	else if ((addr >= 0xFF30) && (addr < 0xFF40))
+	{
+	    waveram[addr - 0xFF30] = value;
+	}
+	else
+	{
+	    return;
+	}
+    }
 	
 	uint8_t APU::readsoundon()
 	{
