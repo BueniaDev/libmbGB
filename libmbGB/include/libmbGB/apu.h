@@ -544,8 +544,12 @@ namespace gb
 
 		if (wasenabled && !TestBit(soundon, 7))
 		{
-		    issoundon = false;
 		    clearregisters();
+		    issoundon = false;
+		}
+		else
+		{
+		    issoundon = true;
 		}
 	    }
 

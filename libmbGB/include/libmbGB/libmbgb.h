@@ -88,6 +88,7 @@ namespace gb
 	    void setsamplerate(int val);
 	    void setaudiocallback(apuoutputfunc cb);
 	    void setrumblecallback(rumblefunc cb);
+	    void setsensorcallback(sensorfunc cb);
 	    bool isprinterenabled = false;
 		bool ismobileenabled = false;
 

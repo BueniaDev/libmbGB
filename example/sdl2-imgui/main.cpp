@@ -4,12 +4,25 @@
 #include <tinyfiledialogs.h>
 #include <libmbGB/libmbgb.h>
 #include <iostream>
+#include <vector>
+#include <functional>
 using namespace std;
+using namespace std::placeholders;
 #undef main
+
+#ifdef LIBMBGB_SIGNED16
+using sampleformat = int16_t;
+#elif defined LIBMBGB_FLOAT32
+using sampleformat = float;
+#endif
+
+vector<int16_t> buffer;
 
 int screenwidth = 160;
 int screenheight = 144;
 int scale = 4;
+
+bool isromfile = true;
 
 RGB tilebuffer[128 * 192];
 RGB tilebuffer1[128 * 192];
@@ -82,11 +95,46 @@ bool init()
     SDL_RenderClear(render);
     SDL_RenderPresent(render);
 
+    SDL_AudioSpec audiospec;
+    #ifdef LIBMBGB_SIGNED16
+    audiospec.format = AUDIO_S16SYS;
+    #elif defined LIBMBGB_FLOAT32
+    audiospec.format = AUDIO_F32SYS;
+    #endif
+    audiospec.freq = 48000;
+    audiospec.samples = 4096;
+    audiospec.channels = 2;
+    audiospec.callback = NULL;
+
+    SDL_AudioSpec obtainedspec;
+    SDL_OpenAudio(&audiospec, &obtainedspec);
+    SDL_PauseAudio(0);
+
     return true;
+}
+
+void sdlcallback(sampleformat left, sampleformat right)
+{
+    buffer.push_back(left);
+    buffer.push_back(right);
+
+    if (buffer.size() >= 4096)
+    {
+	buffer.clear();
+
+	while ((SDL_GetQueuedAudioSize(1)) > (4096 * sizeof(sampleformat)))
+	{
+	    SDL_Delay(1);
+	}
+	SDL_QueueAudio(1, &buffer[0], (4096 * sizeof(sampleformat)));
+    }
 }
 
 bool selectrom()
 {
+    if (isromfile)
+    {
+
     const char *validextensions[4] = {"*.gb", "*.GB", "*.gbc", "*.GBC"};
     const char *filepath = tinyfd_openFileDialog("Select ROM...", "", 4, validextensions, NULL, 0);
     core.romname = filepath;
@@ -95,8 +143,16 @@ bool selectrom()
     {
 	return core.loadROM(core.romname);
     }
+    else
+    {
+	return false;
+    }
 
-    return false;
+    }
+    else
+    {
+	return core.loadROM(core.romname);
+    }
 }
 
 uint8_t getcolor(uint8_t hibyte, uint8_t lobyte, uint8_t pos)
@@ -176,6 +232,7 @@ void shutdown()
 {
     core.shutdown();
     ImGuiSDL::Deinitialize();
+    SDL_CloseAudio();
     SDL_DestroyTexture(texture);
     SDL_DestroyRenderer(render);
     SDL_DestroyWindow(window);
@@ -317,7 +374,7 @@ void menubar()
 	    if (ImGui::MenuItem("Load ROM..."))
 	    {
 		if (!disabled)
-		{		
+		{
 		    initcore();		
 		    playing = true;
 		    disabled = true;
@@ -620,8 +677,17 @@ void guistuff()
     SDL_RenderPresent(render);
 }
 
-int main()
+int main(int argc, char* argv[])
 {
+    core.setsamplerate(48000);
+    core.setaudiocallback(bind(&sdlcallback, _1, _2));
+
+    if (argc > 1)
+    {
+	isromfile = false;
+	core.romname = argv[1];
+    }
+
     if (!init())
     {
 	return 1;

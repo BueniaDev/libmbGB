@@ -48,7 +48,6 @@ namespace gb
 					{
 						packetdata.push_back(0x99);
 						packetsize += 1;
-						cout << "First magic byte recieved" << endl;
 						statesteps = 1;
 						linkbyte = 0x4B;
 					}
@@ -59,7 +58,6 @@ namespace gb
 						{
 							packetdata.push_back(0x66);
 							packetsize += 1;
-							cout << "Second magic byte recieved" << endl;
 							statesteps = 0;
 							adapterstate = State::PacketHeader;
 						}
@@ -92,9 +90,6 @@ namespace gb
 				if (statesteps == 4)
 				{
 					statesteps = 0;
-					cout << "Packet header transfer finished" << endl;
-					cout << "Command: " << hex << (int)(commandid) << endl;
-					cout << "Packet data length: " << dec << (int)(packetdatalength) << endl;
 					adapterstate = (packetdatalength == 0) ? State::PacketChecksum : State::PacketData;
 				}
 				
@@ -112,7 +107,6 @@ namespace gb
 				if (statesteps == packetdatalength)
 				{
 					statesteps = 0;
-					cout << "Packet data sent" << endl;
 					adapterstate = State::PacketChecksum;
 				}
 				
@@ -124,8 +118,6 @@ namespace gb
 				packetdata.push_back(adapterbyte);
 				packetsize += 1;
 
-				cout << "Sending packet checksum..." << endl;
-				
 				if (statesteps == 0)
 				{
 				    comparechecksum = (adapterbyte << 8);
@@ -138,13 +130,8 @@ namespace gb
 				    statesteps = 0;
 				    packetsize = 0;
 
-
-				    cout << "Compare checksum: " << hex << (int)(comparechecksum) << endl;
-				    cout << "Calculated checksum: " << hex << (int)(calculatedchecksum) << endl;
-
 				    if (calculatedchecksum == comparechecksum)
 				    {
-					cout << "Checksum matches" << endl;
 					calculatedchecksum = 0;
 					comparechecksum = 0;
 					linkbyte = 0x4B;
@@ -152,7 +139,6 @@ namespace gb
 				    }
 				    else
 				    {
-					cout << "Checksum does not match" << endl;
 					linkbyte = 0xF1;
 					adapterstate = State::AwaitingPacket;
 				    }
@@ -168,7 +154,6 @@ namespace gb
 			    {
 				if (adapterbyte == 0x80)
 				{
-				    cout << "First acknowledgement byte" << endl;
 				    statesteps = 1;
 				    linkbyte = 0x88;
 				}
@@ -180,7 +165,6 @@ namespace gb
 			    }
 			    else if (statesteps == 1)
 			    {
-				cout << "Second acknowledgement byte" << endl;
 				linkbyte = (0x80 ^ commandid);
 				statesteps = 0;
 				processcommand();
@@ -191,7 +175,6 @@ namespace gb
 			{
 			    if (statesteps < (int)(packetdata.size()))
 			    {
-				cout << hex << (int)(packetdata[statesteps]) << endl;
 				linkbyte = packetdata[statesteps];
 				statesteps += 1;
 
@@ -213,15 +196,6 @@ namespace gb
 	    {
 		case 0x10:
 		{
-		    cout << "Begin session" << endl;
-		    cout << "Size: " << dec << (int)(packetdata.size()) << endl;
-		    cout << "Contents:" << endl;
-
-		    for (int i = 0; i < (int)(packetdata.size()); i++)
-		    {
-			cout << hex << (int)(packetdata[i]) << endl;
-		    }
-
 		    packetdata[(packetdata.size() - 2)] = 0x88;
 		    packetdata[(packetdata.size() - 1)] = 0x00;
 		    adapterstate = State::EchoPacket;
@@ -229,15 +203,6 @@ namespace gb
 		break;
 		case 0x11:
 		{
-		    cout << "End session" << endl;
-		    cout << "Size: " << dec << (int)(packetdata.size()) << endl;
-		    cout << "Contents:" << endl;
-
-		    for (int i = 0; i < (int)(packetdata.size()); i++)
-		    {
-			cout << hex << (int)(packetdata[i]) << endl;
-		    }
-
 		    packetdata[(packetdata.size() - 2)] = 0x88;
 		    packetdata[(packetdata.size() - 1)] = 0x00;
 		    adapterstate = State::EchoPacket;
@@ -245,8 +210,6 @@ namespace gb
 		break;
 		case 0x12:
 		{
-		    cout << "Dial telephone" << endl;
-
 		    packetdata.clear();
 
 		    packetdata.push_back(0x99);
@@ -271,8 +234,6 @@ namespace gb
 		break;
 		case 0x13:
 		{
-		    cout << "Hang up telephone" << endl;
-
 		    packetdata.clear();
 
 		    packetdata.push_back(0x99);
@@ -297,12 +258,15 @@ namespace gb
 		break;
 		case 0x15:
 		{
-		    cout << "Transfer Data" << endl;
-
 		    if (port == 110)
 		    {
 			cout << "Processing POP server data" << endl;
 			processpop();
+		    }
+		    else if (port == 80)
+		    {
+			cout << "Processing HTTP data" << endl;
+			processhttp();
 		    }
 		    else
 		    {
@@ -313,8 +277,6 @@ namespace gb
 		break;
 		case 0x17:
 		{
-		    cout << "Telephone status" << endl;
-
 		    packetdata.clear();
 		    packetdata.push_back(0x99);
 		    packetdata.push_back(0x66);
@@ -353,7 +315,6 @@ namespace gb
 		break;
 		case 0x19:
 		{
-		    cout << "Read configuration data" << endl;
 		    uint8_t configoffset = packetdata[6];
 		    uint8_t configlength = packetdata[7];
 
@@ -593,8 +554,6 @@ namespace gb
 	string popdata = datatostr(packetdata.data(), packetdata.size());
 	uint8_t popcommand = 0xFF;
 	uint8_t responseid = 0;
-
-	cout << popdata << endl;
 
 	size_t usermatch = popdata.find("USER");
 	size_t passmatch = popdata.find("PASS");
@@ -843,6 +802,127 @@ namespace gb
 	}
 
 	packetdata.push_back((checksum >> 8) & 0xFF);
+	packetdata.push_back((checksum & 0xFF));
+
+	packetdata.push_back(0x88);
+	packetdata.push_back(0x00);
+
+	packetsize = 0;
+	adapterstate = State::EchoPacket;
+    }
+
+    void MobileAdapterGB::processhttp()
+    {
+	string httpresponse = "";
+	string httpheader = "";
+	uint8_t responseid = 0;
+	bool notfound = true;
+	bool ishtml = (httpdata.find(".html") != string::npos);
+
+	httpdata += datatostr((packetdata.data() + 7), (packetdata.size() - 7));
+	cout << httpdata << endl;
+
+	if (httpdata.find("\r\n\r\n") == string::npos)
+	{
+	    httpresponse = "";
+	    responseid = 0x95;
+	}
+	else if (httptransferstate == 0)
+	{
+	    httptransferstate = 1;
+	    size_t getmatch = httpdata.find("GET");
+
+	    if (getmatch != string::npos)
+	    {
+	        if (httpdata.find(serverin[0]) != string::npos)
+		{
+		    notfound = false;
+		}
+	    }
+	}
+
+	switch (httptransferstate)
+	{
+	    case 0x1:
+	    {
+		if (notfound)
+		{
+		    httpresponse = "HTTP/1.0 404 Not Found\r\n";
+		    httptransferstate = 2;
+		}
+		else
+		{
+		    httpresponse = "HTTP/1.0 200 OK\r\n";
+		    httptransferstate = 2;
+		}
+	    }
+	    break;
+	    case 0x2:
+	    {
+		if (!notfound)
+		{
+		    httpresponse = "";
+		    responseid = 0x9F;
+		    httptransferstate = 0;
+		    httpdata = "";
+		}
+		else if (ishtml)
+		{
+		    httpresponse = "Content-Type: text/html\r\n\r\n";
+		    responseid = 0x95;
+		    httptransferstate = 3;
+		    httpdata = "";
+		}
+	    }
+	    break;
+	    case 3:
+	    {
+		for (int i = 0; i < 254; i++)
+		{
+		    if (dataindex < (int)(htmltext[isxmas()].size()))
+		    {
+			httpresponse += htmltext[isxmas()][dataindex++];
+		    }
+		    else
+		    {
+			i = 255;
+		    }
+		}
+
+		responseid = 0x95;
+		httptransferstate = (dataindex < (int)(htmltext[isxmas()].size())) ? 0x3 : 0x4;
+	    }
+	    break;
+	    case 4:
+	    {
+		httpresponse = "";
+		responseid = 0x9F;
+		httptransferstate = 0;
+		httpdata = "";
+	    }
+	    break;
+	}
+
+	packetdata.clear();
+	packetdata.resize(7 + httpresponse.size(), 0);
+
+	packetdata[0] = 0x99;
+	packetdata[1] = 0x66;
+	packetdata[2] = responseid;
+	packetdata[3] = 0x00;
+	packetdata[4] = 0x00;
+	packetdata[5] = (httpresponse.size() + 1);
+
+	strtodata((packetdata.data() + 7), httpresponse);
+
+	uint16_t checksum = 0;
+
+	for (int i = 2; i < (int)(packetdata.size()); i++)
+	{
+	    checksum += packetdata[i];
+	}
+
+	packetdata.push_back((checksum >> 8));
 	packetdata.push_back((checksum & 0xFF));
 
 	packetdata.push_back(0x88);

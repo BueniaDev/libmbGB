@@ -77,17 +77,15 @@ namespace gb
     {
 	if (addr <= 0xFF26)
 	{
-	    if (!issoundon && addr != 0xFF26)
+	    if (!issoundon)
 	    {
-		switch (addr)
+		switch ((addr & 0xFF))
 		{
 		    case 0x11:
 		    {
 			if (apumem.isdmgconsole())
 			{
-			    s1soundlength = value;
 			    reloads1lengthcounter();
-			    sets1dutycycle();
 			}
 		    }
 		    break;
@@ -95,9 +93,7 @@ namespace gb
 		    {
 			if (apumem.isdmgconsole())
 			{
-			    s2soundlength = value;
 			    reloads2lengthcounter();
-			    sets2dutycycle();
 			}
 		    }
 		    break;
@@ -105,7 +101,6 @@ namespace gb
 		    {
 			if (apumem.isdmgconsole())
 			{
-			    wavesoundlength = value;
 			    reloadwavelengthcounter();
 			}
 		    }
@@ -114,11 +109,11 @@ namespace gb
 		    {
 			if (apumem.isdmgconsole())
 			{
-			    noisesoundlength = (value & 0x3F);
 			    reloadnoiselengthcounter();
 			}
 		    }
 		    break;
+		    case 0x26: writesoundon(value); break;
 		}
 
 		return;

@@ -58,6 +58,7 @@ namespace gb
     using screenfunc = function<void()>;
     using apulengthfunc = function<bool()>;
     using rumblefunc = function<void(bool)>;
+    using sensorfunc = function<void(uint16_t &, uint16_t &)>;
 	
 	using memoryreadfunc = function<uint8_t(uint16_t)>;
 	using memorywritefunc = function<void(uint16_t, uint8_t)>;
@@ -166,12 +167,15 @@ namespace gb
 
 	    bool externalrampres = false;
 	    bool isrumblepres = false;
+	    bool isrtcpres = false;
 	    bool biosload = false;
 	    uint8_t currentrombank = 1;
 	    uint8_t currentrambank = 0;
 	    int higherrombankbits = 0;
 	    bool ramenabled = false;
 	    bool batteryenabled = false;
+	    bool rtcenabled = false;
+	    bool ramsecenabled = false;
 	    bool rommode = false;
 	    int numrombanks;
 	    int numrambanks;
@@ -181,7 +185,36 @@ namespace gb
 	    bool hybrid = false;
 	    bool doublespeed = false;
 
+	    bool rtclatch1 = true;
+	    bool rtclatch2 = true;
+
+	    uint8_t readmbc7ram(uint16_t addr);
+	    void writembc7ram(uint16_t addr, uint8_t val);
+	    void writembc7eeprom(uint8_t val);
+
+	    bool mbc7chipsel = false;
+	    bool mbc7chipclk = false;
+	    int mbc7chipcmd = 0;
+	    int mbc7chipaddr = 0;
+	    uint16_t mbc7chipbuf = 0;
+	    int mbc7chipsize = 0;
+	    int mbc7intstate = 0;
+	    int mbc7intvalue = 0;
+	    bool mbc7idle = true;
+	    bool mbc7wenable = false;
+
+	    bool mbc7sensorlatch = false;
+	    uint16_t mbc7sensorx = 0x8000;
+	    uint16_t mbc7sensory = 0x8000;
+
+	    sensorfunc setsensor;
+
 	    rumblefunc setrumble;
+
+	    inline void setsensorcallback(sensorfunc cb)
+	    {
+		setsensor = cb;
+	    }
 
 	    inline void setrumblecallback(rumblefunc cb)
 	    {
@@ -261,24 +294,25 @@ namespace gb
 	    {
 		switch (rom[0x0147])
 		{
-		    case 0: gbmbc = MBCType::None; externalrampres = false; mbctype = "ROM ONLY"; batteryenabled = false; break;
-		    case 1: gbmbc = MBCType::MBC1; externalrampres = false; mbctype = "MBC1"; batteryenabled = false; break;
-		    case 2: gbmbc = MBCType::MBC1; externalrampres = true; mbctype = "MBC1 + RAM"; batteryenabled = false; break;
-		    case 3: gbmbc = MBCType::MBC1; externalrampres = true; mbctype = "MBC1 + RAM + BATTERY"; batteryenabled = true; break;
-		    case 5: gbmbc = MBCType::MBC2; externalrampres = false; mbctype = "MBC2"; batteryenabled = false; break;
-		    case 6: gbmbc = MBCType::MBC2; externalrampres = false; mbctype = "MBC2 + BATTERY"; batteryenabled = true; break;
-		    case 8: gbmbc = MBCType::None; externalrampres = true; mbctype = "ROM + RAM"; batteryenabled = false; break;
-		    case 9: gbmbc = MBCType::None; externalrampres = true; mbctype = "ROM + RAM + BATTERY"; batteryenabled = true; break;
-		    case 15: gbmbc = MBCType::MBC3; externalrampres = false; mbctype = "MBC3 + TIMER + BATTERY"; break;
-		    case 16: gbmbc = MBCType::MBC3; externalrampres = true; mbctype = "MBC3 + TIMER + RAM + BATTERY"; batteryenabled = true; break;
-		    case 17: gbmbc = MBCType::MBC3; externalrampres = false; mbctype = "MBC3"; batteryenabled = false; break;
-		    case 18: gbmbc = MBCType::MBC3; externalrampres = true; mbctype = "MBC3 + RAM"; batteryenabled = false; break;
-		    case 19: gbmbc = MBCType::MBC3; externalrampres = true; mbctype = "MBC3 + RAM + BATTERY"; batteryenabled = true; break;
-		    case 25: gbmbc = MBCType::MBC5; externalrampres = false; mbctype = "MBC5"; batteryenabled = false; break;
-		    case 26: gbmbc = MBCType::MBC5; externalrampres = true; mbctype = "MBC5 + RAM"; batteryenabled = false; break;
-		    case 27: gbmbc = MBCType::MBC5; externalrampres = true; mbctype = "MBC5 + RAM + BATTERY"; batteryenabled = true; break;
-		    case 30: gbmbc = MBCType::MBC5; externalrampres = true; isrumblepres = true; mbctype = "MBC5 + RUMBLE + RAM + BATTERY"; batteryenabled = true; break;
-		    default: cout << "MMU::Error - Unrecognized MBC type" << endl; exit(1); break;
+		    case 0x00: gbmbc = MBCType::None; externalrampres = false; mbctype = "ROM ONLY"; batteryenabled = false; break;
+		    case 0x01: gbmbc = MBCType::MBC1; externalrampres = false; mbctype = "MBC1"; batteryenabled = false; break;
+		    case 0x02: gbmbc = MBCType::MBC1; externalrampres = true; mbctype = "MBC1 + RAM"; batteryenabled = false; break;
+		    case 0x03: gbmbc = MBCType::MBC1; externalrampres = true; mbctype = "MBC1 + RAM + BATTERY"; batteryenabled = true; break;
+		    case 0x05: gbmbc = MBCType::MBC2; externalrampres = false; mbctype = "MBC2"; batteryenabled = false; break;
+		    case 0x06: gbmbc = MBCType::MBC2; externalrampres = false; mbctype = "MBC2 + BATTERY"; batteryenabled = true; break;
+		    case 0x08: gbmbc = MBCType::None; externalrampres = true; mbctype = "ROM + RAM"; batteryenabled = false; break;
+		    case 0x09: gbmbc = MBCType::None; externalrampres = true; mbctype = "ROM + RAM + BATTERY"; batteryenabled = true; break;
+		    case 0x0F: gbmbc = MBCType::MBC3; externalrampres = false; mbctype = "MBC3 + TIMER + BATTERY"; break;
+		    case 0x10: gbmbc = MBCType::MBC3; externalrampres = true; mbctype = "MBC3 + TIMER + RAM + BATTERY"; batteryenabled = true; isrtcpres = true; break;
+		    case 0x11: gbmbc = MBCType::MBC3; externalrampres = false; mbctype = "MBC3"; batteryenabled = false; break;
+		    case 0x12: gbmbc = MBCType::MBC3; externalrampres = true; mbctype = "MBC3 + RAM"; batteryenabled = false; break;
+		    case 0x13: gbmbc = MBCType::MBC3; externalrampres = true; mbctype = "MBC3 + RAM + BATTERY"; batteryenabled = true; break;
+		    case 0x19: gbmbc = MBCType::MBC5; externalrampres = false; mbctype = "MBC5"; batteryenabled = false; break;
+		    case 0x1A: gbmbc = MBCType::MBC5; externalrampres = true; mbctype = "MBC5 + RAM"; batteryenabled = false; break;
+		    case 0x1B: gbmbc = MBCType::MBC5; externalrampres = true; mbctype = "MBC5 + RAM + BATTERY"; batteryenabled = true; break;
+		    case 0x1E: gbmbc = MBCType::MBC5; externalrampres = true; isrumblepres = true; mbctype = "MBC5 + RUMBLE + RAM + BATTERY"; batteryenabled = true; break;
+		    case 0x22: gbmbc = MBCType::MBC7; externalrampres = true; isrumblepres = true; mbctype = "MBC7 + SENSOR + RUMBLE + RAM + BATTERY"; batteryenabled = true; break;
+		    default: cout << "MMU::Error - Unrecognized MBC type of " << hex << (int)(rom[0x0147]) << endl; exit(1); break;
 		}
 	    }
 
@@ -359,6 +393,8 @@ namespace gb
 	    void mbc3write(uint16_t addr, uint8_t value);
 	    uint8_t mbc5read(uint16_t addr);
 	    void mbc5write(uint16_t addr, uint8_t value);
+	    uint8_t mbc7read(uint16_t addr);
+	    void mbc7write(uint16_t addr, uint8_t value);
 
 	    uint8_t readIO(uint16_t addr);
 	    void writeIO(uint16_t addr, uint8_t value);

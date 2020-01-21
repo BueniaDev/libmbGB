@@ -8,6 +8,11 @@ using namespace gb;
 using namespace std;
 using namespace std::placeholders;
 
+#define GYRO_LEFT 1
+#define GYRO_RIGHT 2
+#define GYRO_UP 4
+#define GYRO_DOWN 8
+
 GBCore core;
 GBPrinter print;
 LinkCable link;
@@ -27,6 +32,14 @@ int scale = 3;
 
 int xdir = 0;
 int ydir = 0;
+
+int xsensordir = 0;
+int ysensordir = 0;
+
+int16_t xsensor = 0;
+int16_t ysensor = 0;
+
+uint8_t gyroscopeval = 0;
 
 const int controllerdeadzone = 8000;
 
@@ -346,6 +359,115 @@ void drawpixels()
     SDL_UpdateWindowSurface(window);
 }
 
+void updategyro()
+{
+    if (TestBit(gyroscopeval, 0))
+    {
+	xsensor += 3;
+
+	if (xsensor > 464)
+	{
+	    xsensor = 464;
+	}
+
+	if (xsensor < 0)
+	{
+	    xsensor = 10;
+	}
+    }
+    else if (TestBit(gyroscopeval, 1))
+    {
+	xsensor -= 3;
+
+	if (xsensor < -464)
+	{
+	    xsensor = -464;
+	}
+
+	if (xsensor > 0)
+	{
+	    xsensor = -10;
+	}
+    }
+    else if (xsensor > 0)
+    {
+	xsensor -= 2;
+
+	if (xsensor < 0)
+	{
+	    xsensor = 0;
+	}
+    }
+    else if (xsensor < 0)
+    {
+	xsensor += 2;
+
+	if (xsensor > 0)
+	{
+	    xsensor = 0;
+	}
+    }
+
+    if (TestBit(gyroscopeval, 2))
+    {
+	ysensor += 3;
+
+	if (ysensor > 464)
+	{
+	    ysensor = 464;
+	}
+
+	if (ysensor < 0)
+	{
+	    ysensor = 10;
+	}
+    }
+    else if (TestBit(gyroscopeval, 3))
+    {
+	ysensor -= 3;
+
+	if (ysensor < -464)
+	{
+	    ysensor = -464;
+	}
+
+	if (ysensor > 0)
+	{
+	    ysensor = -10;
+	}
+    }
+    else if (ysensor > 0)
+    {
+	ysensor -= 2;
+
+	if (ysensor < 0)
+	{
+	    ysensor = 0;
+	}
+    }
+    else if (ysensor < 0)
+    {
+	ysensor += 2;
+
+	if (ysensor > 0)
+	{
+	    ysensor = 0;
+	}
+    }
+}
+
+void updatesensor(int bit, bool ispressed)
+{
+    if (ispressed)
+    {
+	gyroscopeval |= bit;
+    }
+    else
+    {
+	gyroscopeval &= ~bit;
+    }
+}
+
 void handleaxis(int direction, Button dir1, Button dir2)
 {
     switch (direction)
@@ -353,6 +475,30 @@ void handleaxis(int direction, Button dir1, Button dir2)
 	case -1: core.keypressed(dir1); core.keyreleased(dir2); break;
 	case 0: core.keyreleased(dir1); core.keyreleased(dir2); break;
 	case 1: core.keyreleased(dir1); core.keypressed(dir2); break;
+    }
+}
+
+void handleaxisgyro(int direction, bool isvert)
+{
+    uint8_t dir1 = 0;
+    uint8_t dir2 = 0;
+
+    if (isvert)
+    {
+	dir1 = GYRO_UP;
+	dir2 = GYRO_DOWN;
+    }
+    else
+    {
+	dir1 = GYRO_LEFT;
+	dir2 = GYRO_RIGHT;
+    }
+
+    switch (direction)
+    {
+	case -1: updatesensor(dir1, true); updatesensor(dir2, false); break;
+	case 0: updatesensor(dir1, false); updatesensor(dir2, false); break;
+	case 1: updatesensor(dir1, false); updatesensor(dir2, true); break;
     }
 }
 
@@ -370,11 +516,15 @@ void handleinput(SDL_Event event)
 	    case SDLK_b: core.keypressed(Button::B); break;
 	    case SDLK_RETURN: core.keypressed(Button::Start); break;
 	    case SDLK_SPACE: core.keypressed(Button::Select); break;
-	    case SDLK_l: core.loadstate(); break;
-	    case SDLK_s: core.savestate(); break;
+	    case SDLK_F1: core.loadstate(); break;
+	    case SDLK_F2: core.savestate(); break;
 	    case SDLK_p: core.paused = !core.paused; break;
 	    case SDLK_r: core.resetcore(); break;
 	    case SDLK_q: screenshot(); break;
+	    case SDLK_i: updatesensor(GYRO_UP, true); break;
+	    case SDLK_j: updatesensor(GYRO_LEFT, true); break;
+	    case SDLK_k: updatesensor(GYRO_DOWN, true); break;
+	    case SDLK_l: updatesensor(GYRO_RIGHT, true); break;
 	}
     }
     else if (event.type == SDL_KEYUP)
@@ -389,6 +539,10 @@ void handleinput(SDL_Event event)
 	    case SDLK_b: core.keyreleased(Button::B); break;
 	    case SDLK_RETURN: core.keyreleased(Button::Start); break;
 	    case SDLK_SPACE: core.keyreleased(Button::Select); break;
+	    case SDLK_i: updatesensor(GYRO_UP, false); break;
+	    case SDLK_j: updatesensor(GYRO_LEFT, false); break;
+	    case SDLK_k: updatesensor(GYRO_DOWN, false); break;
+	    case SDLK_l: updatesensor(GYRO_RIGHT, false); break;
 	}
     }
     else if (event.type == SDL_CONTROLLERBUTTONDOWN)
@@ -462,6 +616,28 @@ void handleinput(SDL_Event event)
 		handleaxis(ydir, Button::Up, Button::Down);
 	    }
 	    break;
+	    case SDL_CONTROLLER_AXIS_RIGHTY:
+	    {
+		if (event.caxis.value < -controllerdeadzone)
+		{
+		    ysensordir = -1;
+		}
+		else if (event.caxis.value > controllerdeadzone)
+		{
+		    ysensordir = 1;
+		}
+		else if (event.caxis.value == 0)
+		{
+		    ysensordir = 0;
+		}
+		else
+		{
+		    ysensordir = 0;
+		}
+
+		handleaxisgyro(ysensordir, true);
+	    }
+	    break;
 	    case SDL_CONTROLLER_AXIS_LEFTX:
 	    {
 		if (event.caxis.value < -controllerdeadzone)
@@ -484,8 +660,39 @@ void handleinput(SDL_Event event)
 		handleaxis(xdir, Button::Left, Button::Right);
 	    }
 	    break;
+	    case SDL_CONTROLLER_AXIS_RIGHTX:
+	    {
+		if (event.caxis.value < -controllerdeadzone)
+		{
+		    xsensordir = -1;
+		}
+		else if (event.caxis.value > controllerdeadzone)
+		{
+		    xsensordir = 1;
+		}
+		else if (event.caxis.value == 0)
+		{
+		    xsensordir = 0;
+		}
+		else
+		{
+		    xsensordir = 0;
+		}
+
+		handleaxisgyro(xsensordir, false);
+	    }
+	    break;
 	}
     }
+}
+
+
+
+void sensorcallback(uint16_t& sensorx, uint16_t& sensory)
+{
+    updategyro();
+    sensorx = (0x81D0 + xsensor);
+    sensory = (0x81D0 + ysensor);
 }
 
 int main(int argc, char* argv[])
@@ -494,6 +701,7 @@ int main(int argc, char* argv[])
     core.setaudiocallback(bind(&sdlcallback, _1, _2));
 
     core.setrumblecallback(bind(&hapticcallback, _1));
+    core.setsensorcallback(bind(&sensorcallback, _1, _2));
 
     if (!core.getoptions(argc, argv))
     {

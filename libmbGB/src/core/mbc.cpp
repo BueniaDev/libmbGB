@@ -63,7 +63,14 @@ namespace gb
 	{
 	    if (mbcramsize != 0)
 	    {
-		ramenabled = ((value & 0x0F) == 0x0A);
+		if ((value & 0xF) == 0xA)
+		{
+		    ramenabled = true;
+		}
+		else if ((value & 0xF) == 0)
+		{
+		    ramenabled = false;
+		}
 	    }
 	}
 	else if (addr < 0x4000)
@@ -206,9 +213,9 @@ namespace gb
 		uint16_t currentaddr = (currentrambank * 0x2000);
 		temp = rambanks[(addr - 0xA000) + currentaddr];
 	    }
-	    else
+	    else if (rtcenabled && ((currentrambank >= 0x8) && (currentrambank <= 0xC)))
 	    {
-		// TODO: RTC
+		cout << "Reading RTC register..." << endl;
 		temp = 0xFF;
 	    }
 	}
@@ -226,7 +233,19 @@ namespace gb
 	{
 	    if (mbcramsize != 0)
 	    {
-		ramenabled = ((value & 0x0F) == 0x0A);
+		if ((value & 0xF) == 0xA)
+		{
+		    ramenabled = true;
+		}
+		else if ((value & 0xF) == 0)
+		{
+		    ramenabled = false;
+		}
+
+		if (isrtcpres)
+		{
+		    rtcenabled = ramenabled;
+		}
 	    }
 	}
 	else if (addr < 0x4000)
@@ -249,12 +268,30 @@ namespace gb
 	    }
 	    else
 	    {
-		// TODO: RTC
+		if (rtcenabled)
+		{
+		    if ((value >= 0x08) && (value <= 0x0C))
+		    {
+			cout << "Selecting RTC register " << hex << (int)(value) << endl;
+			currentrambank = value;
+		    }
+		}
 	    }
 	}
 	else if (addr < 0x8000)
 	{
-	    // TODO: RTC
+	    if (rtcenabled)
+	    {
+		if ((rtclatch1 == true) && (value == 0))
+		{
+		    rtclatch1 = false;
+		}
+		else if ((rtclatch2 == true) && (value == 1))
+		{
+		    cout << "Latching RTC register..." << endl;
+		    rtclatch1 = rtclatch2 = true;
+		}
+	    }
 	}
 	else if ((addr >= 0xA000) && (addr < 0xC000))
 	{
@@ -263,9 +300,11 @@ namespace gb
 		uint16_t currentaddr = (currentrambank * 0x2000);
 		rambanks[(addr - 0xA000) + currentaddr] = value;
 	    }
-	    else
+	    else if (rtcenabled && ((currentrambank >= 0x8) && (currentrambank <= 0xC)))
 	    {
-		// TODO: RTC
+		cout << "Register: " << hex << (int)(currentrambank) << endl;
+		cout << "Value: " << hex << (int)(value) << endl;
+		cout << endl;
 	    }
 	}
     }
@@ -305,7 +344,14 @@ namespace gb
 	{
 	    if (mbcramsize != 0)
 	    {
-		ramenabled = ((value & 0x0F) == 0x0A);
+		if ((value & 0xF) == 0xA)
+		{
+		    ramenabled = true;
+		}
+		else if ((value & 0xF) == 0)
+		{
+		    ramenabled = false;
+		}
 	    }
 	}
 	else if (addr < 0x3000)
@@ -351,5 +397,320 @@ namespace gb
 	}
 
 	return;
+    }
+
+    uint8_t MMU::mbc7read(uint16_t addr)
+    {
+	uint8_t temp = 0;
+
+	if ((addr >= 0x4000) && (addr < 0x8000))
+	{
+	    temp = cartmem[(addr - 0x4000) + (currentrombank * 0x4000)];
+	}
+	else if ((addr >= 0xA000) && (addr < 0xC000))
+	{
+	    if (ramsecenabled)
+	    {
+		temp = readmbc7ram(addr);
+	    }
+	    else
+	    {
+		temp = 0xFF;
+	    }
+	}
+
+	return temp;
+    }
+
+    void MMU::mbc7write(uint16_t addr, uint8_t val)
+    {
+	if (addr < 0x2000)
+	{
+	    if ((val & 0xF) == 0xA)
+	    {
+		ramenabled = true;
+	    }
+	    else if ((val & 0xF) == 0)
+	    {
+		ramenabled = false;
+	    }
+	}
+	else if (addr < 0x4000)
+	{
+	    currentrombank = (val & 0x7F);
+	    currentrombank &= (numrombanks - 1);
+	}
+	else if (addr < 0x6000)
+	{
+	    if ((ramenabled == true) && (val == 0x40))
+	    {
+		ramsecenabled = true;
+	    }
+	    else
+	    {
+		ramsecenabled = false;
+	    }
+	}
+	else if ((addr >= 0xA000) && (addr < 0xC000))
+	{
+	    if (ramsecenabled)
+	    {
+		writembc7ram(addr, val);
+	    }
+	    return;
+	}
+    }
+
+    uint8_t MMU::readmbc7ram(uint16_t addr)
+    {
+	uint8_t temp = 0;
+
+	if ((addr >= 0xA000) && (addr < 0xB000))
+	{
+	    int tempaddr = ((addr >> 4) & 0xF);
+
+	    switch (tempaddr)
+	    {
+		case 0x2: temp = (mbc7sensorx & 0xFF); break;
+		case 0x3: temp = (mbc7sensorx >> 8); break;
+		case 0x4: temp = (mbc7sensory & 0xFF); break;
+		case 0x5: temp = (mbc7sensory >> 8); break;
+		case 0x6: temp = 0x00; break;
+		case 0x7: temp = 0xFF; break;
+		case 0x8: temp = mbc7intvalue; break;
+		default: temp = 0x00; break;
+	    }
+
+	    return temp;
+	}	
+	else
+	{
+	    return 0xFF;
+	}
+    }
+
+    void MMU::writembc7ram(uint16_t addr, uint8_t val)
+    {
+	if ((addr >= 0xA000) && (addr < 0xB000))
+	{
+	    int tempaddr = ((addr >> 4) & 0xF);
+
+	    switch (tempaddr)
+	    {
+		case 0x0:
+		{
+		    if (val == 0x55)
+		    {
+			mbc7sensorx = 0x8000;
+			mbc7sensory = 0x8000;
+		    }
+		}
+		break;
+		case 0x1:
+		{
+		    if (val == 0xAA)
+		    {
+			setsensor(mbc7sensorx, mbc7sensory);
+		    }
+		}
+		break;
+		case 0x8: writembc7eeprom(val); break;
+		default: return; break;
+	    }
+
+	    return;
+	}	
+	else
+	{
+	    return;
+	}
+    }
+
+    void MMU::writembc7eeprom(uint8_t val)
+    {
+	bool oldchipsel = mbc7chipsel;
+	bool oldchipclk = mbc7chipclk;
+	mbc7chipsel = TestBit(val, 7);
+	mbc7chipclk = TestBit(val, 6);
+
+	if (!oldchipsel && mbc7chipsel)
+	{
+	    if (mbc7intstate == 5)
+	    {
+		if (mbc7wenable)
+		{
+		    uint16_t tempaddr = ((mbc7chipaddr & 0x7F) << 1);
+		    rambanks[tempaddr] = (mbc7chipbuf >> 8);
+		    rambanks[(tempaddr + 1)] = (mbc7chipbuf & 0xFF);
+		}
+
+		mbc7intstate = 0;
+		mbc7intvalue = 1;
+	    }
+	    else
+	    {
+		mbc7idle = true;
+		mbc7intstate = 0;
+	    }
+	}
+
+	if (!oldchipclk && mbc7chipclk)
+	{
+	    if (mbc7idle && TestBit(val, 1))
+	    {
+		mbc7idle = false;
+		mbc7intstate = 1;
+	    }
+	    else
+	    {
+		switch (mbc7intstate)
+		{
+		    case 1:
+		    {
+			mbc7chipbuf <<= 1;
+			mbc7chipbuf |= TestBit(val, 1);
+			mbc7chipsize += 1;
+
+			if (mbc7chipsize == 2)
+			{
+			    mbc7chipcmd = (mbc7chipbuf & 0x3);
+			    mbc7chipsize = 0;
+			    mbc7intstate = 2;
+			}
+		    }
+		    break;
+		    case 2:
+		    {
+			mbc7chipbuf <<= 1;
+			mbc7chipbuf |= TestBit(val, 1);
+			mbc7chipsize += 1;
+
+			if (mbc7chipsize == 8)
+			{
+			    mbc7chipaddr = (mbc7chipbuf & 0xFF);
+			    mbc7chipsize = 0;
+			    mbc7intstate = 3;
+
+			    if (mbc7chipcmd == 0)
+			    {
+				if ((mbc7chipaddr >> 6) == 0)
+				{
+				    mbc7wenable = false;
+				    mbc7intstate = 0;
+				}
+				else if ((mbc7chipaddr >> 6) == 3)
+				{
+				    mbc7wenable = true;
+				    mbc7intstate = 0;
+				}
+			    }
+			}
+		    }
+		    break;
+		    case 3:
+		    {
+			mbc7chipbuf <<= 1;
+			mbc7chipbuf |= TestBit(val, 1);
+			mbc7chipsize += 1;
+
+			switch (mbc7chipcmd)
+			{
+			    case 0:
+			    {
+				if (mbc7chipsize == 16)
+				{
+
+				    switch ((mbc7chipaddr >> 6))
+				    {
+					case 0:
+					{
+					    mbc7wenable = false;
+					    mbc7intstate = 0;
+					}
+					break;
+					case 1:
+					{
+					    if (mbc7wenable)
+					    {
+						for (int i = 0; i < 256; i++)
+						{
+						    rambanks[(i << 1)] = (mbc7chipbuf >> 8);
+						    rambanks[((i << 1) + 1)] = (mbc7chipbuf & 0xFF);
+						}
+					    }
+
+					    mbc7intstate = 5;
+					}
+					break;
+					case 2:
+					{
+					    if (mbc7wenable)
+					    {
+						for (int i = 0; i < 256; i++)
+						{
+						    rambanks[(i << 1)] = 0xFF;
+						    rambanks[((i << 1) + 1)] = 0xFF;
+						}
+					    }
+
+					    mbc7intstate = 5;
+					}
+					break;
+					case 3:
+					{
+					    mbc7wenable = true;
+					    mbc7intstate = 0;
+					}
+					break;
+				    }
+
+				    mbc7chipsize = 0;
+				}
+			    }
+			    break;
+			    case 1:
+			    {
+				if (mbc7chipsize == 16)
+				{
+				    mbc7chipsize = 0;
+				    mbc7intstate = 5;
+				    mbc7intvalue = 0;
+				}
+			    }
+			    break;
+			    case 2:
+			    {
+				if (mbc7chipsize == 1)
+				{
+				    uint16_t tempaddr = ((mbc7chipaddr & 0x7F) << 1);
+				    mbc7chipbuf = ((rambanks[tempaddr] << 8) | (rambanks[(tempaddr + 1)]));
+				    mbc7intstate = 4;
+				    mbc7chipsize = 0;
+				}
+			    }
+			    break;
+			    default: cout << "Unrecognized EEPROM command of " << dec << (int)(mbc7chipcmd) << endl; exit(1); break;
+			}
+		    }
+		    break;
+		}
+	    }
+	}
+
+	if (oldchipclk && !mbc7chipclk)
+	{
+	    if (mbc7intstate == 4)
+	    {
+		mbc7intvalue = (int)(TestBit(mbc7chipbuf, 15));
+		mbc7chipbuf <<= 1;
+		mbc7chipsize += 1;
+
+		if (mbc7chipsize == 16)
+		{
+		    mbc7chipsize = 0;
+		    mbc7intstate = 0;
+		}
+	    }
+	}
     }
 };

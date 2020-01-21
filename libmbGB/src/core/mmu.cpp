@@ -94,12 +94,14 @@ namespace gb
 	gbcbgpalette.clear();
 	gbcobjpalette.clear();
 
+	int rambanksize = (gbmbc == MBCType::MBC7) ? 0x200 : 0x10000;
+
 	vram.resize(0x4000, 0);
 	sram.resize(0x2000, 0);
 	wram.resize(0x8000, 0);
 	oam.resize(0xA0, 0);
 	hram.resize(0x7F, 0);
-	rambanks.resize(0x8000, 0);
+	rambanks.resize(rambanksize, 0);
 	gbcbgpalette.resize(0x40, 0);
 	gbcobjpalette.resize(0x40, 0);
 	
@@ -114,7 +116,7 @@ namespace gb
 	file.seekg(offset);
 
 	file.read((char*)&cartmem[0], sizeof(cartmem));
-	file.read((char*)&rambanks[0], 0x8000);
+	file.read((char*)&rambanks[0], rambanksize);
 	file.read((char*)&vram[0], 0x4000);
 	file.read((char*)&wram[0], 0x8000);
 	file.read((char*)&oam[0], 0xA0);
@@ -144,8 +146,10 @@ namespace gb
 	    return false;
 	}
 
+	int rambanksize = (gbmbc == MBCType::MBC7) ? 0x200 : 0x10000;
+
 	file.write((char*)&cartmem[0], sizeof(cartmem));
-	file.write((char*)&rambanks[0], 0x8000);
+	file.write((char*)&rambanks[0], rambanksize);
 	file.write((char*)&vram[0], 0x4000);
 	file.write((char*)&wram[0], 0x8000);
 	file.write((char*)&oam[0], 0xA0);
@@ -182,7 +186,8 @@ namespace gb
 	    {
 		if (gbmbc != MBCType::None && batteryenabled)
 		{
-		    sram.read((char*)&rambanks[0], 0x8000);
+		    int rambanksize = (gbmbc == MBCType::MBC7) ? 0x200 : 0x10000;
+		    sram.read((char*)&rambanks[0], rambanksize);
 		    cout << "MMU::Save data succesfully loaded." << endl;
 		    sram.close();
 		    success = true;
@@ -214,7 +219,8 @@ namespace gb
 	    {
 		if (gbmbc != MBCType::None && batteryenabled)
 		{
-		    sram.write((char*)&rambanks[0], 0x8000);
+		    int rambanksize = (gbmbc == MBCType::MBC7) ? 0x200 : 0x10000;
+		    sram.write((char*)&rambanks[0], rambanksize);
 		    cout << "MMU::Save data succesfully stored." << endl;
 		    sram.close();
 		    success = true;
@@ -269,6 +275,7 @@ namespace gb
 		case MBCType::MBC2: temp = mbc2read(addr); break;
 		case MBCType::MBC3: temp = mbc3read(addr); break;
 		case MBCType::MBC5: temp = mbc5read(addr); break;
+		case MBCType::MBC7: temp = mbc7read(addr); break;
 	    }
 
 	    return temp;
@@ -288,6 +295,7 @@ namespace gb
 		case MBCType::MBC2: temp = mbc2read(addr); break;
 		case MBCType::MBC3: temp = mbc3read(addr); break;
 		case MBCType::MBC5: temp = mbc5read(addr); break;
+		case MBCType::MBC7: temp = mbc7read(addr); break;
 	    }
 
 	    return temp;
@@ -399,6 +407,7 @@ namespace gb
 		case MBCType::MBC2: mbc2write(addr, value); break;
 		case MBCType::MBC3: mbc3write(addr, value); break;
 		case MBCType::MBC5: mbc5write(addr, value); break;
+		case MBCType::MBC7: mbc7write(addr, value); break;
 	    }
 	}
 	else if (addr < 0xA000)
@@ -414,6 +423,7 @@ namespace gb
 		case MBCType::MBC2: mbc2write(addr, value); break;
 		case MBCType::MBC3: mbc3write(addr, value); break;
 		case MBCType::MBC5: mbc5write(addr, value); break;
+		case MBCType::MBC7: mbc7write(addr, value); break;
 	    }
 	}
 	else if (addr < 0xD000)
@@ -786,6 +796,13 @@ namespace gb
 		cout << "MMU::Warning - Size of ROM does not match size in cartridge header." << endl;
 	    }
 
+
+	    if (gbmbc == MBCType::MBC7)
+	    {
+		rambanks.clear();
+		rambanks.resize(0x200, 0);
+	    }
+
 	    memcpy(&rom[0], &cartmem[0], 0x8000);
 	    cout << "MMU::" << filename << " succesfully loaded." << endl;
 	    return true;
@@ -842,6 +859,12 @@ namespace gb
 	    if (gbmbc != MBCType::None && size != (numrombanks * 0x4000))
 	    {
 		cout << "MMU::Warning - Size of ROM does not match size in cartridge header." << endl;
+	    }
+
+	    if (gbmbc == MBCType::MBC7)
+	    {
+		rambanks.clear();
+		rambanks.resize(256, 0);
 	    }
 
 	    memcpy(&rom[0], &cartmem[0], 0x8000);

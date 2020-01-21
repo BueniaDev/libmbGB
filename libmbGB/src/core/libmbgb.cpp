@@ -100,6 +100,8 @@ namespace gb
 	cout << "--sys-hybrid \t\t Plays ROMs in hybrid DMG/GBC mode. (GB/GBC ROMs only)." << endl;
 	cout << "--dotrender \t\t Enables the more accurate dot-based renderer." << endl;
 	cout << "--accurate-colors \t\t Improves the accuracy of the displayed colors (GBC only)." << endl;
+	cout << "--printer \t\t Emulates the Game Boy Printer." << endl;
+	cout << "--mobile \t\t Emulates the Mobile Adapter GB (currently WIP)." << endl;
 	cout << "-h, --help \t\t Displays this help message." << endl;
 	cout << endl;
     }
@@ -438,6 +440,11 @@ namespace gb
     void GBCore::setrumblecallback(rumblefunc cb)
     {
 	coremmu->setrumblecallback(cb);
+    }
+
+    void GBCore::setsensorcallback(sensorfunc cb)
+    {
+	coremmu->setsensorcallback(cb);
     }
 
     void GBCore::setaudiocallback(apuoutputfunc cb)

@@ -31,6 +31,7 @@ namespace gb
 {
     using linkfunc = function<void(uint8_t)>;
     using printfunc = function<void(vector<RGB> &)>;
+    using htmlarr = array<string, 1>;
 	
 	class LIBMBGB_API MobileAdapterGB
 	{
@@ -142,10 +143,15 @@ namespace gb
 			void update();
 			void processbyte();
 			void processcommand();
-			void processpop();
+			void processpop();	
+			void processhttp();
 
 			bool popsessionstarted = false;
 			int poptransferstate = 0;
+
+			int httptransferstate = 0;
+
+			string httpdata;
 
 			bool loadadapterdata()
 			{
@@ -220,6 +226,29 @@ namespace gb
 
 				return (timeptr->tm_mon == 11);
 			}
+
+			array<string, 1> serverin = 
+			{
+			    "/01/CGB-B9AJ/index.html",
+			};
+
+			htmlarr htmldata = 
+			{
+			    "<title>Hello world!</title>",
+			};
+
+			htmlarr htmlxmas = 
+			{
+			    "<title>Happy holidays!</title>",
+			};
+
+			array<htmlarr, 2> htmltext =
+			{
+			    htmldata,
+			    htmlxmas,
+			};
+
+			int dataindex = 0;
 	};
 
     class LIBMBGB_API GBPrinter

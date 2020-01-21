@@ -18,7 +18,7 @@ And more to come!
 
 `cd libmbGB && source beemake`
 
-`bm build`
+`bme`
 
 `./build/example/sdl2/example some.gb(c)`
 
@@ -45,7 +45,7 @@ The beemake bash file has some aliases that save some keypresses.
 # Commands
 
 ## pull
-Does a `git pull` in additin to updating submodules. Use this, if possible, instead of git pull.
+Does a `git pull` in addition to updating submodules. Use this, if possible, instead of git pull.
 
 `bm pull`
 
@@ -164,6 +164,8 @@ Frontends for numerous systems (via mbGB-ports)
 
 Graphical frontend (via mbGB-Qt)
 
+Android frontend (via mbGB-droid)
+
 WebAssembly port
 
 ## Long-term
@@ -178,6 +180,6 @@ libmbGB is free software: you can redistribute it and/or modify it under the ter
 
 # Copyright
 
-(C) 2019 Buenia. This project is not affiliated in any way with Nintendo. Game Boy is a registered trademark of Nintendo Co., Ltd.
+(C) 2020 Buenia. This project is not affiliated in any way with Nintendo. Game Boy and Game Boy Color are registered trademarks of Nintendo Co., Ltd.
 
 For information regarding libmbGB's stance on copyright infringement, see the DISCLAIMER.md file in this repository.
