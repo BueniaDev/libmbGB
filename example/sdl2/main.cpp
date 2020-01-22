@@ -525,6 +525,7 @@ void handleinput(SDL_Event event)
 	    case SDLK_j: updatesensor(GYRO_LEFT, true); break;
 	    case SDLK_k: updatesensor(GYRO_DOWN, true); break;
 	    case SDLK_l: updatesensor(GYRO_RIGHT, true); break;
+	    case SDLK_d: core.dumpvram("vram.dump"); break;
 	}
     }
     else if (event.type == SDL_KEYUP)

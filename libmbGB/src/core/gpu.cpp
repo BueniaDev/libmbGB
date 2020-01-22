@@ -47,7 +47,7 @@ namespace gb
     {
 	scanlinecounter = 0;
 	windowlinecounter = 0;
-	// clearscreen();
+	clearscreen();
 	cout << "GPU::Initialized" << endl;
     }
 

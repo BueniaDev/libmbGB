@@ -54,8 +54,6 @@ namespace gb
 	fill(oam.begin(), oam.end(), 0);
 	fill(hram.begin(), hram.end(), 0);
 
-	initvram();
-
 	cout << "MMU::Initialized" << endl;
 
 	gbmode = Mode::Default; // DO NOT DISABLE THIS! Doing so breaks the emulator on reset!
@@ -838,6 +836,9 @@ namespace gb
 	    {
 		gbmode = Mode::DMG;
 	    }
+
+	    cout << (int)(isdmgmode()) << endl;
+	    initvram();
 
 	    cout << "Title: " << determinegametitle(cartmem) << endl;
 	    determinembctype(cartmem);
