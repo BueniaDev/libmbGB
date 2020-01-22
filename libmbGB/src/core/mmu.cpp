@@ -54,9 +54,61 @@ namespace gb
 	fill(oam.begin(), oam.end(), 0);
 	fill(hram.begin(), hram.end(), 0);
 
+	initvram();
+
 	cout << "MMU::Initialized" << endl;
 
 	gbmode = Mode::Default; // DO NOT DISABLE THIS! Doing so breaks the emulator on reset!
+    }
+
+    void MMU::initvram()
+    {
+    if (isdmgmode()) {
+        // Initialize the tile map.
+        int inittilemap = 0x19;
+        vram[0x1910] = inittilemap--;
+        for (int addr = 0x192F; addr >= 0x1924; --addr) {
+            vram[addr] = inittilemap--;
+        }
+
+        for (int addr = 0x190F; addr >= 0x1904; --addr) {
+            vram[addr] = inittilemap--;
+        }
+    }
+
+        array<uint8_t, 200> inittiledata{{
+  	    0xF0, 0xF0, 0xFC, 0xFC, 0xFC, 0xFC, 0xF3, 0xF3,
+            0x3C, 0x3C, 0x3C, 0x3C, 0x3C, 0x3C, 0x3C, 0x3C,
+            0xF0, 0xF0, 0xF0, 0xF0, 0x00, 0x00, 0xF3, 0xF3,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xCF, 0xCF,
+            0x00, 0x00, 0x0F, 0x0F, 0x3F, 0x3F, 0x0F, 0x0F,
+            0x00, 0x00, 0x00, 0x00, 0xC0, 0xC0, 0x0F, 0x0F,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0xF0,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF3, 0xF3,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xC0, 0xC0,
+            0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0xFF, 0xFF,
+            0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC3, 0xC3,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFC, 0xFC,
+            0xF3, 0xF3, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0,
+            0x3C, 0x3C, 0xFC, 0xFC, 0xFC, 0xFC, 0x3C, 0x3C,
+            0xF3, 0xF3, 0xF3, 0xF3, 0xF3, 0xF3, 0xF3, 0xF3,
+            0xF3, 0xF3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3,
+            0xCF, 0xCF, 0xCF, 0xCF, 0xCF, 0xCF, 0xCF, 0xCF,
+            0x3C, 0x3C, 0x3F, 0x3F, 0x3C, 0x3C, 0x0F, 0x0F,
+            0x3C, 0x3C, 0xFC, 0xFC, 0x00, 0x00, 0xFC, 0xFC,
+            0xFC, 0xFC, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0,
+            0xF3, 0xF3, 0xF3, 0xF3, 0xF3, 0xF3, 0xF0, 0xF0,
+            0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xFF, 0xFF,
+            0xCF, 0xCF, 0xCF, 0xCF, 0xCF, 0xCF, 0xC3, 0xC3,
+            0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0xFC, 0xFC,
+            0x3C, 0x42, 0xB9, 0xA5, 0xB9, 0xA5, 0x42, 0x3C
+        }};
+
+        auto tiledataiter = inittiledata.begin();
+        for (int addr = 0x0010; addr < 0x01A0; addr += 2) 
+	{
+            vram[addr] = *tiledataiter++;
+	}
     }
 
     void MMU::initnot()
@@ -261,7 +313,7 @@ namespace gb
 	    }
 	    else
 	    {
-		return rom[addr];
+		return (gbmbc == MBCType::WisdomTree) ? wisdomtreeread(addr) : rom[addr];
 	    }
 	}
 	else if (addr < 0x8000)
@@ -276,6 +328,7 @@ namespace gb
 		case MBCType::MBC3: temp = mbc3read(addr); break;
 		case MBCType::MBC5: temp = mbc5read(addr); break;
 		case MBCType::MBC7: temp = mbc7read(addr); break;
+		case MBCType::WisdomTree: temp = wisdomtreeread(addr); break;
 	    }
 
 	    return temp;
@@ -296,6 +349,7 @@ namespace gb
 		case MBCType::MBC3: temp = mbc3read(addr); break;
 		case MBCType::MBC5: temp = mbc5read(addr); break;
 		case MBCType::MBC7: temp = mbc7read(addr); break;
+		case MBCType::WisdomTree: temp = wisdomtreeread(addr); break;
 	    }
 
 	    return temp;
@@ -408,6 +462,7 @@ namespace gb
 		case MBCType::MBC3: mbc3write(addr, value); break;
 		case MBCType::MBC5: mbc5write(addr, value); break;
 		case MBCType::MBC7: mbc7write(addr, value); break;
+		case MBCType::WisdomTree: wisdomtreewrite(addr, value); break;
 	    }
 	}
 	else if (addr < 0xA000)
@@ -424,6 +479,7 @@ namespace gb
 		case MBCType::MBC3: mbc3write(addr, value); break;
 		case MBCType::MBC5: mbc5write(addr, value); break;
 		case MBCType::MBC7: mbc7write(addr, value); break;
+		case MBCType::WisdomTree: wisdomtreewrite(addr, value); break;
 	    }
 	}
 	else if (addr < 0xD000)
@@ -785,13 +841,14 @@ namespace gb
 
 	    cout << "Title: " << determinegametitle(cartmem) << endl;
 	    determinembctype(cartmem);
-	    cout << "MBC type: " << mbctype << endl;
 	    numrombanks = getrombanks(cartmem);
-	    cout << "ROM size: " << romsize << endl;
 	    numrambanks = getrambanks(cartmem);
+	    wisdomtreeorrom(cartmem);
+	    cout << "MBC type: " << mbctype << endl;
+	    cout << "ROM size: " << romsize << endl;
 	    cout << "RAM size: " << ramsize << endl;
 
-	    if (gbmbc != MBCType::None && size != (numrombanks * 0x4000))
+	    if (gbmbc != MBCType::None && numrombanks != 0 && size != (numrombanks * 0x4000))
 	    {
 		cout << "MMU::Warning - Size of ROM does not match size in cartridge header." << endl;
 	    }

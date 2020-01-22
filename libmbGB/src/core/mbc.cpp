@@ -713,4 +713,29 @@ namespace gb
 	    }
 	}
     }
+
+    uint8_t MMU::wisdomtreeread(uint16_t addr)
+    {
+	uint8_t temp = 0;
+
+	if (addr < 0x8000)
+	{
+	    temp = cartmem[(addr + (wisdomrombank * 0x4000))];
+	}
+	else if ((addr >= 0xA000) && (addr < 0xC000))
+	{
+	    temp = 0xFF;
+	}
+
+	return temp;
+    }
+
+    void MMU::wisdomtreewrite(uint16_t addr, uint8_t value)
+    {
+	if (addr < 0x4000)
+	{
+	    int bank = (addr & 0x3F);
+	    wisdomrombank = (bank << 1);
+	}
+    }
 };

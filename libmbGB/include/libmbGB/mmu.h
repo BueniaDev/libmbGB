@@ -75,6 +75,7 @@ namespace gb
 	    MBCType gbmbc;
 
 	    void init();
+	    void initvram();
 	    void initnot();
 	    void shutdown();
 		
@@ -171,6 +172,7 @@ namespace gb
 	    bool biosload = false;
 	    uint8_t currentrombank = 1;
 	    uint8_t currentrambank = 0;
+	    uint8_t wisdomrombank = 0;
 	    int higherrombankbits = 0;
 	    bool ramenabled = false;
 	    bool batteryenabled = false;
@@ -290,11 +292,67 @@ namespace gb
 		return doublespeed;
 	    }
 
+	    bool detectwisdomtree = false;
+
+	    inline bool iswisdomtree(vector<uint8_t>& rom)
+	    {
+		for (int i = 0x134; i < 0x14C; i += 4)
+		{
+		    if (*(uint32_t*)&rom[i] != 0)
+		    {
+			return false;
+		    }
+		}
+
+		for (int i = 0xF0; i < 0x100; i += 4)
+		{
+		    if (*(uint32_t*)&rom[i] != 0)
+		    {
+			return false;
+		    }
+		}
+
+		if (rom[0x14D] != 0xE7)
+		{
+		    return false;
+		}
+
+
+		for (int i = 0x300; i < (int)(rom.size() - 11); i++)
+		{
+		    if ((strncmp((const char*)&rom[i], "WISDOM", 6) == 0) && (strncmp((const char*)&rom[i + 7], "TREE", 4) == 0))
+		    {
+			return true;
+		    }
+		}
+
+		return false;
+	    }
+
+	    inline void wisdomtreeorrom(vector<uint8_t>& rom)
+	    {
+		if (detectwisdomtree)
+		{
+		    if (iswisdomtree(rom))
+		    {
+			gbmbc = MBCType::WisdomTree;
+			numrombanks = 64;
+			romsize = "1 MB";
+			mbctype = "WISDOM TREE";
+		    }
+		    else
+		    {
+			gbmbc = MBCType::None;
+			mbctype = "ROM ONLY";
+		    }
+		}
+	    }
+
 	    inline void determinembctype(vector<uint8_t>& rom)
 	    {
 		switch (rom[0x0147])
 		{
-		    case 0x00: gbmbc = MBCType::None; externalrampres = false; mbctype = "ROM ONLY"; batteryenabled = false; break;
+		    case 0x00: detectwisdomtree = true; gbmbc = MBCType::None; externalrampres = false; mbctype = "ROM ONLY"; batteryenabled = false; break;
 		    case 0x01: gbmbc = MBCType::MBC1; externalrampres = false; mbctype = "MBC1"; batteryenabled = false; break;
 		    case 0x02: gbmbc = MBCType::MBC1; externalrampres = true; mbctype = "MBC1 + RAM"; batteryenabled = false; break;
 		    case 0x03: gbmbc = MBCType::MBC1; externalrampres = true; mbctype = "MBC1 + RAM + BATTERY"; batteryenabled = true; break;
@@ -395,6 +453,8 @@ namespace gb
 	    void mbc5write(uint16_t addr, uint8_t value);
 	    uint8_t mbc7read(uint16_t addr);
 	    void mbc7write(uint16_t addr, uint8_t value);
+	    uint8_t wisdomtreeread(uint16_t addr);
+	    void wisdomtreewrite(uint16_t addr, uint8_t value);
 
 	    uint8_t readIO(uint16_t addr);
 	    void writeIO(uint16_t addr, uint8_t value);
@@ -529,7 +589,7 @@ namespace gb
 	    {
 		biosload = false;
 		cout << "MMU::Exiting BIOS..." << endl;
-		screen();
+		// screen();
 	    }
 
 	    inline void requestinterrupt(int id)
