@@ -196,6 +196,7 @@ namespace gb
 	cout << "STAT: " << hex << (int)(mem.readByte(0xFF41)) << endl;
 	cout << "LY: " << hex << (int)(mem.readByte(0xFF44)) << endl;
 	cout << "LYC: " << hex << (int)(mem.readByte(0xFF45)) << endl;
+	cout << "Current ROM bank: " << hex << (int)(mem.currentrombank) << endl;
 	cout << "Scanline counter: " << dec << (int)(gpu.scanlinecounter) << endl;
 	cout << "Opcode: " << hex << (int)(mem.readByte(pc)) << endl;
 	cout << endl;
@@ -303,6 +304,13 @@ namespace gb
 		cycles = 4;
 		return cycles;
 	    }
+	    else if (mem.hdmainprogress() && state != CPUState::Halted)
+	    {
+		mem.updategbcdma();
+		haltedtick(4);
+		cycles = 4;
+		return cycles;
+	    }
 
 	    cycles += handleinterrupts();
 
@@ -348,6 +356,7 @@ namespace gb
 	    timer.updatetimer();
 	    link.updateserial();
 	    mem.updateoamdma();
+	    mem.updategbcdma();
 	    gpu.updatelcd();
 
 	    for (int i = 0; i < (2 >> mem.doublespeed); i++)

@@ -145,15 +145,9 @@ namespace gb
 		setstatmode(0); // Set mode to 0
 
 		// HDMA transfer logic
-		if (gpumem.isgbcconsole() && gpumem.hdmaactive)
+		if (gpumem.isgbcconsole())
 		{
-		    if ((gpumem.hdmalength & 0x7F) == 0)
-		    {
-			gpumem.hdmaactive = false;
-		    }
-
-		    gpumem.hdmatransfer();
-		    gpumem.hdmalength -= 1;
+		    gpumem.activatehdma();
 		}
 	    }
 	}

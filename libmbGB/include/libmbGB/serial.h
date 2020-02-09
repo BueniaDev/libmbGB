@@ -44,6 +44,8 @@ namespace gb
 	    MMU& serialmem;
 		
 		serialfunc linkready;
+
+		bool dump = false;
 			
 		void setlinkcallback(serialfunc cb)
 		{
@@ -54,6 +56,7 @@ namespace gb
 		{
 		    if (linkready)
 		    {
+			dump = true;
 			linkready(bytetotransfer, TestBit(sc, 0));
 			pendingrecieve = true;
 		    }

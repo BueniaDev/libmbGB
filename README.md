@@ -150,6 +150,12 @@ Step 3: Compile:
 
 `(mingw32-)make -j4`
 
+# Known issues
+
+# MBC1-based multicart games
+
+MBC1 multicarts, such as Mortal Kombat 1/2 and Bomberman Collection, as well as a few others, require the command line argument of "--mbc1m" passed to libmbGB in order to run properly.
+
 # Plans
 
 ## Near-term

@@ -118,9 +118,6 @@ namespace gb
 		vrambank = 0;
 		wrambank = 1;
 		writeByte(0xFF4D, 0x7E);
-		hdmasource = 0xFFFF;
-		hdmadest = 0xFFFF;
-		hdmalength = 0xFF;
 		doublespeed = false;
 	    }
 
@@ -187,8 +184,78 @@ namespace gb
 	    bool hybrid = false;
 	    bool doublespeed = false;
 
+
 	    bool rtclatch1 = true;
 	    bool rtclatch2 = true;
+	    void latchtimer();
+	    void updatetimer();
+	    time_t currenttime = 0;
+
+	    uint8_t realsecs = 0;
+	    uint8_t realmins = 0;
+	    uint8_t realhours = 0;
+	    uint8_t realdays = 0;
+	    uint8_t realdayshi = 0;
+
+	    uint8_t latchsecs = 0;
+	    uint8_t latchmins = 0;
+	    uint8_t latchhours = 0;
+	    uint8_t latchdays = 0;
+	    uint8_t latchdayshi = 0;
+
+	    void loadbackuprtc(fstream& file)
+	    {
+		if (isrtcpres)
+		{
+		    file.read((char*)&realsecs, sizeof(realsecs));
+		    file.read((char*)&realmins, sizeof(realmins));
+		    file.read((char*)&realhours, sizeof(realhours));
+		    file.read((char*)&realdays, sizeof(realdays));
+		    file.read((char*)&realdayshi, sizeof(realdayshi));
+		    file.read((char*)&latchsecs, sizeof(latchsecs));
+		    file.read((char*)&latchmins, sizeof(latchmins));
+		    file.read((char*)&latchhours, sizeof(latchhours));
+		    file.read((char*)&latchdays, sizeof(latchdays));
+		    file.read((char*)&latchdayshi, sizeof(latchdayshi));
+		    
+		    for (int i = 0; i < 8; i++)
+		    {
+			uint8_t temptime = 0;
+			file.read((char*)&temptime, sizeof(temptime));
+			currenttime |= (temptime << (8 * i));
+		    }
+
+		    if (currenttime <= 0)
+		    {
+			currenttime = time(NULL);
+		    }
+
+		    updatetimer();
+		}
+	    }
+
+	    void savebackuprtc(fstream& file)
+	    {
+		if (isrtcpres)
+		{
+		    file.write((char*)&realsecs, sizeof(realsecs));
+		    file.write((char*)&realmins, sizeof(realmins));
+		    file.write((char*)&realhours, sizeof(realhours));
+		    file.write((char*)&realdays, sizeof(realdays));
+		    file.write((char*)&realdayshi, sizeof(realdayshi));
+		    file.write((char*)&latchsecs, sizeof(latchsecs));
+		    file.write((char*)&latchmins, sizeof(latchmins));
+		    file.write((char*)&latchhours, sizeof(latchhours));
+		    file.write((char*)&latchdays, sizeof(latchdays));
+		    file.write((char*)&latchdayshi, sizeof(latchdayshi));
+		    
+		    for (int i = 0; i < 8; i++)
+		    {
+			uint8_t temptime = (uint8_t)(currenttime >> (8 * i));
+			file.write((char*)&temptime, sizeof(temptime));
+		    }
+		}
+	    }
 
 	    uint8_t readmbc7ram(uint16_t addr);
 	    void writembc7ram(uint16_t addr, uint8_t val);
@@ -234,22 +301,6 @@ namespace gb
 	    vector<uint8_t> gbcobjpalette;
 	    bool gbcbgpalinc = false;
 	    bool gbcobjpalinc = false;
-
-	    bool hdmaactive = false;
-	    uint16_t hdmadest = 0;
-	    uint16_t hdmasource = 0;
-	    uint16_t hdmalength = 0;
-
-	    inline void hdmatransfer()
-	    {
-		for (int i = 0; i < 0x10; i++)
-		{
-		    writeByte(hdmadest, readByte(hdmasource));
-
-		    hdmadest += 1;
-		    hdmasource += 1;
-		}
-	    }
 	
 
 	    bool isdmgconsole()
@@ -445,6 +496,10 @@ namespace gb
 
 	    uint8_t mbc1read(uint16_t addr);
 	    void mbc1write(uint16_t addr, uint8_t value);
+	    uint8_t mbc1rread(uint16_t addr);
+	    void mbc1rwrite(uint16_t addr, uint8_t value);
+	    uint8_t mbc1mread(uint16_t addr);
+	    void mbc1mwrite(uint16_t addr, uint8_t value);
 	    uint8_t mbc2read(uint16_t addr);
 	    void mbc2write(uint16_t addr, uint8_t value);
 	    uint8_t mbc3read(uint16_t addr);
@@ -455,6 +510,8 @@ namespace gb
 	    void mbc7write(uint16_t addr, uint8_t value);
 	    uint8_t wisdomtreeread(uint16_t addr);
 	    void wisdomtreewrite(uint16_t addr, uint8_t value);
+
+	    bool ismulticart = false;
 
 	    uint8_t readIO(uint16_t addr);
 	    void writeIO(uint16_t addr, uint8_t value);
@@ -476,6 +533,12 @@ namespace gb
 		Vram = 1
 	    };
 
+	    enum HdmaType : int
+	    {
+		Gdma = 0,
+		Hdma = 1,
+	    };
+
 	    DmaState oamdmastate = DmaState::Inactive;
 	    Bus dmabusblock = Bus::None;
 
@@ -484,6 +547,16 @@ namespace gb
 	    uint8_t oamdmastart;
 	    int bytesread = 160;
 	    int dmadelay = 0;
+
+	    uint16_t hdmasource = 0;
+	    uint16_t hdmadest = 0;
+	    int hdmabytestocopy = 0;
+	    int hdmabytes = 0;
+
+	    bool ishdmaactive = false;
+
+	    HdmaType hdmatype;
+	    DmaState hdmastate = DmaState::Inactive;
 
 	    poweronfunc poweron;
 	    joypadfunc updatep1;
@@ -539,18 +612,100 @@ namespace gb
 		}
 	    }
 
+	    inline void activatehdma()
+	    {
+		if (hdmastate == DmaState::Paused)
+		{
+		    hdmabytes = 16;
+		    hdmastate = DmaState::Starting;
+		}
+	    }
+
+	    inline void initgbcdma(uint8_t value)
+	    {
+		hdmatype = TestBit(value, 7) ? HdmaType::Hdma : HdmaType::Gdma;
+		hdmabytestocopy = (((value & 0x7F) + 1) * 16);
+		ishdmaactive = true;
+		hdmabytes = 16;
+
+		if ((hdmatype == HdmaType::Hdma) && ((readDirectly(0xFF41) & 0x3) != 0))
+		{
+		    hdmastate = DmaState::Paused;
+		}
+		else
+		{
+		    hdmastate = DmaState::Starting;
+		}
+	    }
+
+	    inline void updategbcdma()
+	    {
+		if (hdmastate == DmaState::Starting)
+		{
+		    hdmastate = DmaState::Active;
+		}
+		else if (hdmastate == DmaState::Active)
+		{
+		    executehdma();
+
+		    if (hdmabytestocopy == 0)
+		    {
+			ishdmaactive = false;
+			hdmabytestocopy = 2048;
+			hdmastate = DmaState::Inactive;
+		    }
+		    else if ((hdmatype == HdmaType::Hdma) && (hdmabytes == 0))
+		    {
+			hdmastate = DmaState::Paused;
+		    }
+		}
+	    }
+
+	    inline void executehdma()
+	    {
+		int numbytes = min((2 >> doublespeed), hdmabytestocopy);
+
+		if (hdmatype == HdmaType::Hdma)
+		{
+		    numbytes = min(numbytes, hdmabytes);
+		    hdmabytes -= numbytes;
+		}
+
+		hdmabytestocopy -= numbytes;
+
+		for (int i = 0; i < numbytes; i++)
+		{
+		    vram[(hdmadest - 0x8000) + (vrambank * 0x2000)] = dmacopy(hdmasource);
+
+		    hdmadest = ((hdmadest + 1) & 0x9FFF);
+		    ++hdmasource;
+		}
+	    }
+
+	    inline bool hdmainprogress()
+	    {
+		return ((hdmastate == DmaState::Active) || (hdmastate == DmaState::Starting));
+	    }
+
 	    uint8_t readDirectly(uint16_t addr);
 	    void writeDirectly(uint16_t addr, uint8_t value);
 
 	    inline uint8_t dmacopy(uint16_t addr)
 	    {
-		if (addr < 0xF000)
+		if (addr < 0xE000)
 		{
 		    return readDirectly(addr);
 		}
 		else
 		{
-		    return readDirectly(addr - 0x2000);
+		    if (hdmastate == DmaState::Active)
+		    {
+			return readDirectly(addr - 0x4000);
+		    }
+		    else
+		    {
+			return readDirectly(addr - 0x2000);
+		    }
 		}
 	    }
 

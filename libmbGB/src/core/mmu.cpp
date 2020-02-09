@@ -238,6 +238,7 @@ namespace gb
 		{
 		    int rambanksize = (gbmbc == MBCType::MBC7) ? 0x200 : 0x10000;
 		    sram.read((char*)&rambanks[0], rambanksize);
+		    loadbackuprtc(sram);
 		    cout << "MMU::Save data succesfully loaded." << endl;
 		    sram.close();
 		    success = true;
@@ -271,6 +272,7 @@ namespace gb
 		{
 		    int rambanksize = (gbmbc == MBCType::MBC7) ? 0x200 : 0x10000;
 		    sram.write((char*)&rambanks[0], rambanksize);
+		    savebackuprtc(sram);
 		    cout << "MMU::Save data succesfully stored." << endl;
 		    sram.close();
 		    success = true;
@@ -308,6 +310,10 @@ namespace gb
 		{
 		    return rom[addr];
 		}
+	    }
+	    else if (ismulticart)
+	    {
+		return mbc1mread(addr);
 	    }
 	    else
 	    {
@@ -607,6 +613,7 @@ namespace gb
 	    case 0x46: temp = oamdmastart; break;
 	    case 0x4D: temp = (key1 | (isgbcmode() ? 0x7E : 0xFF)); break;
 	    case 0x4F: temp = (vrambank | 0xFE); break;
+	    case 0x55: temp = ((!ishdmaactive) | 0x7F); break;
 	    case 0x68: temp = (isgbcconsole()) ? gbcbgpaletteindex : 0xFF; break;
 	    case 0x69: temp = (isgbcconsole()) ? gbcbgpalette[gbcbgpaletteindex] : 0xFF; break;
 	    case 0x6A: temp = (isgbcconsole()) ? gbcobjpaletteindex : 0xFF; break;
@@ -664,70 +671,43 @@ namespace gb
 	    break;
 	    case 0x51:
 	    {
-		if (!isgbcconsole())
-		{
-		    return;
-		}	
-
-		hdmasource = ((hdmasource & 0xFF) | (value << 8));
+		hdmasource = ((value << 8) | (hdmasource & 0xFF));
 	    }
 	    break;
 	    case 0x52:
 	    {
-		if (!isgbcconsole())
-		{
-		    return;
-		}	
-
 		hdmasource = ((hdmasource & 0xFF00) | (value & 0xF0));
 	    }
 	    break;
 	    case 0x53:
 	    {
-		if (!isgbcconsole())
-		{
-		    return;
-		}	
-
-		hdmadest = ((hdmadest & 0xFF) | (((value & 0x1F) | 0x80) << 8));
+		hdmadest = ((((value & 0x1F) | 0x80) << 8) | (hdmadest & 0xFF));
 	    }
 	    break;
 	    case 0x54:
 	    {
-		if (!isgbcconsole())
-		{
-		    return;
-		}	
-
 		hdmadest = ((hdmadest & 0xFF00) | (value & 0xF0));
 	    }
 	    break;
 	    case 0x55:
 	    {
-		if (!isgbcconsole())
+		if (hdmastate == DmaState::Inactive)
 		{
-		    return;
-		}	
-
-		hdmalength = (value & 0x7F);
-
-		if (!TestBit(value, 7) && !hdmaactive)
-		{
-		    for (int i = 0; i <= (hdmalength & 0x7F); i++)
-		    {
-			hdmatransfer();
-		    }
-
-		    hdmalength = 0xFF;
-		    hdmaactive = false;
-		}
-		else if (!TestBit(value, 7) && hdmaactive)
-		{
-		    hdmaactive = false;
+		    initgbcdma(value);
 		}
 		else
 		{
-		    hdmaactive = true;
+		    if (TestBit(value, 7))
+		    {
+			initgbcdma(value);
+		    }
+		    else
+		    {
+			ishdmaactive = false;
+			hdmabytestocopy = 0;
+			hdmabytes = 0;
+			hdmastate = DmaState::Inactive;
+		    }
 		}
 	    }
 	    break;

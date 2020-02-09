@@ -23,6 +23,30 @@ namespace gb
 {
     uint8_t MMU::mbc1read(uint16_t addr)
     {
+	if (ismulticart)
+	{
+	    return mbc1mread(addr);
+	}
+	else
+	{
+	    return mbc1rread(addr);
+	}
+    }
+
+    void MMU::mbc1write(uint16_t addr, uint8_t value)
+    {
+	if (ismulticart)
+	{
+	    mbc1mwrite(addr, value);
+	}
+	else
+	{
+	    mbc1rwrite(addr, value);
+	}
+    }
+
+    uint8_t MMU::mbc1rread(uint16_t addr)
+    {
 	uint8_t temp = 0;
 
 	if ((addr >= 0x4000) && (addr < 0x8000))
@@ -31,43 +55,23 @@ namespace gb
 	}
 	else if ((addr >= 0xA000) && (addr < 0xC000))
 	{
-	    if (ramenabled)
-	    {
-		if (!rommode)
-		{
-		    temp = rambanks[addr - 0xA000];
-		}
-		else
-		{
-		    int ramaddr = 0;
-		    if (currentrambank != 0)
-		    {
-			ramaddr = (currentrambank * 0x2000);
-		    }
-
-		    temp = rambanks[(addr - 0xA000) + ramaddr];
-		}
-	    }
-	    else
-	    {
-		temp = 0xFF;
-	    }
+	    temp = rambanks[(addr - 0xA000) + (currentrambank * 0x2000)];
 	}
 
 	return temp;
     }
 
-    void MMU::mbc1write(uint16_t addr, uint8_t value)
+    void MMU::mbc1rwrite(uint16_t addr, uint8_t value)
     {
 	if (addr < 0x2000)
 	{
 	    if (mbcramsize != 0)
 	    {
-		if ((value & 0xF) == 0xA)
+		if ((value & 0xA) == 0xA)
 		{
 		    ramenabled = true;
 		}
-		else if ((value & 0xF) == 0)
+		else if ((value & 0xA) == 0x0)
 		{
 		    ramenabled = false;
 		}
@@ -75,75 +79,125 @@ namespace gb
 	}
 	else if (addr < 0x4000)
 	{
-	    if (!rommode)
-	    {    
-		currentrombank = (value & 0x1F) | (higherrombankbits << 5);
+	    if (rommode)
+	    {
+		currentrombank = ((higherrombankbits << 5) | (value & 0x1F));
 	    }
 	    else
 	    {
 		currentrombank = (value & 0x1F);
 	    }
 
-	    for (uint8_t specialbank : specialrombanks)
+	    for (int i = 0; i < 4; i++)
 	    {
-		if (currentrombank == specialbank)
+		if (currentrombank == specialrombanks[i])
 		{
 		    currentrombank += 1;
+		    return;
 		}
 	    }
-
-	    currentrombank &= (numrombanks - 1);
 	}
 	else if (addr < 0x6000)
 	{
 	    if (rommode)
 	    {
-		currentrambank = (value & 0x03);
-		currentrambank &= (numrambanks - 1);
+		higherrombankbits = (value & 0x3);
 	    }
 	    else
 	    {
-		higherrombankbits = (value & 0x3);
-		currentrombank = (currentrombank & 0x1F) | (higherrombankbits << 5);
-
-		for (uint8_t specialbank : specialrombanks)
-	        {
-		    if (currentrombank == specialbank)
-		    {
-			currentrombank += 1;
-		    }
-		}
-
-		currentrombank &= (numrombanks - 1);
+		currentrambank = (value & 0x3);
 	    }
 	}
 	else if (addr < 0x8000)
 	{
-	    uint8_t data = (value & 0x01);
-	    rommode = (data == 0) ? false : true;
-
-	    if (!rommode)
+	    if (value == 0)
 	    {
-		currentrambank = 0;
+		rommode = true;
+	    }
+	    else if (value == 1)
+	    {
+		rommode = false;
 	    }
 	}
 	else if ((addr >= 0xA000) && (addr < 0xC000))
 	{
 	    if (ramenabled)
 	    {
-		if (!rommode)
-		{
-		    rambanks[addr - 0xA000] = value;
-		}
-		else
-		{
-		    uint16_t ramaddr = (currentrambank * 0x2000);
-		    rambanks[(addr - 0xA000) + ramaddr] = value;
-		}
+		rambanks[(addr - 0xA000) + (currentrambank * 0x2000)] = value;
+	    }
+	}
+    }
+
+    uint8_t MMU::mbc1mread(uint16_t addr)
+    {
+	uint8_t temp = 0;
+
+	if (addr < 0x4000)
+	{
+	    if (!rommode)
+	    {
+		temp = rom[addr];
+	    }
+	    else
+	    {
+		int tempaddr = (higherrombankbits << 4);
+		temp = cartmem[addr + (tempaddr * 0x4000)];
+	    }
+	}
+	else if (addr < 0x8000)
+	{
+	    temp = cartmem[(addr - 0x4000) + (currentrombank * 0x4000)];
+	}
+	else if ((addr >= 0xA000) && (addr < 0xC000))
+	{
+	    if (ramenabled)
+	    {
+		temp = rambanks[(addr - 0xA000)];
+	    }
+	    else
+	    {
+		temp = 0x00;
 	    }
 	}
 
-	return;
+	return temp;
+    }
+
+    void MMU::mbc1mwrite(uint16_t addr, uint8_t value)
+    {
+	if (addr < 0x2000)
+	{
+	    if (mbcramsize != 0)
+	    {
+		if ((value & 0xA) == 0xA)
+		{
+		    ramenabled = true;
+		}
+		else if ((value & 0xA) == 0x0)
+		{
+		    ramenabled = false;
+		}
+	    }
+	}
+	else if (addr < 0x4000)
+	{
+	    currentrombank = ((higherrombankbits << 4) | (value & 0xF));
+	}
+	else if (addr < 0x6000)
+	{
+	    higherrombankbits = (value & 0x3);
+	}
+	else if (addr < 0x8000)
+	{
+	    rommode = TestBit(value, 0);
+	}
+	else if ((addr >= 0xA000) && (addr < 0xC000))
+	{
+	    if (ramenabled)
+	    {
+		rambanks[(addr - 0xA000)] = value;
+	    }
+	}
     }
 
     uint8_t MMU::mbc2read(uint16_t addr)
@@ -215,8 +269,14 @@ namespace gb
 	    }
 	    else if (rtcenabled && ((currentrambank >= 0x8) && (currentrambank <= 0xC)))
 	    {
-		cout << "Reading RTC register..." << endl;
-		temp = 0xFF;
+		switch (currentrambank)
+		{
+		    case 0x8: temp = realsecs; break;
+		    case 0x9: temp = realmins; break;
+		    case 0xA: temp = realhours; break;
+		    case 0xB: temp = realdays; break;
+		    case 0xC: temp = realdayshi; break;
+		}
 	    }
 	}
 	else
@@ -272,7 +332,6 @@ namespace gb
 		{
 		    if ((value >= 0x08) && (value <= 0x0C))
 		    {
-			cout << "Selecting RTC register " << hex << (int)(value) << endl;
 			currentrambank = value;
 		    }
 		}
@@ -288,7 +347,7 @@ namespace gb
 		}
 		else if ((rtclatch2 == true) && (value == 1))
 		{
-		    cout << "Latching RTC register..." << endl;
+		    latchtimer();
 		    rtclatch1 = rtclatch2 = true;
 		}
 	    }
@@ -302,12 +361,91 @@ namespace gb
 	    }
 	    else if (rtcenabled && ((currentrambank >= 0x8) && (currentrambank <= 0xC)))
 	    {
-		cout << "Register: " << hex << (int)(currentrambank) << endl;
-		cout << "Value: " << hex << (int)(value) << endl;
-		cout << endl;
+		updatetimer();
+
+		switch (currentrambank)
+		{
+		    case 0x8: realsecs = value; break;
+		    case 0x9: realmins = value; break;
+		    case 0xA: realhours = value; break;
+		    case 0xB: realdays = value; break;
+		    case 0xC: realdayshi = value; break;
+		}
 	    }
 	}
     }
+
+    void MMU::updatetimer()
+    {
+	time_t newtime = time(NULL);
+	unsigned int difference = 0;
+
+	if ((newtime > currenttime) && !TestBit(realdayshi, 6))
+	{
+	    difference = (unsigned int)(newtime - currenttime);
+	    currenttime = newtime;
+	}
+	else
+	{
+	    currenttime = newtime;
+	    return;
+	}
+
+	unsigned int newsecs = (realsecs + difference);
+
+	if (newsecs == realsecs)
+	{
+	    return;
+	}
+
+	realsecs = (newsecs % 60);
+
+	unsigned int newmins = (realmins + (newsecs / 60));
+
+	if (newmins == realmins)
+	{
+	    return;
+	}
+
+	realmins = (newmins % 60);
+
+	unsigned int newhours = (realhours + (newmins / 60));
+
+	if (newhours == realhours)
+	{
+	    return;
+	}
+
+	realhours = (newhours % 24);
+
+	unsigned int realdaysunsplit = ((TestBit(realdayshi, 0) << 8) | realdays);
+	unsigned int newdays = (realdaysunsplit + (newhours / 24));
+
+	if (newdays == realdaysunsplit)
+	{
+	    return;
+	}
+
+	realdays = newdays;
+	realdayshi &= 0xFE;
+	realdayshi |= TestBit(newdays, 8);
+
+	if (newdays > 511)
+	{
+	    realdayshi = BitSet(realdayshi, 7);
+	}
+    }
+
+    void MMU::latchtimer()
+    {
+	updatetimer();
+	latchsecs = realsecs;
+	latchmins = realmins;
+	latchhours = realhours;
+	latchdays = realdays;
+	latchdayshi = realdayshi;
+    }
+
 
     uint8_t MMU::mbc5read(uint16_t addr)
     {
