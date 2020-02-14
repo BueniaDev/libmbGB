@@ -61,18 +61,20 @@ namespace gb
 
     void MMU::initvram()
     {
-    if (isdmgmode()) {
-        // Initialize the tile map.
-        int inittilemap = 0x19;
-        vram[0x1910] = inittilemap--;
-        for (int addr = 0x192F; addr >= 0x1924; --addr) {
-            vram[addr] = inittilemap--;
-        }
+	if (isdmgmode()) 
+	{
+	    int inittilemap = 0x19;
+	    vram[0x1910] = inittilemap--;
+	    for (int addr = 0x192F; addr >= 0x1924; --addr) 
+	    {
+		vram[addr] = inittilemap--;
+	    }
 
-        for (int addr = 0x190F; addr >= 0x1904; --addr) {
-            vram[addr] = inittilemap--;
-        }
-    }
+	    for (int addr = 0x190F; addr >= 0x1904; --addr) 
+	    {
+		vram[addr] = inittilemap--;
+	    }
+	}
 
         array<uint8_t, 200> inittiledata{{
   	    0xF0, 0xF0, 0xFC, 0xFC, 0xFC, 0xFC, 0xF3, 0xF3,
@@ -583,45 +585,43 @@ namespace gb
 	
 	if (addr >= 0xFF10 && (addr <= 0xFF26))
 	{
-		temp = memoryreadhandlers.at((addr - 0xFF00))(addr);
+	    temp = memoryreadhandlers.at((addr - 0xFF00))(addr);
 	}
 	else if ((addr >= 0xFF30) && (addr < 0xFF40))
 	{
-		temp = memoryreadhandlers.at((addr - 0xFF00))(addr);
+	    temp = memoryreadhandlers.at((addr - 0xFF00))(addr);
 	}
 	else if ((addr >= 0xFF40) && (addr < 0xFF46))
 	{
-		temp = memoryreadhandlers.at((addr - 0xFF00))(addr);
+	    temp = memoryreadhandlers.at((addr - 0xFF00))(addr);
 	}
 	else if ((addr >= 0xFF47) && (addr <= 0xFF4B))
 	{
-		temp = memoryreadhandlers.at((addr - 0xFF00))(addr);
+	    temp = memoryreadhandlers.at((addr - 0xFF00))(addr);
 	}
 	else
 	{
-	
-	switch ((addr & 0xFF))
-	{
-	    case 0x00: temp = memoryreadhandlers.at((addr - 0xFF00))(addr); break;
-	    case 0x01: temp = memoryreadhandlers.at((addr - 0xFF00))(addr); break;
-	    case 0x02: temp = memoryreadhandlers.at((addr - 0xFF00))(addr); break;
-	    case 0x04: temp = memoryreadhandlers.at((addr - 0xFF00))(addr); break;
-	    case 0x05: temp = memoryreadhandlers.at((addr - 0xFF00))(addr); break;
-	    case 0x06: temp = memoryreadhandlers.at((addr - 0xFF00))(addr); break;
-	    case 0x07: temp = memoryreadhandlers.at((addr - 0xFF00))(addr); break;
-	    case 0x0F: temp = (interruptflags | 0xE0); break;
-	    case 0x46: temp = oamdmastart; break;
-	    case 0x4D: temp = (key1 | (isgbcmode() ? 0x7E : 0xFF)); break;
-	    case 0x4F: temp = (vrambank | 0xFE); break;
-	    case 0x55: temp = ((!ishdmaactive) | 0x7F); break;
-	    case 0x68: temp = (isgbcconsole()) ? gbcbgpaletteindex : 0xFF; break;
-	    case 0x69: temp = (isgbcconsole()) ? gbcbgpalette[gbcbgpaletteindex] : 0xFF; break;
-	    case 0x6A: temp = (isgbcconsole()) ? gbcobjpaletteindex : 0xFF; break;
-	    case 0x6B: temp = (isgbcconsole()) ? gbcobjpalette[gbcobjpaletteindex] : 0xFF; break;
-	    case 0x70: temp = (wrambank | 0xF8); break;
-	    default: temp = 0xFF; break;
-	}
-	
+	    switch ((addr & 0xFF))
+	    {
+	    	case 0x00: temp = memoryreadhandlers.at((addr - 0xFF00))(addr); break;
+	    	case 0x01: temp = memoryreadhandlers.at((addr - 0xFF00))(addr); break;
+	    	case 0x02: temp = memoryreadhandlers.at((addr - 0xFF00))(addr); break;
+	    	case 0x04: temp = memoryreadhandlers.at((addr - 0xFF00))(addr); break;
+	    	case 0x05: temp = memoryreadhandlers.at((addr - 0xFF00))(addr); break;
+	    	case 0x06: temp = memoryreadhandlers.at((addr - 0xFF00))(addr); break;
+	    	case 0x07: temp = memoryreadhandlers.at((addr - 0xFF00))(addr); break;
+	    	case 0x0F: temp = (interruptflags | 0xE0); break;
+	    	case 0x46: temp = oamdmastart; break;
+	    	case 0x4D: temp = (key1 | (isgbcmode() ? 0x7E : 0xFF)); break;
+	    	case 0x4F: temp = (vrambank | 0xFE); break;
+	    	case 0x55: temp = ((!ishdmaactive) | 0x7F); break;
+	    	case 0x68: temp = (isgbcconsole()) ? gbcbgpaletteindex : 0xFF; break;
+	    	case 0x69: temp = (isgbcconsole()) ? gbcbgpalette[gbcbgpaletteindex] : 0xFF; break;
+	    	case 0x6A: temp = (isgbcconsole()) ? gbcobjpaletteindex : 0xFF; break;
+	    	case 0x6B: temp = (isgbcconsole()) ? gbcobjpalette[gbcobjpaletteindex] : 0xFF; break;
+	    	case 0x70: temp = (wrambank | 0xF8); break;
+	    	default: temp = 0xFF; break;
+	    }
 	}
 	
 	return temp;
@@ -631,150 +631,149 @@ namespace gb
     {
 	if (addr >= 0xFF10 && (addr <= 0xFF26))
 	{
-		memorywritehandlers.at((addr - 0xFF00))(addr, value);
+	    memorywritehandlers.at((addr - 0xFF00))(addr, value);
 	}
 	else if (addr >= 0xFF30 && (addr < 0xFF40))
 	{
-		memorywritehandlers.at((addr - 0xFF00))(addr, value);
+	    memorywritehandlers.at((addr - 0xFF00))(addr, value);
 	}
 	else if (addr >= 0xFF40 && (addr < 0xFF46))
 	{
-		memorywritehandlers.at((addr - 0xFF00))(addr, value);
+	    memorywritehandlers.at((addr - 0xFF00))(addr, value);
 	}
 	else if (addr >= 0xFF47 && (addr <= 0xFF4B))
 	{
-		memorywritehandlers.at((addr - 0xFF00))(addr, value);
+	    memorywritehandlers.at((addr - 0xFF00))(addr, value);
 	}
 	else
 	{
-
-	switch ((addr & 0xFF))
-	{
-	    case 0x00: memorywritehandlers.at((addr - 0xFF00))(addr, value); break;
-	    case 0x01: memorywritehandlers.at((addr - 0xFF00))(addr, value); break;
-	    case 0x02: memorywritehandlers.at((addr - 0xFF00))(addr, value); break;
-	    case 0x04: memorywritehandlers.at((addr - 0xFF00))(addr, value); break;
-	    case 0x05: memorywritehandlers.at((addr - 0xFF00))(addr, value); break;
-	    case 0x06: memorywritehandlers.at((addr - 0xFF00))(addr, value); break;
-	    case 0x07: memorywritehandlers.at((addr - 0xFF00))(addr, value); break;
-	    case 0x0F: writeif(value); break;
-	    case 0x46: writedma(value); break;
-	    case 0x4D: 
+	    switch ((addr & 0xFF))
 	    {
-		key1 = value;
-	    }
-	    break;
-	    case 0x4F: 
-	    {
-		vrambank = (isgbcconsole()) ? BitGetVal(value, 0) : 0;
-	    }
-	    break;
-	    case 0x51:
-	    {
-		hdmasource = ((value << 8) | (hdmasource & 0xFF));
-	    }
-	    break;
-	    case 0x52:
-	    {
-		hdmasource = ((hdmasource & 0xFF00) | (value & 0xF0));
-	    }
-	    break;
-	    case 0x53:
-	    {
-		hdmadest = ((((value & 0x1F) | 0x80) << 8) | (hdmadest & 0xFF));
-	    }
-	    break;
-	    case 0x54:
-	    {
-		hdmadest = ((hdmadest & 0xFF00) | (value & 0xF0));
-	    }
-	    break;
-	    case 0x55:
-	    {
-		if (hdmastate == DmaState::Inactive)
+		case 0x00: memorywritehandlers.at((addr - 0xFF00))(addr, value); break;
+		case 0x01: memorywritehandlers.at((addr - 0xFF00))(addr, value); break;
+		case 0x02: memorywritehandlers.at((addr - 0xFF00))(addr, value); break;
+		case 0x04: memorywritehandlers.at((addr - 0xFF00))(addr, value); break;
+		case 0x05: memorywritehandlers.at((addr - 0xFF00))(addr, value); break;
+	 	case 0x06: memorywritehandlers.at((addr - 0xFF00))(addr, value); break;
+		case 0x07: memorywritehandlers.at((addr - 0xFF00))(addr, value); break;
+		case 0x0F: writeif(value); break;
+		case 0x46: writedma(value); break;
+		case 0x4D: 
 		{
-		    initgbcdma(value);
+		    key1 = value;
 		}
-		else
+		break;
+		case 0x4F: 
 		{
-		    if (TestBit(value, 7))
+		    vrambank = (isgbcconsole()) ? BitGetVal(value, 0) : 0;
+		}
+		break;
+		case 0x51:
+		{
+		    hdmasource = ((value << 8) | (hdmasource & 0xFF));
+	 	}
+		break;
+		case 0x52:
+		{
+		    hdmasource = ((hdmasource & 0xFF00) | (value & 0xF0));
+		}
+		break;
+		case 0x53:
+		{
+		    hdmadest = ((((value & 0x1F) | 0x80) << 8) | (hdmadest & 0xFF));
+		}
+	 	break;
+		case 0x54:
+		{
+		    hdmadest = ((hdmadest & 0xFF00) | (value & 0xF0));
+		}
+		break;
+		case 0x55:
+		{
+		    if (hdmastate == DmaState::Inactive)
 		    {
 			initgbcdma(value);
 		    }
 		    else
 		    {
-			ishdmaactive = false;
-			hdmabytestocopy = 0;
-			hdmabytes = 0;
-			hdmastate = DmaState::Inactive;
+		    	if (TestBit(value, 7))
+		   	{
+			    initgbcdma(value);
+		    	}
+		    	else
+		   	{
+			    ishdmaactive = false;
+			    hdmabytestocopy = 0;
+			    hdmabytes = 0;
+			    hdmastate = DmaState::Inactive;
+		        }
 		    }
 		}
+		break;
+		case 0x68:
+		{
+		    if (!isgbcconsole())
+		    {
+		    	return;
+		    }	
+
+		    gbcbgpaletteindex = (value & 0x3F);
+		    gbcbgpalinc = TestBit(value, 7);
+	        }
+	        break;
+	        case 0x69:
+	        {
+		    if (!isgbcconsole())
+		    {
+		    	return;
+		    }		
+
+		    gbcbgpalette[gbcbgpaletteindex] = value;
+
+		    if (gbcbgpalinc)
+		    {
+		    	gbcbgpaletteindex = ((gbcbgpaletteindex + 1) & 0x3F);
+		    }
+	    	}
+	    	break;
+	    	case 0x6A:
+	    	{
+		    if (!isgbcconsole())
+		    {
+		    	return;
+		    }	
+
+		    gbcobjpaletteindex = (value & 0x3F);
+		    gbcobjpalinc = TestBit(value, 7);
+	    	}
+	    	break;
+	    	case 0x6B:
+	    	{
+		    if (!isgbcconsole())
+		    {
+		    	return;
+		    }		
+
+		    gbcobjpalette[gbcobjpaletteindex] = value;
+
+		    if (gbcbgpalinc)
+		    {
+		    	gbcobjpaletteindex = ((gbcobjpaletteindex + 1) & 0x3F);
+		    }
+	    	}
+	    	break;
+	    	case 0x70: 
+	    	{
+		    if (!isgbcconsole())
+		    {
+		    	return;
+		    }		
+
+		    wrambank = (value & 0x07);
+	    	}
+	    	break;
+	    	default: break;
 	    }
-	    break;
-	    case 0x68:
-	    {
-		if (!isgbcconsole())
-		{
-		    return;
-		}	
-
-		gbcbgpaletteindex = (value & 0x3F);
-		gbcbgpalinc = TestBit(value, 7);
-	    }
-	    break;
-	    case 0x69:
-	    {
-		if (!isgbcconsole())
-		{
-		    return;
-		}		
-
-		gbcbgpalette[gbcbgpaletteindex] = value;
-
-		if (gbcbgpalinc)
-		{
-		    gbcbgpaletteindex = ((gbcbgpaletteindex + 1) & 0x3F);
-		}
-	    }
-	    break;
-	    case 0x6A:
-	    {
-		if (!isgbcconsole())
-		{
-		    return;
-		}	
-
-		gbcobjpaletteindex = (value & 0x3F);
-		gbcobjpalinc = TestBit(value, 7);
-	    }
-	    break;
-	    case 0x6B:
-	    {
-		if (!isgbcconsole())
-		{
-		    return;
-		}		
-
-		gbcobjpalette[gbcobjpaletteindex] = value;
-
-		if (gbcbgpalinc)
-		{
-		    gbcobjpaletteindex = ((gbcobjpaletteindex + 1) & 0x3F);
-		}
-	    }
-	    break;
-	    case 0x70: 
-	    {
-		if (!isgbcconsole())
-		{
-		    return;
-		}		
-
-		wrambank = (value & 0x07);
-	    }
-	    break;
-	    default: break;
-	}
 	}
     }
 
@@ -817,7 +816,6 @@ namespace gb
 		gbmode = Mode::DMG;
 	    }
 
-	    cout << (int)(isdmgmode()) << endl;
 	    initvram();
 
 	    cout << "Title: " << determinegametitle(cartmem) << endl;
@@ -833,7 +831,6 @@ namespace gb
 	    {
 		cout << "MMU::Warning - Size of ROM does not match size in cartridge header." << endl;
 	    }
-
 
 	    if (gbmbc == MBCType::MBC7)
 	    {

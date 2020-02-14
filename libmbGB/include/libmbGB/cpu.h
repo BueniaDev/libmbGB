@@ -89,11 +89,6 @@ namespace gb
 	    bool loadcpu(string filename);
 	    bool savecpu(string filename);
 
-	    array<uint8_t, 15> cpustate;
-
-	    array<uint8_t, 15> savecpu();
-	    void loadcpu(array<uint8_t, 15>& data);
-
 	    bool loaded = false;
 
 	    inline int cpusize()
@@ -132,7 +127,7 @@ namespace gb
 	    uint16_t sp;
 
 	    int runfor(int cycles);
-		int runinstruction();
+	    int runinstruction();
 	    void hardwaretick(int cycles);
 	    void haltedtick(int cycles);
 	    int executenextopcode(uint8_t opcode);
@@ -150,24 +145,6 @@ namespace gb
 	    void enabledelayedinterrupts();
 
 	    void printregs();
-
-	    inline void updatedma()
-	    {
-		if (!mem.dmaactive)
-		{
-		    return;
-		}
-
-		uint16_t destaddr = 0xFE00;
-		uint16_t sourceaddr = (mem.dma << 8);
-
-		for (uint16_t i = 0; i < 0x100; i++)
-		{
-		    mem.writeByte(destaddr++, mem.readByte(sourceaddr++));
-		}
-
-		mem.dmaactive = false;
-	    }
 
 	    uint8_t getimmbyte()
 	    {
@@ -724,7 +701,6 @@ namespace gb
 	    inline void stoppedtick()
 	    {
 		haltedtick(4);
-
 		state = CPUState::Running;
 	    }
 

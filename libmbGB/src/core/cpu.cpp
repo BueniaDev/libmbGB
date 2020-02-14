@@ -279,58 +279,42 @@ namespace gb
 	pc = addr;
     }
 	
-	int CPU::runinstruction()
+    int CPU::runinstruction()
+    {
+	int cycles = 0;
+	if (state == CPUState::Stopped)
 	{
-	    /*
-	    if (pc == 0x3E02)
-	    {
-		breakpoint = true;
-	    }
-
-	    if (breakpoint == true)
-	    {
-		printregs();
-		if (pc == 0x3E37)
-		{
-		    exit(1);
-		}
-	    }
-	    */
-
-	    int cycles = 0;
-	    if (state == CPUState::Stopped)
-	    {
-		stoppedtick();
-		cycles = 4;
-		return cycles;
-	    }
-	    else if (mem.hdmainprogress() && state != CPUState::Halted)
-	    {
-		mem.updategbcdma();
-		haltedtick(4);
-		cycles = 4;
-		return cycles;
-	    }
-
-	    cycles += handleinterrupts();
-
-	    if (state == CPUState::Running)
-	    {
-		cycles += executenextopcode(mem.readByte(pc++));
-	    }
-	    else if (state == CPUState::HaltBug)
-	    {
-		cycles += executenextopcode(mem.readByte(pc));
-		state = CPUState::Running;
-	    }
-	    else if (state == CPUState::Halted)
-	    {
-		haltedtick(4);
-		cycles += 4;
-	    }
-		
+	    stoppedtick();
+	    cycles = 4;
 	    return cycles;
 	}
+	else if (mem.hdmainprogress() && state != CPUState::Halted)
+	{
+	    mem.updategbcdma();
+	    haltedtick(4);
+	    cycles = 4;
+	    return cycles;
+	}
+
+	cycles += handleinterrupts();
+
+	if (state == CPUState::Running)
+	{
+	    cycles += executenextopcode(mem.readByte(pc++));
+	}
+	else if (state == CPUState::HaltBug)
+	{
+	    cycles += executenextopcode(mem.readByte(pc));
+	    state = CPUState::Running;
+	}
+	else if (state == CPUState::Halted)
+	{
+	    haltedtick(4);
+	    cycles += 4;
+	}
+		
+	return cycles;
+    }
 
     int CPU::runfor(int cycles)
     {

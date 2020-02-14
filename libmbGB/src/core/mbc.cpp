@@ -655,8 +655,6 @@ namespace gb
 		case 0x8: writembc7eeprom(val); break;
 		default: return; break;
 	    }
-
-	    return;
 	}	
 	else
 	{
@@ -757,7 +755,6 @@ namespace gb
 			    {
 				if (mbc7chipsize == 16)
 				{
-
 				    switch ((mbc7chipaddr >> 6))
 				    {
 					case 0:

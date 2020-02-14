@@ -43,51 +43,48 @@ namespace gb
 
 	    MMU& serialmem;
 		
-		serialfunc linkready;
-
-		bool dump = false;
+	    serialfunc linkready;
 			
-		void setlinkcallback(serialfunc cb)
-		{
-			linkready = cb;
-		}
+	    void setlinkcallback(serialfunc cb)
+	    {
+		linkready = cb;
+	    }
 
-		void signalready()
+	    void signalready()
+	    {
+		if (linkready)
 		{
-		    if (linkready)
-		    {
-			dump = true;
-			linkready(bytetotransfer, TestBit(sc, 0));
-			pendingrecieve = true;
-		    }
+		    linkready(bytetotransfer, TestBit(sc, 0));
+		    pendingrecieve = true;
 		}
+	    }
 
-		void disconnectedready(uint8_t unused1, bool unused2)
-		{
-		    return;
-		}
+	    void disconnectedready(uint8_t unused1, bool unused2)
+	    {
+		return;
+	    }
 
-		void recieve(uint8_t byte)
-		{
-		    bytetorecieve = byte;
-		    serialmem.requestinterrupt(3);
-		    sc &= 0x7F;
-		    pendingrecieve = false;
-		}
+	    void recieve(uint8_t byte)
+	    {
+		bytetorecieve = byte;
+		serialmem.requestinterrupt(3);
+		sc &= 0x7F;
+		pendingrecieve = false;
+	    }
 
-		void disrecieve(uint8_t byte)
-		{
-		    return;
-		}
+	    void disrecieve(uint8_t byte)
+	    {
+		return;
+	    }
 		
-		uint8_t bytetotransfer = 0;
-		uint8_t bytetorecieve = 0;
+	    uint8_t bytetotransfer = 0;
+	    uint8_t bytetorecieve = 0;
 		
-		uint8_t sb = 0;
-		uint8_t sc = 0;
+	    uint8_t sb = 0;
+	    uint8_t sc = 0;
 		
-		uint8_t readserial(uint16_t addr);
-		void writeserial(uint16_t addr, uint8_t val);
+	    uint8_t readserial(uint16_t addr);
+	    void writeserial(uint16_t addr, uint8_t val);
 
 	    int serialclock = 0;
 	    int shiftcounter = 0;

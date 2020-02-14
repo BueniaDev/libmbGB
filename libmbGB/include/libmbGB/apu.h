@@ -110,10 +110,10 @@ namespace gb
 	    array<int, 8> s1dutycycle;
 	    array<int, 8> s2dutycycle;
 		
-		uint8_t readsoundon();
+	    uint8_t readsoundon();
 		
-		uint8_t readapu(uint16_t addr);
-		void writeapu(uint16_t addr, uint8_t val);
+	    uint8_t readapu(uint16_t addr);
+	    void writeapu(uint16_t addr, uint8_t val);
 
 	    int frametimer = 0;
 	    int s1seqpointer = 0;
@@ -159,7 +159,7 @@ namespace gb
 	    }
 
 	    inline void s1update(int frameseq);
-		void s1sweeptick(int frameseq);
+	    void s1sweeptick(int frameseq);
 	    void s1lengthcountertick(int frameseq);
 	    void s1envelopetick(int frameseq);
 	    void s1timertick();

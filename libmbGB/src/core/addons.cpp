@@ -19,534 +19,522 @@ using namespace gb;
 
 namespace gb
 {
-
-	MobileAdapterGB::MobileAdapterGB()
-	{
-		
-	}
-	
-	MobileAdapterGB::~MobileAdapterGB()
-	{
-		
-	}
-	
-	void MobileAdapterGB::update()
-	{
-		processbyte();
-		transfer();
-	}
-	
-	void MobileAdapterGB::processbyte()
-	{
-		switch (adapterstate)
+    MobileAdapterGB::MobileAdapterGB()
+    {
+        
+    }
+    
+    MobileAdapterGB::~MobileAdapterGB()
+    {
+        
+    }
+    
+    void MobileAdapterGB::update()
+    {
+        processbyte();
+        transfer();
+    }
+    
+    void MobileAdapterGB::processbyte()
+    {
+        switch (adapterstate)
+        {
+            case State::AwaitingPacket:
+    	    {
+		switch (adapterbyte)
 		{
-			case State::AwaitingPacket:
+		    case 0x99:
+		    {
+			packetdata.push_back(0x99);
+			packetsize += 1;
+			statesteps = 1;
+			linkbyte = 0x4B;
+		    }
+		    break;
+		    case 0x66:
+		    {
+			if (statesteps == 1)
 			{
-				switch (adapterbyte)
-				{
-					case 0x99:
-					{
-						packetdata.push_back(0x99);
-						packetsize += 1;
-						statesteps = 1;
-						linkbyte = 0x4B;
-					}
-					break;
-					case 0x66:
-					{
-						if (statesteps == 1)
-						{
-							packetdata.push_back(0x66);
-							packetsize += 1;
-							statesteps = 0;
-							adapterstate = State::PacketHeader;
-						}
-						
-						linkbyte = 0x4B;
-					}
-					break;
-					default: linkbyte = 0x4B; break;
-				}
-			}
-			break;
-			case State::PacketHeader:
-			{
-				packetdata.push_back(adapterbyte);
-				packetsize += 1;
-
-				calculatedchecksum += adapterbyte;
-				
-				if (statesteps == 0)
-				{
-					commandid = adapterbyte;
-				}
-				else if (statesteps == 3)
-				{
-					packetdatalength = adapterbyte;
-				}
-				
-				statesteps += 1;
-				
-				if (statesteps == 4)
-				{
-					statesteps = 0;
-					adapterstate = (packetdatalength == 0) ? State::PacketChecksum : State::PacketData;
-				}
-				
-				linkbyte = 0x4B;
-			}
-			break;
-			case State::PacketData:
-			{
-				calculatedchecksum += adapterbyte;
-				
-				packetdata.push_back(adapterbyte);
-				packetsize += 1;
-				statesteps += 1;
-				
-				if (statesteps == packetdatalength)
-				{
-					statesteps = 0;
-					adapterstate = State::PacketChecksum;
-				}
-				
-				linkbyte = 0x4B;
-			}
-			break;
-			case State::PacketChecksum:
-			{
-				packetdata.push_back(adapterbyte);
-				packetsize += 1;
-
-				if (statesteps == 0)
-				{
-				    comparechecksum = (adapterbyte << 8);
-				    statesteps = 1;
-				    linkbyte = 0x4B;
-				}
-				else if (statesteps == 1)
-				{
-				    comparechecksum |= (adapterbyte);
-				    statesteps = 0;
-				    packetsize = 0;
-
-				    if (calculatedchecksum == comparechecksum)
-				    {
-					calculatedchecksum = 0;
-					comparechecksum = 0;
-					linkbyte = 0x4B;
-					adapterstate = State::AcknowledgingPacket;
-				    }
-				    else
-				    {
-					linkbyte = 0xF1;
-					adapterstate = State::AwaitingPacket;
-				    }
-				}
-			}
-			break;
-			case State::AcknowledgingPacket:
-			{
-			    packetdata.push_back(adapterbyte);
+			    packetdata.push_back(0x66);
 			    packetsize += 1;
-
-			    if (statesteps == 0)
-			    {
-				if (adapterbyte == 0x80)
-				{
-				    statesteps = 1;
-				    linkbyte = 0x88;
-				}
-				else
-				{
-				    linkbyte = 0x4B;
-				    statesteps = 0;
-				}
-			    }
-			    else if (statesteps == 1)
-			    {
-				linkbyte = (0x80 ^ commandid);
-				statesteps = 0;
-				processcommand();
-			    }
+			    statesteps = 0;
+			    adapterstate = State::PacketHeader;
 			}
-			break;
-			case State::EchoPacket:
-			{
-			    if (statesteps < (int)(packetdata.size()))
-			    {
-				linkbyte = packetdata[statesteps];
-				statesteps += 1;
 
-				if (statesteps == (int)(packetdata.size()))
-				{
-				    packetdata.clear();
-				    statesteps = 0;
-				    adapterstate = State::AwaitingPacket;
-				}
-			    }
-			}
-			break;
-		}
-	}
-
-	void MobileAdapterGB::processcommand()
-	{
-	    switch (commandid)
-	    {
-		case 0x10:
-		{
-		    packetdata[(packetdata.size() - 2)] = 0x88;
-		    packetdata[(packetdata.size() - 1)] = 0x00;
-		    adapterstate = State::EchoPacket;
-		}
-		break;
-		case 0x11:
-		{
-		    packetdata[(packetdata.size() - 2)] = 0x88;
-		    packetdata[(packetdata.size() - 1)] = 0x00;
-		    adapterstate = State::EchoPacket;
-		}
-		break;
-		case 0x12:
-		{
-		    packetdata.clear();
-
-		    packetdata.push_back(0x99);
-		    packetdata.push_back(0x66);
-
-		    packetdata.push_back(0x12);
-		    packetdata.push_back(0x00);
-		    packetdata.push_back(0x00);
-		    packetdata.push_back(0x00);
-
-		    packetdata.push_back(0x00);
-		    packetdata.push_back(0x12);
-
-		    packetdata.push_back(0x88);
-		    packetdata.push_back(0x00);
-
-		    packetsize = 0;
-		    adapterstate = State::EchoPacket;
-
-		    linebusy = true;
-		}
-		break;
-		case 0x13:
-		{
-		    packetdata.clear();
-
-		    packetdata.push_back(0x99);
-		    packetdata.push_back(0x66);
-
-		    packetdata.push_back(0x12);
-		    packetdata.push_back(0x00);
-		    packetdata.push_back(0x00);
-		    packetdata.push_back(0x00);
-
-		    packetdata.push_back(0x00);
-		    packetdata.push_back(0x12);
-
-		    packetdata.push_back(0x88);
-		    packetdata.push_back(0x00);
-
-		    packetsize = 0;
-		    adapterstate = State::EchoPacket;
-
-		    linebusy = false;
-		}
-		break;
-		case 0x15:
-		{
-		    if (port == 110)
-		    {
-			cout << "Processing POP server data" << endl;
-			processpop();
+			linkbyte = 0x4B;
 		    }
-		    else if (port == 80)
-		    {
-			cout << "Processing HTTP data" << endl;
-			processhttp();
-		    }
-		    else
-		    {
-			cout << "Port: " << dec << (int)(port) << endl;
-			exit(1);
-		    }
+		    break;
+		    default: linkbyte = 0x4B; break;
 		}
-		break;
-		case 0x17:
-		{
-		    packetdata.clear();
-		    packetdata.push_back(0x99);
-		    packetdata.push_back(0x66);
-
-		    packetdata.push_back(0x17);
-		    packetdata.push_back(0x00);
-		    packetdata.push_back(0x00);
-		    packetdata.push_back(0x01);
-
-		    if (linebusy)
-		    {
-			packetdata.push_back(0x04);
-		    }
-		    else
-		    {
-			packetdata.push_back(0x00);
-		    }
-
-		    packetdata.push_back(0x00);
-
-		    if (linebusy)
-		    {
-			packetdata.push_back(0x1C);
-		    }
-		    else
-		    {
-			packetdata.push_back(0x18);
-		    }
-
-		    packetdata.push_back(0x88);
-		    packetdata.push_back(0x00);
-
-		    packetsize = 0;
-		    adapterstate = State::EchoPacket;
-		}
-		break;
-		case 0x19:
-		{
-		    uint8_t configoffset = packetdata[6];
-		    uint8_t configlength = packetdata[7];
-
-		    packetdata.clear();
-
-		    packetdata.push_back(0x99);
-		    packetdata.push_back(0x66);
-
-		    packetdata.push_back(0x19);
-		    packetdata.push_back(0x00);
-		    packetdata.push_back(0x00);
-		    packetdata.push_back((configlength + 1));
-		    packetdata.push_back(configlength);
-
-		    for (int x = configoffset; x < (configoffset + configlength); x++)
-		    {
-			if (x < 192)
-			{
-			    packetdata.push_back(adapterdata[x]);
-			}
-			else
-			{
-			    cout << "Error - Mobile adapter trying to read out-of-bounds memory" << endl;
-			    return;
-			}
-		    }
-
-		    uint16_t checksum = 0;
-
-		    for (int x = 2; x < (int)(packetdata.size()); x++)
-		    {
-			checksum += packetdata[x];
-		    }
-
-		    packetdata.push_back((checksum >> 8) & 0xFF);
-		    packetdata.push_back((checksum & 0xFF));
-
-		    packetdata.push_back(0x88);
-		    packetdata.push_back(0x00);
-
-		    packetsize = 0;
-		    adapterstate = State::EchoPacket;
-		}
-		break;
-		case 0x1A:
-		{
-		    cout << "Write configuration data" << endl;
-		    uint8_t configoffset = packetdata[6];
-		    
-		    for (int x = 7; x < (packetdatalength + 6); x++)
-		    {
-			if (configoffset < 192)
-			{
-			    adapterdata[configoffset] = packetdata[x];
-			    configoffset += 1;
-			}
-			else
-			{
-			    cout << "Error - Mobile adapter trying to write out-of-bounds memory" << endl;
-			    return;
-			}
-		    }
-
-		    packetdata.clear();
-
-		    packetdata.push_back(0x99);
-		    packetdata.push_back(0x66);
-
-		    packetdata.push_back(0x1A);
-		    packetdata.push_back(0x00);
-		    packetdata.push_back(0x00);
-		    packetdata.push_back(0x00);
-
-		    uint16_t checksum = 0;
-
-		    for (int x = 2; x < (int)(packetdata.size()); x++)
-		    {
-			checksum += packetdata[x];
-		    }
-
-		    packetdata.push_back((checksum >> 8) & 0xFF);
-		    packetdata.push_back((checksum & 0xFF));
-
-		    packetdata.push_back(0x88);
-		    packetdata.push_back(0x00);
-
-		    packetsize = 0;
-		    adapterstate = State::EchoPacket;
-		}
-		break;
-		case 0x21:
-		{
-		    cout << "ISP Login" << endl;
-
-		    packetdata.clear();
-
-		    packetdata.push_back(0x99);
-		    packetdata.push_back(0x66);
-
-		    packetdata.push_back(0x21);
-		    packetdata.push_back(0x00);
-		    packetdata.push_back(0x00);
-		    packetdata.push_back(0x04);
-
-		    packetdata.push_back(0x7F);
-		    packetdata.push_back(0x00);
-		    packetdata.push_back(0x00);
-		    packetdata.push_back(0x01);
-
-		    packetdata.push_back(0x00);
-		    packetdata.push_back(0xA5);
-
-		    packetdata.push_back(0x88);
-		    packetdata.push_back(0x00);
-
-		    packetsize = 0;
-		    adapterstate = State::EchoPacket;
-		}
-		break;
-		case 0x22:
-		{
-		    cout << "ISP Logout" << endl;
-
-		    packetdata.clear();
-
-		    packetdata.push_back(0x99);
-		    packetdata.push_back(0x66);
-
-		    packetdata.push_back(0x22);
-		    packetdata.push_back(0x00);
-		    packetdata.push_back(0x00);
-		    packetdata.push_back(0x00);
-
-		    packetdata.push_back(0x00);
-		    packetdata.push_back(0x22);
-
-		    packetdata.push_back(0x88);
-		    packetdata.push_back(0x00);
-
-		    packetsize = 0;
-		    adapterstate = State::EchoPacket;
-		}
-		break;
-		case 0x23:
-		{
-		    cout << "Open TCP Connection" << endl;
-
-		    ipaddr = getipaddr();
-		    port = getport();
-
-		    packetdata.clear();
-
-		    packetdata.push_back(0x99);
-		    packetdata.push_back(0x66);
-
-		    packetdata.push_back(0xA3);
-		    packetdata.push_back(0x00);
-		    packetdata.push_back(0x00);
-		    packetdata.push_back(0x01);
-
-		    packetdata.push_back(0x77);
-
-		    packetdata.push_back(0x01);
-		    packetdata.push_back(0x1B);
-
-		    packetdata.push_back(0x88);
-		    packetdata.push_back(0x00);
-
-		    packetsize = 0;
-		    adapterstate = State::EchoPacket;
-		}
-		break;
-		case 0x24:
-		{
-		    cout << "Close TCP Connection" << endl;
-
-		    packetdata.clear();
-
-		    packetdata.push_back(0x99);
-		    packetdata.push_back(0x66);
-
-		    packetdata.push_back(0x24);
-		    packetdata.push_back(0x00);
-		    packetdata.push_back(0x00);
-		    packetdata.push_back(0x01);
-
-		    packetdata.push_back(0x77);
-
-		    packetdata.push_back(0x00);
-		    packetdata.push_back(0x9C);
-
-		    packetdata.push_back(0x88);
-		    packetdata.push_back(0x00);
-
-		    packetsize = 0;
-		    adapterstate = State::EchoPacket;
-
-		    popsessionstarted = false;
-		}
-		break;
-		case 0x28:
-		{
-		    cout << "DNS Query" << endl;
-
-		    packetdata.clear();
-
-		    packetdata.push_back(0x99);
-		    packetdata.push_back(0x66);
-
-		    packetdata.push_back(0x28);
-		    packetdata.push_back(0x00);
-		    packetdata.push_back(0x00);
-		    packetdata.push_back(0x04);
-
-		    packetdata.push_back(0x08);
-		    packetdata.push_back(0x08);
-		    packetdata.push_back(0x08);
-		    packetdata.push_back(0x08);
-
-		    packetdata.push_back(0x00);
-		    packetdata.push_back(0x4C);
-
-		    packetdata.push_back(0x88);
-		    packetdata.push_back(0x00);
-
-		    packetsize = 0;
-		    adapterstate = State::EchoPacket;
-		}
-		break;
-		default: cout << "Unrecongized Mobile Adapter command of " << hex << (int)(commandid) << endl; exit(1); break;
 	    }
+	    break;
+	    case State::PacketHeader:
+	    {
+		packetdata.push_back(adapterbyte);
+		packetsize += 1;
+
+		calculatedchecksum += adapterbyte;
+				
+		if (statesteps == 0)
+		{
+		    commandid = adapterbyte;
+		}
+		else if (statesteps == 3)
+		{
+		    packetdatalength = adapterbyte;
+		}
+				
+		statesteps += 1;
+				
+		if (statesteps == 4)
+		{
+		    statesteps = 0;
+		    adapterstate = (packetdatalength == 0) ? State::PacketChecksum : State::PacketData;
+		}
+				
+		linkbyte = 0x4B;
+	    }
+	    break;
+	    case State::PacketData:
+	    {
+		calculatedchecksum += adapterbyte;
+				
+		packetdata.push_back(adapterbyte);
+		packetsize += 1;
+		statesteps += 1;
+				
+		if (statesteps == packetdatalength)
+		{
+		    statesteps = 0;
+		    adapterstate = State::PacketChecksum;
+		}
+				
+		linkbyte = 0x4B;
+	    }
+	    break;
+	    case State::PacketChecksum:
+	    {
+		packetdata.push_back(adapterbyte);
+		packetsize += 1;
+
+		if (statesteps == 0)
+		{
+		    comparechecksum = (adapterbyte << 8);
+		    statesteps = 1;
+		    linkbyte = 0x4B;
+		}
+		else if (statesteps == 1)
+		{
+		    comparechecksum |= (adapterbyte);
+		    statesteps = 0;
+		    packetsize = 0;
+
+		    if (calculatedchecksum == comparechecksum)
+		    {
+			calculatedchecksum = 0;
+			comparechecksum = 0;
+			linkbyte = 0x4B;
+			adapterstate = State::AcknowledgingPacket;
+		    }
+		    else
+		    {
+			linkbyte = 0xF1;
+			adapterstate = State::AwaitingPacket;
+		    }
+		}
+	    }
+	    break;
+	    case State::AcknowledgingPacket:
+	    {
+		packetdata.push_back(adapterbyte);
+		packetsize += 1;
+
+		if (statesteps == 0)
+		{
+		    if (adapterbyte == 0x80)
+		    {
+			statesteps = 1;
+			linkbyte = 0x88;
+		    }
+		    else
+		    {
+			linkbyte = 0x4B;
+			statesteps = 0;
+		    }
+		}
+		else if (statesteps == 1)
+		{
+		    linkbyte = (0x80 ^ commandid);
+		    statesteps = 0;
+		    processcommand();
+		}
+	    }
+	    break;
+	    case State::EchoPacket:
+	    {
+		if (statesteps < (int)(packetdata.size()))
+		{
+		    linkbyte = packetdata[statesteps];
+		    statesteps += 1;
+
+		    if (statesteps == (int)(packetdata.size()))
+		    {
+			packetdata.clear();
+			statesteps = 0;
+			adapterstate = State::AwaitingPacket;
+		    }
+		}
+	    }
+	    break;
 	}
+    }
+
+    void MobileAdapterGB::processcommand()
+    {
+	switch (commandid)
+	{
+	    case 0x10:
+	    {
+		packetdata[(packetdata.size() - 2)] = 0x88;
+		packetdata[(packetdata.size() - 1)] = 0x00;
+		adapterstate = State::EchoPacket;
+	    }
+	    break;
+	    case 0x11:
+	    {
+		packetdata[(packetdata.size() - 2)] = 0x88;
+		packetdata[(packetdata.size() - 1)] = 0x00;
+		adapterstate = State::EchoPacket;
+	    }
+	    break;
+	    case 0x12:
+	    {
+		packetdata.clear();
+
+		packetdata.push_back(0x99);
+		packetdata.push_back(0x66);
+
+		packetdata.push_back(0x12);
+		packetdata.push_back(0x00);
+		packetdata.push_back(0x00);
+		packetdata.push_back(0x00);
+
+		packetdata.push_back(0x00);
+		packetdata.push_back(0x12);
+
+		packetdata.push_back(0x88);
+		packetdata.push_back(0x00);
+
+		packetsize = 0;
+		adapterstate = State::EchoPacket;
+
+		linebusy = true;
+	    }
+	    break;
+	    case 0x13:
+	    {
+		packetdata.clear();
+
+		packetdata.push_back(0x99);
+		packetdata.push_back(0x66);
+
+		packetdata.push_back(0x12);
+		packetdata.push_back(0x00);
+		packetdata.push_back(0x00);
+		packetdata.push_back(0x00);
+
+		packetdata.push_back(0x00);
+		packetdata.push_back(0x12);
+
+		packetdata.push_back(0x88);
+		packetdata.push_back(0x00);
+
+		packetsize = 0;
+		adapterstate = State::EchoPacket;
+
+		linebusy = false;
+	    }
+	    break;
+	    case 0x15:
+	    {
+		if (port == 110)
+		{
+		    cout << "Processing POP server data" << endl;
+		    processpop();
+		}
+		else if (port == 80)
+		{
+		    cout << "Processing HTTP data" << endl;
+		    processhttp();
+		}
+		else
+		{
+		    cout << "Port: " << dec << (int)(port) << endl;
+		    exit(1);
+		}
+	    }
+	    break;
+	    case 0x17:
+	    {
+		packetdata.clear();
+		packetdata.push_back(0x99);
+		packetdata.push_back(0x66);
+
+		packetdata.push_back(0x17);
+		packetdata.push_back(0x00);
+		packetdata.push_back(0x00);
+		packetdata.push_back(0x01);
+
+		if (linebusy)
+		{
+		    packetdata.push_back(0x04);
+		}
+		else
+		{
+		    packetdata.push_back(0x00);
+		}
+
+		packetdata.push_back(0x00);
+
+		if (linebusy)
+		{
+		    packetdata.push_back(0x1C);
+		}
+		else
+		{
+		    packetdata.push_back(0x18);
+		}
+
+		packetdata.push_back(0x88);
+		packetdata.push_back(0x00);
+
+		packetsize = 0;
+		adapterstate = State::EchoPacket;
+	    }
+	    break;
+	    case 0x19:
+	    {
+		uint8_t configoffset = packetdata[6];
+		uint8_t configlength = packetdata[7];
+
+		packetdata.clear();
+
+		packetdata.push_back(0x99);
+		packetdata.push_back(0x66);
+
+		packetdata.push_back(0x19);
+		packetdata.push_back(0x00);
+		packetdata.push_back(0x00);
+		packetdata.push_back((configlength + 1));
+		packetdata.push_back(configlength);
+
+		for (int x = configoffset; x < (configoffset + configlength); x++)
+		{
+		    if (x < 192)
+		    {
+			packetdata.push_back(adapterdata[x]);
+		    }
+		    else
+		    {
+			cout << "Error - Mobile adapter trying to read out-of-bounds memory" << endl;
+			return;
+		    }
+		}
+
+		uint16_t checksum = 0;
+
+		for (int x = 2; x < (int)(packetdata.size()); x++)
+		{
+		    checksum += packetdata[x];
+		}
+
+		packetdata.push_back((checksum >> 8) & 0xFF);
+		packetdata.push_back((checksum & 0xFF));
+
+		packetdata.push_back(0x88);
+		packetdata.push_back(0x00);
+
+		packetsize = 0;
+		adapterstate = State::EchoPacket;
+	    }
+	    break;
+	    case 0x1A:
+	    {
+		uint8_t configoffset = packetdata[6];
+		    
+		for (int x = 7; x < (packetdatalength + 6); x++)
+		{
+		    if (configoffset < 192)
+		    {
+			adapterdata[configoffset] = packetdata[x];
+			configoffset += 1;
+		    }
+		    else
+		    {
+			cout << "Error - Mobile adapter trying to write out-of-bounds memory" << endl;
+			return;
+		    }
+		}
+
+		packetdata.clear();
+
+		packetdata.push_back(0x99);
+		packetdata.push_back(0x66);
+
+		packetdata.push_back(0x1A);
+		packetdata.push_back(0x00);
+		packetdata.push_back(0x00);
+		packetdata.push_back(0x00);
+
+		uint16_t checksum = 0;
+
+		for (int x = 2; x < (int)(packetdata.size()); x++)
+		{
+		    checksum += packetdata[x];
+		}
+
+		packetdata.push_back((checksum >> 8) & 0xFF);
+		packetdata.push_back((checksum & 0xFF));
+
+		packetdata.push_back(0x88);
+		packetdata.push_back(0x00);
+
+		packetsize = 0;
+		adapterstate = State::EchoPacket;
+	    }
+	    break;
+	    case 0x21:
+	    {
+		packetdata.clear();
+
+		packetdata.push_back(0x99);
+		packetdata.push_back(0x66);
+
+		packetdata.push_back(0x21);
+		packetdata.push_back(0x00);
+		packetdata.push_back(0x00);
+		packetdata.push_back(0x04);
+
+		packetdata.push_back(0x7F);
+		packetdata.push_back(0x00);
+		packetdata.push_back(0x00);
+		packetdata.push_back(0x01);
+
+		packetdata.push_back(0x00);
+		packetdata.push_back(0xA5);
+
+		packetdata.push_back(0x88);
+		packetdata.push_back(0x00);
+
+		packetsize = 0;
+		adapterstate = State::EchoPacket;
+	    }
+	    break;
+	    case 0x22:
+	    {
+		packetdata.clear();
+
+		packetdata.push_back(0x99);
+		packetdata.push_back(0x66);
+
+		packetdata.push_back(0x22);
+		packetdata.push_back(0x00);
+		packetdata.push_back(0x00);
+		packetdata.push_back(0x00);
+
+		packetdata.push_back(0x00);
+		packetdata.push_back(0x22);
+
+		packetdata.push_back(0x88);
+		packetdata.push_back(0x00);
+
+		packetsize = 0;
+		adapterstate = State::EchoPacket;
+	    }
+	    break;
+	    case 0x23:
+	    {
+		ipaddr = getipaddr();
+		port = getport();
+
+		packetdata.clear();
+
+		packetdata.push_back(0x99);
+		packetdata.push_back(0x66);
+
+		packetdata.push_back(0xA3);
+		packetdata.push_back(0x00);
+		packetdata.push_back(0x00);
+		packetdata.push_back(0x01);
+
+		packetdata.push_back(0x77);
+
+		packetdata.push_back(0x01);
+		packetdata.push_back(0x1B);
+
+		packetdata.push_back(0x88);
+		packetdata.push_back(0x00);
+
+		packetsize = 0;
+		adapterstate = State::EchoPacket;
+	    }
+	    break;
+	    case 0x24:
+	    {
+		packetdata.clear();
+
+		packetdata.push_back(0x99);
+		packetdata.push_back(0x66);
+
+		packetdata.push_back(0x24);
+		packetdata.push_back(0x00);
+		packetdata.push_back(0x00);
+		packetdata.push_back(0x01);
+
+		packetdata.push_back(0x77);
+
+		packetdata.push_back(0x00);
+		packetdata.push_back(0x9C);
+
+		packetdata.push_back(0x88);
+		packetdata.push_back(0x00);
+
+		packetsize = 0;
+		adapterstate = State::EchoPacket;
+
+		popsessionstarted = false;
+	    }
+	    break;
+	    case 0x28:
+	    {
+		packetdata.clear();
+
+		packetdata.push_back(0x99);
+		packetdata.push_back(0x66);
+
+		packetdata.push_back(0x28);
+		packetdata.push_back(0x00);
+		packetdata.push_back(0x00);
+		packetdata.push_back(0x04);
+
+		packetdata.push_back(0x08);
+		packetdata.push_back(0x08);
+		packetdata.push_back(0x08);
+		packetdata.push_back(0x08);
+
+		packetdata.push_back(0x00);
+		packetdata.push_back(0x4C);
+
+		packetdata.push_back(0x88);
+		packetdata.push_back(0x00);
+
+		packetsize = 0;
+		adapterstate = State::EchoPacket;
+	    }
+	    break;
+	    default: cout << "Unrecongized Mobile Adapter command of " << hex << (int)(commandid) << endl; exit(1); break;
+	}
+    }
 
     void MobileAdapterGB::processpop()
     {
@@ -956,22 +944,22 @@ namespace gb
 	    {
 		switch (printerbyte)
 		{
-		case 0x88:
-		{
-		    statesteps = 1;
-		    linkbyte = 0;
-		}
-		break;
-		case 0x33:
-		{
-		    if (statesteps == 1)
+		    case 0x88:
 		    {
-			statesteps = 0;
-			currentstate = State::Command;
-			linkbyte = 0;
+		        statesteps = 1;
+		        linkbyte = 0;
 		    }
-		}
-		break;
+		    break;
+		    case 0x33:
+		    {
+		        if (statesteps == 1)
+		        {
+			    statesteps = 0;
+			    currentstate = State::Command;
+			    linkbyte = 0;
+		        }
+		    }
+		    break;
 		}
 	    }
 	    break;

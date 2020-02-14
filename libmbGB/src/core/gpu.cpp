@@ -22,19 +22,16 @@ namespace gb
 {
     GPU::GPU(MMU& memory) : gpumem(memory)
     {
-	// gpumem.setpoweroncallback(bind(&GPU::updatepoweronstate, this, placeholders::_1));
-	gpumem.setscreencallback(bind(&GPU::clearscreen, this));
-	
 	for (int i = 0xFF40; i < 0xFF46; i++)
 	{
-		gpumem.addmemoryreadhandler(i, bind(&GPU::readlcd, this, _1));
-		gpumem.addmemorywritehandler(i, bind(&GPU::writelcd, this, _1, _2));
+	    gpumem.addmemoryreadhandler(i, bind(&GPU::readlcd, this, _1));
+	    gpumem.addmemorywritehandler(i, bind(&GPU::writelcd, this, _1, _2));
 	}
 	
 	for (int i = 0xFF47; i <= 0xFF4B; i++)
 	{
-		gpumem.addmemoryreadhandler(i, bind(&GPU::readlcd, this, _1));
-		gpumem.addmemorywritehandler(i, bind(&GPU::writelcd, this, _1, _2));
+	    gpumem.addmemoryreadhandler(i, bind(&GPU::readlcd, this, _1));
+	    gpumem.addmemorywritehandler(i, bind(&GPU::writelcd, this, _1, _2));
 	}
     }
 
@@ -56,47 +53,47 @@ namespace gb
 	cout << "GPU::Shutting down..." << endl;
     }
 	
-	uint8_t GPU::readlcd(uint16_t addr)
+    uint8_t GPU::readlcd(uint16_t addr)
+    {
+	uint8_t temp = 0;
+		
+	switch ((addr & 0xFF))
 	{
-		uint8_t temp = 0;
-		
-		switch ((addr & 0xFF))
-		{
-			case 0x40: temp = lcdc; break;
-			case 0x41: temp = (stat | 0x80); break;
-			case 0x42: temp = scrolly; break;
-			case 0x43: temp = scrollx; break;
-			case 0x44: temp = ly; break;
-			case 0x45: temp = lyc; break;
-			case 0x47: temp = bgpalette; break;
-			case 0x48: temp = objpalette0; break;
-			case 0x49: temp = objpalette1; break;
-			case 0x4A: temp = windowy; break;
-			case 0x4B: temp = windowx; break;
-			default: temp = 0xFF; break;
-		}
-		
-		return temp;
+	    case 0x40: temp = lcdc; break;
+	    case 0x41: temp = (stat | 0x80); break;
+	    case 0x42: temp = scrolly; break;
+	    case 0x43: temp = scrollx; break;
+	    case 0x44: temp = ly; break;
+	    case 0x45: temp = lyc; break;
+	    case 0x47: temp = bgpalette; break;
+	    case 0x48: temp = objpalette0; break;
+	    case 0x49: temp = objpalette1; break;
+	    case 0x4A: temp = windowy; break;
+	    case 0x4B: temp = windowx; break;
+	    default: temp = 0xFF; break;
 	}
+		
+	return temp;
+    }
 	
-	void GPU::writelcd(uint16_t addr, uint8_t value)
+    void GPU::writelcd(uint16_t addr, uint8_t value)
+    {
+	switch ((addr & 0xFF))
 	{
-		switch ((addr & 0xFF))
-		{
-			case 0x40: writelcdc(value); break;
-			case 0x41: writestat(value); break;
-			case 0x42: scrolly = value; break;
-			case 0x43: scrollx = value; break;
-			case 0x44: break; // LY should not be written to
-			case 0x45: lyc = value; break;
-			case 0x47: bgpalette = value; break;
-			case 0x48: objpalette0 = value; break;
-			case 0x49: objpalette1 = value; break;
-			case 0x4A: windowy = value; break;
-			case 0x4B: windowx = value; break;
-			default: return; break;
-		}
+	    case 0x40: writelcdc(value); break;
+	    case 0x41: writestat(value); break;
+	    case 0x42: scrolly = value; break;
+	    case 0x43: scrollx = value; break;
+	    case 0x44: break; // LY should not be written to
+	    case 0x45: lyc = value; break;
+	    case 0x47: bgpalette = value; break;
+	    case 0x48: objpalette0 = value; break;
+	    case 0x49: objpalette1 = value; break;
+	    case 0x4A: windowy = value; break;
+	    case 0x4B: windowx = value; break;
+	    default: return; break;
 	}
+    }
 
     void GPU::updatelcd()
     {

@@ -31,7 +31,6 @@ namespace gb
 	uint8_t blue;
     };
 
-
     struct Sprites
     {
 	uint8_t x;
@@ -44,7 +43,6 @@ namespace gb
 	bool cgbbank;
 	int cgbpalette;
     };  
-
 
     class LIBMBGB_API GPU
     {
@@ -128,7 +126,7 @@ namespace gb
 	    uint8_t windowy = 0x00;
 	    uint8_t windowx = 0x00;
 	    uint8_t ly = 0x00;
-		uint8_t lylastcycle = 0xFF;
+	    uint8_t lylastcycle = 0xFF;
 	    uint8_t lyc = 0x00;
 	    uint8_t bgpalette = 0xFC;
 	    uint8_t objpalette0 = 0xFF;
@@ -136,8 +134,8 @@ namespace gb
 
 	    uint8_t scrollxtemp = 0;
 		
-		uint8_t readlcd(uint16_t addr);
-		void writelcd(uint16_t addr, uint8_t val);
+	    uint8_t readlcd(uint16_t addr);
+	    void writelcd(uint16_t addr, uint8_t val);
 		
 	    inline bool islcdenabled()
 	    {

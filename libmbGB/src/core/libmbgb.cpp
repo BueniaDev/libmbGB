@@ -390,10 +390,10 @@ namespace gb
 	coregpu->setdotrender(val);
     }
 	
-	int GBCore::runinstruction()
-	{
-		return corecpu->runinstruction();
-	}
+    int GBCore::runinstruction()
+    {
+	return corecpu->runinstruction();
+    }
 
     void GBCore::runcore()
     {

@@ -79,7 +79,7 @@ namespace gb
 	    bool paused = false;
 
 	    int overspentcycles = 0;
-		int runinstruction();
+	    int runinstruction();
 	    void runcore();
 	    bool initcore();
 	    bool initcore(const char *filename, const uint8_t* buffer, int size);
@@ -90,7 +90,7 @@ namespace gb
 	    void setrumblecallback(rumblefunc cb);
 	    void setsensorcallback(sensorfunc cb);
 	    bool isprinterenabled = false;
-		bool ismobileenabled = false;
+	    bool ismobileenabled = false;
 
 	    MobileAdapterGB *mobilegb = NULL;
 

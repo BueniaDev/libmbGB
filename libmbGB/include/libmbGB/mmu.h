@@ -60,8 +60,8 @@ namespace gb
     using rumblefunc = function<void(bool)>;
     using sensorfunc = function<void(uint16_t &, uint16_t &)>;
 	
-	using memoryreadfunc = function<uint8_t(uint16_t)>;
-	using memorywritefunc = function<void(uint16_t, uint8_t)>;
+    using memoryreadfunc = function<uint8_t(uint16_t)>;
+    using memorywritefunc = function<void(uint16_t, uint8_t)>;
 
     class LIBMBGB_API MMU
     {

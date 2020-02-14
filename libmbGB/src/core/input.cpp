@@ -22,9 +22,8 @@ namespace gb
 {
     Input::Input(MMU& memory) : p1mem(memory)
     {
-		p1mem.addmemoryreadhandler(0xFF00, bind(&Input::readjoypad, this, _1));
-		p1mem.addmemorywritehandler(0xFF00, bind(&Input::writejoypad, this, _1, _2));
-	// p1mem.setjoypadcallback(bind(&Input::updatejoypad, this));
+	p1mem.addmemoryreadhandler(0xFF00, bind(&Input::readjoypad, this, _1));
+	p1mem.addmemorywritehandler(0xFF00, bind(&Input::writejoypad, this, _1, _2));
     }
 
     Input::~Input()
@@ -34,14 +33,14 @@ namespace gb
 
     void Input::init()
     {
-		if (p1mem.isdmgmode() && p1mem.isdmgconsole())
-		{
-			joypad = 0xCF;
-		}
-		else
-		{
-			joypad = 0xFF;
-		}
+	if (p1mem.isdmgmode() && p1mem.isdmgconsole())
+	{
+	    joypad = 0xCF;
+	}
+	else
+	{
+	    joypad = 0xFF;
+	}
 		
 	cout << "Input::Initialized" << endl;
     }

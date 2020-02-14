@@ -42,13 +42,13 @@ namespace gb
 	    bool timaoverflownotinterrupted = false;
 	    uint8_t prevtimaval = 0x00;
 		
-		uint16_t divider = 0;
-		uint8_t tima = 0;
-		uint8_t tma = 0;
-		uint8_t tac = 0;
+	    uint16_t divider = 0;
+	    uint8_t tima = 0;
+	    uint8_t tma = 0;
+	    uint8_t tac = 0;
 		
-		uint8_t readtimer(uint16_t addr);
-		void writetimer(uint16_t addr, uint8_t value);
+	    uint8_t readtimer(uint16_t addr);
+	    void writetimer(uint16_t addr, uint8_t value);
 
 	    uint16_t divbit[4] = {0x0200, 0x0008, 0x0020, 0x0080};
 

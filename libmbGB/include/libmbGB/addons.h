@@ -33,223 +33,223 @@ namespace gb
     using printfunc = function<void(vector<RGB> &)>;
     using htmlarr = array<string, 1>;
 	
-	class LIBMBGB_API MobileAdapterGB
-	{
-		public:
-			MobileAdapterGB();
-			~MobileAdapterGB();
+    class LIBMBGB_API MobileAdapterGB
+    {
+	public:
+	    MobileAdapterGB();
+	    ~MobileAdapterGB();
 			
-			uint8_t linkbyte = 0;
-			uint8_t adapterbyte = 0;
+	    uint8_t linkbyte = 0;
+	    uint8_t adapterbyte = 0;
 			
-			uint8_t commandid = 0;
-			uint8_t packetdatalength = 0;
-			uint16_t calculatedchecksum = 0;
-			uint16_t comparechecksum = 0;
-			vector<uint8_t> packetdata;
+	    uint8_t commandid = 0;
+	    uint8_t packetdatalength = 0;
+	    uint16_t calculatedchecksum = 0;
+	    uint16_t comparechecksum = 0;
+	    vector<uint8_t> packetdata;
 			
-			linkfunc adaptrec;
+	    linkfunc adaptrec;
 			
-		    void setadaptreccallback(linkfunc cb)
-			{
-				adaptrec = cb;
-			}
+	    void setadaptreccallback(linkfunc cb)
+	    {
+		adaptrec = cb;
+	    }
 			
-			void transfer()
-			{
-				if (adaptrec)
-				{
-					adaptrec(linkbyte);
-				}
-			}
+	    void transfer()
+	    {
+		if (adaptrec)
+		{
+		    adaptrec(linkbyte);
+		}
+	    }
 			
-			void mobileadapterready(uint8_t byte, bool ismode)
-			{
-				if (ismode)
-				{
-					adapterbyte = byte;
-					update();
-				}
-				else
-				{
-					return;
-				}
-			}
+	    void mobileadapterready(uint8_t byte, bool ismode)
+	    {
+		if (ismode)
+		{
+		    adapterbyte = byte;
+		    update();
+		}
+		else
+		{
+		    return;
+		}
+	    }
 			
-			enum State : int
-			{
-				AwaitingPacket = 0,
-				PacketHeader = 1,
-				PacketData = 2,
-				PacketChecksum = 3,
-				AcknowledgingPacket = 4,
-				EchoPacket = 5,
-			};
+	    enum State : int
+	    {
+		AwaitingPacket = 0,
+		PacketHeader = 1,
+		PacketData = 2,
+		PacketChecksum = 3,
+		AcknowledgingPacket = 4,
+		EchoPacket = 5,
+	    };
 			
-			int statesteps = 0;
-			int packetsize = 0;
+	    int statesteps = 0;
+	    int packetsize = 0;
 			
-			State adapterstate;
+	    State adapterstate;
 
-			array<uint8_t, 192> adapterdata;
+	    array<uint8_t, 192> adapterdata;
 
-			bool linebusy = false;
+	    bool linebusy = false;
 
-			uint32_t getipaddr()
-			{
-			    uint32_t temp = 0;
+	    uint32_t getipaddr()
+	    {
+		uint32_t temp = 0;
 
-			    if (packetdatalength >= 6)
-			    {
-				for (int i = 0; i < 4; i++)
-				{
-				    // Hack to grab value in big-endian format
-				    temp |= (packetdata[6 + i] << (8 * (~i & 3)));
-				}
-			    }
-			    else
-			    {
-				cout << "Error - Mobile adapter tried opening a tcp connection without a server address" << endl;
-				temp = 0;
-			    }
+		if (packetdatalength >= 6)
+		{
+		    for (int i = 0; i < 4; i++)
+		    {
+			// Hack to grab value in big-endian format
+			temp |= (packetdata[6 + i] << (8 * (~i & 3)));
+		    }
+		}
+		else
+		{
+		    cout << "Error - Mobile adapter tried opening a tcp connection without a server address" << endl;
+		    temp = 0;
+		}
 
-			    return temp;
-			}
+		return temp;
+	    }
 
-			uint16_t getport()
-			{
-			    uint16_t temp = 0;
+	    uint16_t getport()
+	    {
+		uint16_t temp = 0;
 
-			    if (packetdatalength >= 6)
-			    {
-				for (int i = 0; i < 2; i++)
-				{
-				    // Hack to grab value in big-endian format
-				    temp |= (packetdata[10 + i] << (8 * (~i & 1)));
-				}
-			    }
-			    else
-			    {
-				cout << "Error - Mobile adapter tried opening a tcp connection without a port" << endl;
-				temp = 0;
-			    }
+		if (packetdatalength >= 6)
+		{
+		    for (int i = 0; i < 2; i++)
+		    {
+			// Hack to grab value in big-endian format
+			temp |= (packetdata[10 + i] << (8 * (~i & 1)));
+		    }
+		}
+		else
+		{
+		    cout << "Error - Mobile adapter tried opening a tcp connection without a port" << endl;
+		    temp = 0;
+		}
 
-			    return temp;
-			}
+		return temp;
+	    }
 
-			uint32_t ipaddr = 0;
-			uint16_t port = 0;
+	    uint32_t ipaddr = 0;
+	    uint16_t port = 0;
 			
-			void update();
-			void processbyte();
-			void processcommand();
-			void processpop();	
-			void processhttp();
+	    void update();
+	    void processbyte();
+	    void processcommand();
+	    void processpop();	
+	    void processhttp();
 
-			bool popsessionstarted = false;
-			int poptransferstate = 0;
+	    bool popsessionstarted = false;
+	    int poptransferstate = 0;
 
-			int httptransferstate = 0;
+	    int httptransferstate = 0;
 
-			string httpdata;
+	    string httpdata;
 
-			bool loadadapterdata()
-			{
-			    bool success = false;
+	    bool loadadapterdata()
+	    {
+		bool success = false;
 
-			    fstream file("mobiledata.mbmob", ios::in | ios::binary);
+		fstream file("mobiledata.mbmob", ios::in | ios::binary);
 
-			    if (!file.is_open())
-			    {
-				cout << "Mobile adapter data could not be read." << endl;
-				success = false;
-			    }
-			    else
-			    {
-				file.read((char*)&adapterdata[0], 192);
-				cout << "Mobile adapter data succesfully loaded." << endl;
-				success = true;
-			    }
+		if (!file.is_open())
+		{
+		    cout << "Mobile adapter data could not be read." << endl;
+		    success = false;
+		}
+		else
+		{
+		    file.read((char*)&adapterdata[0], 192);
+		    cout << "Mobile adapter data succesfully loaded." << endl;
+		    success = true;
+		}
 
-			    return success;
-			}
+		return success;
+	    }
 
-			bool saveadapterdata()
-			{
-			    bool success = false;
+	    bool saveadapterdata()
+	    {
+		bool success = false;
 
-			    fstream file("mobiledata.mbmob", ios::out | ios::binary);
+		fstream file("mobiledata.mbmob", ios::out | ios::binary);
 
-			    if (!file.is_open())
-			    {
-				cout << "Mobile adapter data could not be written." << endl;
-				success = false;
-			    }
-			    else
-			    {
-				file.write((char*)&adapterdata[0], 192);
-				cout << "Mobile adapter data succesfully stored." << endl;
-				success = true;
-			    }
+		if (!file.is_open())
+		{
+		    cout << "Mobile adapter data could not be written." << endl;
+		    success = false;
+		}
+		else
+		{
+		    file.write((char*)&adapterdata[0], 192);
+		    cout << "Mobile adapter data succesfully stored." << endl;
+		    success = true;
+		}
 
-			    return success;
-			}
+		return success;
+	    }
 
-			void strtodata(uint8_t* data, string input)
-			{
-			    for (int x = 0; x < (int)(input.size()); x++)
-			    {
-				char ascii = input[x];
-				*data = ascii;
-				data += 1;
-			    }
-			}
+	    void strtodata(uint8_t* data, string input)
+	    {
+		for (int x = 0; x < (int)(input.size()); x++)
+		{
+		    char ascii = input[x];
+		    *data = ascii;
+		    data += 1;
+		}
+	    }
 
-			string datatostr(uint8_t* data, uint32_t length)
-			{
-			    string temp = "";
+	    string datatostr(uint8_t* data, uint32_t length)
+	    {
+		string temp = "";
 
-			    for (int x = 0; x < (int)(length); x++)
-			    {
-				char ascii = *data;
-				temp += ascii;
-				data += 1;
-			    }
+		for (int x = 0; x < (int)(length); x++)
+		{
+		    char ascii = *data;
+		    temp += ascii;
+		    data += 1;
+		}
 
-			    return temp;
-			}
+		return temp;
+	    }
 
-			inline bool isxmas()
-			{
-				time_t t = time(NULL);
-				tm* timeptr = localtime(&t);
+	    inline bool isxmas()
+	    {
+		time_t t = time(NULL);
+		tm* timeptr = localtime(&t);
 
-				return (timeptr->tm_mon == 11);
-			}
+		return (timeptr->tm_mon == 11);
+	    }
 
-			array<string, 1> serverin = 
-			{
-			    "/01/CGB-B9AJ/index.html",
-			};
+	    array<string, 1> serverin = 
+	    {
+		"/01/CGB-B9AJ/index.html",
+	    };
 
-			htmlarr htmldata = 
-			{
-			    "<title>Hello world!</title>",
-			};
+	    htmlarr htmldata = 
+	    {
+		"<title>Hello world!</title>",
+	    };
 
-			htmlarr htmlxmas = 
-			{
-			    "<title>Happy holidays!</title>",
-			};
+	    htmlarr htmlxmas = 
+	    {
+		"<title>Happy holidays!</title>",
+	    };
 
-			array<htmlarr, 2> htmltext =
-			{
-			    htmldata,
-			    htmlxmas,
-			};
+	    array<htmlarr, 2> htmltext =
+	    {
+		htmldata,
+		htmlxmas,
+	    };
 
-			int dataindex = 0;
-	};
+	    int dataindex = 0;
+    };
 
     class LIBMBGB_API GBPrinter
     {
@@ -263,8 +263,6 @@ namespace gb
 	    int statesteps = 0;
 
 	    linkfunc printerrec;
-
-	    
 
 	    void setprintreccallback(linkfunc cb)
 	    {

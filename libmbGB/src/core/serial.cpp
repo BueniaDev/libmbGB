@@ -22,11 +22,11 @@ namespace gb
 {
     Serial::Serial(MMU& memory) : serialmem(memory)
     {
-		for (int i = 0xFF01; i <= 0xFF02; i++)
-		{
-			serialmem.addmemoryreadhandler(i, bind(&Serial::readserial, this, _1));
-			serialmem.addmemorywritehandler(i, bind(&Serial::writeserial, this, _1, _2));
-		}
+	for (int i = 0xFF01; i <= 0xFF02; i++)
+	{
+	    serialmem.addmemoryreadhandler(i, bind(&Serial::readserial, this, _1));
+	    serialmem.addmemorywritehandler(i, bind(&Serial::writeserial, this, _1, _2));
+	}
     }
 
     Serial::~Serial()
@@ -36,21 +36,21 @@ namespace gb
 
     void Serial::init()
     {
-		if (serialmem.isdmgmode())
-		{
-		    if (serialmem.isdmgconsole())
-		    {
-			initserialclock(0xCC);
-		    }
-		    else
-		    {
-			initserialclock(0x7C);
-		    }
-		}
-		else
-		{
-		    initserialclock(0xA0);
-		}
+	if (serialmem.isdmgmode())
+	{
+	    if (serialmem.isdmgconsole())
+	    {
+		initserialclock(0xCC);
+	    }
+	    else
+	    {
+		initserialclock(0x7C);
+	    }
+	}
+	else
+	{
+	    initserialclock(0xA0);
+	}
 		
 	cout << "Serial::Initialized" << endl;
     }
@@ -60,32 +60,32 @@ namespace gb
 	cout << "Serial::Shutting down..." << endl;
     }
 	
-	uint8_t Serial::readserial(uint16_t addr)
+    uint8_t Serial::readserial(uint16_t addr)
+    {
+	uint8_t temp = 0;
+		
+	switch ((addr & 0xFF))
 	{
-		uint8_t temp = 0;
-		
-		switch ((addr & 0xFF))
-		{
-			case 0x01: temp = (linkready) ? bytetorecieve : 0xFF; break;
-			case 0x02: temp = (sc & 0x7E); break;
-		}
-		
-		return temp;
+	    case 0x01: temp = (linkready) ? bytetorecieve : 0xFF; break;
+	    case 0x02: temp = (sc & 0x7E); break;
 	}
+		
+	return temp;
+    }
 	
-	void Serial::writeserial(uint16_t addr, uint8_t val)
+    void Serial::writeserial(uint16_t addr, uint8_t val)
+    {
+	switch ((addr & 0xFF))
 	{
-		switch ((addr & 0xFF))
-		{
-			case 0x01: bytetotransfer = val; break;
-			case 0x02: 
-			{
-			    sc = val;
-			    pendingrecieve = false;
-			}
-			break;
-		}
+	    case 0x01: bytetotransfer = val; break;
+	    case 0x02: 
+	    {
+		sc = val;
+		pendingrecieve = false;
+	    }
+	    break;
 	}
+    }
 
     void Serial::updateserial()
     {
