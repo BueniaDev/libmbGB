@@ -824,6 +824,17 @@ namespace gb
 				}
 			    }
 			    break;
+			    case 3:
+			    {
+				if (mbc7chipsize == 16)
+				{
+				    mbc7chipsize = 0;
+				    mbc7chipbuf = 0xFFFF;
+				    mbc7intstate = 5;
+				    mbc7intvalue = 0;
+				}
+			    }
+			    break;
 			    default: cout << "Unrecognized EEPROM command of " << dec << (int)(mbc7chipcmd) << endl; exit(1); break;
 			}
 		    }
