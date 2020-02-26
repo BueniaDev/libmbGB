@@ -1,5 +1,7 @@
 <img src="https://github.com/Buenia0/libmbGB/blob/develop/res/libmbgblogo.png" alt="drawing" width="200"/>
 
+[![Run on Repl.it](https://repl.it/badge/github/Buenia0/libmbGB)](https://repl.it/github/Buenia0/libmbGB)
+
 Game Boy (Color) emulation library, sorta
 
 The goal here is to do things right and fast (like melonDS). But, also, you know, to have a fun challenge... :)
