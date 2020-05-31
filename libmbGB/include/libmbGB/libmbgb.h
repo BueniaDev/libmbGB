@@ -91,6 +91,7 @@ namespace gb
 	    void setsensorcallback(sensorfunc cb);
 	    bool isprinterenabled = false;
 	    bool ismobileenabled = false;
+	    bool ispowerenabled = false;
 
 	    MobileAdapterGB *mobilegb = NULL;
 

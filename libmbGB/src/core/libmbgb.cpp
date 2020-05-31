@@ -103,6 +103,7 @@ namespace gb
 	cout << "--mbc1m \t\t Enables the MBC1 multicart mode, if applicable." << endl;
 	cout << "--printer \t\t Emulates the Game Boy Printer." << endl;
 	cout << "--mobile \t\t Emulates the Mobile Adapter GB (currently WIP)." << endl;
+	cout << "--power \t\t Emulates the Power Antenna / Bug Sensor." << endl;
 	cout << "-h, --help \t\t Displays this help message." << endl;
 	cout << endl;
     }
@@ -211,6 +212,15 @@ namespace gb
 	    else
 	    {
 		ismobileenabled = false;
+	    }
+	    
+	    if ((strcmp(argv[i], "--power") == 0))
+	    {
+		ispowerenabled = true;
+	    }
+	    else
+	    {
+		ispowerenabled = false;
 	    }
 	}
 

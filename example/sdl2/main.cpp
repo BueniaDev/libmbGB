@@ -1,5 +1,6 @@
 #include <libmbGB/libmbgb.h>
 #include <SDL2/SDL.h>
+#include "termcolor.h"
 #include <iostream>
 #include <sstream>
 #include <functional>
@@ -15,8 +16,9 @@ using namespace std::placeholders;
 
 GBCore core;
 GBPrinter print;
-LinkCable link;
+LinkCable linkcable;
 MobileAdapterGB mobile;
+PowerAntenna power;
 
 SDL_Window *window = nullptr;
 SDL_Surface *surface = nullptr;
@@ -51,6 +53,38 @@ using sampleformat = int16_t;
 #elif defined LIBMBGB_FLOAT32
 using sampleformat = float;
 #endif
+
+class TermcolorInterface : public PowerAntennaInterface
+{
+    public:
+    	TermcolorInterface()
+    	{
+    	
+    	}
+    	
+    	~TermcolorInterface()
+    	{
+    	
+    	}
+    	
+    	void ledoff()
+    	{
+	    cout << beeterm::white << "LED is off..." << endl;
+	    cout << beeterm::reset << endl;
+    	}
+    	
+    	void ledonstrong()
+    	{
+	    cout << beeterm::blue << "LED is emitting strong light..." << endl;
+	    cout << beeterm::reset << endl;
+    	}
+    	
+    	void ledonweak()
+    	{
+    	    cout << beeterm::dark << beeterm::blue << "LED is emitting weak light..." << endl;
+    	    cout << beeterm::reset << endl;
+    	}
+};
 
 struct Controller
 {
@@ -525,7 +559,6 @@ void handleinput(SDL_Event event)
 	    case SDLK_j: updatesensor(GYRO_LEFT, true); break;
 	    case SDLK_k: updatesensor(GYRO_DOWN, true); break;
 	    case SDLK_l: updatesensor(GYRO_RIGHT, true); break;
-	    case SDLK_d: core.dumpvram("vram.dump"); break;
 	}
     }
     else if (event.type == SDL_KEYUP)
@@ -708,8 +741,15 @@ int main(int argc, char* argv[])
     {
 	return 1;
     }
-
-    if (core.ismobileenabled)
+    
+    if (core.ispowerenabled)
+    {
+        TermcolorInterface inter;
+        power.setinterface(&inter);
+        power.setpowerreccallback(bind(&Serial::recieve, &*core.coreserial, _1));
+	core.coreserial->setlinkcallback(bind(&PowerAntenna::powerready, &power, _1, _2));
+    }
+    else if (core.ismobileenabled)
     {
 	mobile.setadaptreccallback(bind(&Serial::recieve, &*core.coreserial, _1));
 	core.coreserial->setlinkcallback(bind(&MobileAdapterGB::mobileadapterready, &mobile, _1, _2));
@@ -723,11 +763,16 @@ int main(int argc, char* argv[])
     }
     else
     {
+    	auto serial = bind(&Serial::recieve, &*core.coreserial, _1);
+    	// bcb.setlinkreccallback(serial);
+ 	// core.coreserial->setlinkcallback(bind(&BarcodeBoy::barcodeboyready, &bcb, _1, _2));
+ 	/*
 	auto serial1 = bind(&Serial::recieve, &*core.coreserial, _1);
 	auto serial2 = bind(&Serial::disrecieve, &*core.coreserial, _1);
-	link.setlinkreccallbacks(serial1, serial2);
+	linkcable.setlinkreccallbacks(serial1, serial2);
 	
-	core.coreserial->setlinkcallback(bind(&LinkCable::link1ready, &link, _1, _2));
+	core.coreserial->setlinkcallback(bind(&LinkCable::link1ready, &linkcable, _1, _2));
+	*/
     }
  
     if (!core.initcore())

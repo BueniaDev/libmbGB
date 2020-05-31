@@ -1150,6 +1150,54 @@ namespace gb
 
 	printpixels(printoutbuffer);
     }
+    
+    PowerAntenna::PowerAntenna()
+    {
+    
+    }
+    
+    PowerAntenna::~PowerAntenna()
+    {
+    
+    }
+    
+    PowerAntennaInterface::PowerAntennaInterface()
+    {
+    
+    }
+    
+    PowerAntennaInterface::~PowerAntennaInterface()
+    {
+    
+    }
+    
+    void PowerAntenna::update()
+    {
+    	processbyte();
+    	transfer();
+    }
+    
+    void PowerAntenna::processbyte()
+    {
+        if (recbyte == 0)
+        {
+            ledoff();
+            linkbyte = 0xF2;
+        }
+        else
+        {
+            if (TestBit(recbyte, 0))
+            {
+                ledonstrong();
+            }
+            else
+            {
+                ledonweak();
+            }
+            
+            linkbyte = 0xF3;
+        }
+    }
 
     LinkCable::LinkCable()
     {

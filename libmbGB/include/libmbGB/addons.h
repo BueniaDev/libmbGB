@@ -338,6 +338,85 @@ namespace gb
 		}
 	    }
     };
+    
+    class LIBMBGB_API PowerAntennaInterface
+    {
+        public:
+            PowerAntennaInterface();
+            ~PowerAntennaInterface();
+            
+            virtual void ledoff() = 0;
+            virtual void ledonstrong() = 0;
+            virtual void ledonweak() = 0;
+    };
+    
+    class LIBMBGB_API PowerAntenna
+    {
+    	public:
+    	    PowerAntenna();
+    	    ~PowerAntenna();
+    	    
+    	    PowerAntennaInterface *inter = NULL;
+    	    
+    	    void setinterface(PowerAntennaInterface *cb)
+    	    {
+    	        inter = cb;
+    	    }
+    	    
+    	    uint8_t linkbyte = 0;
+    	    uint8_t recbyte = 0;
+    	    
+    	    linkfunc reclink;
+    	    
+    	    void update();
+    	    void processbyte();
+    	    
+    	    void ledoff()
+    	    {
+    	        if (inter != NULL)
+    	        {
+    	            inter->ledoff();
+    	        }
+    	    }
+    	    
+    	    void ledonstrong()
+    	    {
+    	        if (inter != NULL)
+    	        {
+    	            inter->ledonstrong();
+    	        }
+    	    }
+    	    
+    	    void ledonweak()
+    	    {
+    	        if (inter != NULL)
+    	        {
+    	            inter->ledonweak();
+    	        }
+    	    }
+    	    
+    	    void setpowerreccallback(linkfunc cb)
+    	    {
+    	        reclink = cb;
+    	    }
+    	    
+    	    void transfer()
+    	    {
+    	        if (reclink)
+    	        {
+    	            reclink(linkbyte);
+    	        }
+    	    }
+    	    
+    	    void powerready(uint8_t byte, bool ismode)
+    	    {
+    	    	if (ismode)
+    	    	{
+    	    	    recbyte = byte;
+    	    	    update();
+    	    	}
+    	    }
+    };
 
     class LIBMBGB_API LinkCable
     {
