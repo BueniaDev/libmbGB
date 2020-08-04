@@ -1,5 +1,5 @@
 // This file is part of libmbGB.
-// Copyright (C) 2019 Buenia.
+// Copyright (C) 2020 Buenia.
 //
 // libmbGB is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -648,7 +648,10 @@ namespace gb
 		{
 		    if (val == 0xAA)
 		    {
-			setsensor(mbc7sensorx, mbc7sensory);
+		    	if (setsensor)
+		    	{
+			    setsensor(mbc7sensorx, mbc7sensory);
+			}
 		    }
 		}
 		break;

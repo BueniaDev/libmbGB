@@ -1,5 +1,5 @@
 // This file is part of libmbGB.
-// Copyright (C) 2019 Buenia.
+// Copyright (C) 2020 Buenia.
 //
 // libmbGB is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,459 +30,146 @@ using namespace std;
 namespace gb
 {
     using linkfunc = function<void(uint8_t)>;
-    using printfunc = function<void(vector<RGB> &)>;
-    using htmlarr = array<string, 1>;
-	
-    class LIBMBGB_API MobileAdapterGB
-    {
-	public:
-	    MobileAdapterGB();
-	    ~MobileAdapterGB();
-			
-	    uint8_t linkbyte = 0;
-	    uint8_t adapterbyte = 0;
-			
-	    uint8_t commandid = 0;
-	    uint8_t packetdatalength = 0;
-	    uint16_t calculatedchecksum = 0;
-	    uint16_t comparechecksum = 0;
-	    vector<uint8_t> packetdata;
-			
-	    linkfunc adaptrec;
-			
-	    void setadaptreccallback(linkfunc cb)
-	    {
-		adaptrec = cb;
-	    }
-			
-	    void transfer()
-	    {
-		if (adaptrec)
-		{
-		    adaptrec(linkbyte);
-		}
-	    }
-			
-	    void mobileadapterready(uint8_t byte, bool ismode)
-	    {
-		if (ismode)
-		{
-		    adapterbyte = byte;
-		    update();
-		}
-		else
-		{
-		    return;
-		}
-	    }
-			
-	    enum State : int
-	    {
-		AwaitingPacket = 0,
-		PacketHeader = 1,
-		PacketData = 2,
-		PacketChecksum = 3,
-		AcknowledgingPacket = 4,
-		EchoPacket = 5,
-	    };
-			
-	    int statesteps = 0;
-	    int packetsize = 0;
-			
-	    State adapterstate;
-
-	    array<uint8_t, 192> adapterdata;
-
-	    bool linebusy = false;
-
-	    uint32_t getipaddr()
-	    {
-		uint32_t temp = 0;
-
-		if (packetdatalength >= 6)
-		{
-		    for (int i = 0; i < 4; i++)
-		    {
-			// Hack to grab value in big-endian format
-			temp |= (packetdata[6 + i] << (8 * (~i & 3)));
-		    }
-		}
-		else
-		{
-		    cout << "Error - Mobile adapter tried opening a tcp connection without a server address" << endl;
-		    temp = 0;
-		}
-
-		return temp;
-	    }
-
-	    uint16_t getport()
-	    {
-		uint16_t temp = 0;
-
-		if (packetdatalength >= 6)
-		{
-		    for (int i = 0; i < 2; i++)
-		    {
-			// Hack to grab value in big-endian format
-			temp |= (packetdata[10 + i] << (8 * (~i & 1)));
-		    }
-		}
-		else
-		{
-		    cout << "Error - Mobile adapter tried opening a tcp connection without a port" << endl;
-		    temp = 0;
-		}
-
-		return temp;
-	    }
-
-	    uint32_t ipaddr = 0;
-	    uint16_t port = 0;
-			
-	    void update();
-	    void processbyte();
-	    void processcommand();
-	    void processpop();	
-	    void processhttp();
-
-	    bool popsessionstarted = false;
-	    int poptransferstate = 0;
-
-	    int httptransferstate = 0;
-
-	    string httpdata;
-
-	    bool loadadapterdata()
-	    {
-		bool success = false;
-
-		fstream file("mobiledata.mbmob", ios::in | ios::binary);
-
-		if (!file.is_open())
-		{
-		    cout << "Mobile adapter data could not be read." << endl;
-		    success = false;
-		}
-		else
-		{
-		    file.read((char*)&adapterdata[0], 192);
-		    cout << "Mobile adapter data succesfully loaded." << endl;
-		    success = true;
-		}
-
-		return success;
-	    }
-
-	    bool saveadapterdata()
-	    {
-		bool success = false;
-
-		fstream file("mobiledata.mbmob", ios::out | ios::binary);
-
-		if (!file.is_open())
-		{
-		    cout << "Mobile adapter data could not be written." << endl;
-		    success = false;
-		}
-		else
-		{
-		    file.write((char*)&adapterdata[0], 192);
-		    cout << "Mobile adapter data succesfully stored." << endl;
-		    success = true;
-		}
-
-		return success;
-	    }
-
-	    void strtodata(uint8_t* data, string input)
-	    {
-		for (int x = 0; x < (int)(input.size()); x++)
-		{
-		    char ascii = input[x];
-		    *data = ascii;
-		    data += 1;
-		}
-	    }
-
-	    string datatostr(uint8_t* data, uint32_t length)
-	    {
-		string temp = "";
-
-		for (int x = 0; x < (int)(length); x++)
-		{
-		    char ascii = *data;
-		    temp += ascii;
-		    data += 1;
-		}
-
-		return temp;
-	    }
-
-	    inline bool isxmas()
-	    {
-		time_t t = time(NULL);
-		tm* timeptr = localtime(&t);
-
-		return (timeptr->tm_mon == 11);
-	    }
-
-	    array<string, 1> serverin = 
-	    {
-		"/01/CGB-B9AJ/index.html",
-	    };
-
-	    htmlarr htmldata = 
-	    {
-		"<title>Hello world!</title>",
-	    };
-
-	    htmlarr htmlxmas = 
-	    {
-		"<title>Happy holidays!</title>",
-	    };
-
-	    array<htmlarr, 2> htmltext =
-	    {
-		htmldata,
-		htmlxmas,
-	    };
-
-	    int dataindex = 0;
-    };
-
-    class LIBMBGB_API GBPrinter
-    {
-	public:
-	    GBPrinter();
-	    ~GBPrinter();
-
-	    uint8_t linkbyte = 0;
-	    uint8_t printerbyte = 0;
-
-	    int statesteps = 0;
-
-	    linkfunc printerrec;
-
-	    void setprintreccallback(linkfunc cb)
-	    {
-		printerrec = cb;
-	    }
-
-	    void printerready(uint8_t byte, bool ismode)
-	    {
-		if (ismode)
-		{
-		    printerbyte = byte;
-		    update();
-		}
-		else
-		{
-		    return;
-		}
-	    }
-
-	    enum State : int
-	    {
-		MagicBytes = 0,
-		Command = 1,
-		CompressionFlag = 2,
-		DataLength = 3,
-		CommandData = 4,
-		Checksum = 5,
-		AliveIndicator = 6,
-		Status = 7,
-	    };
-
-	    array<uint8_t, 8192> printerram;
-	    int ramfillamount = 0;
-	    bool printerrequest = false;
-	    bool isaliveindicator = false;
-
-	    printfunc printpixels;
-
-	    inline void setprintcallback(printfunc cb)
-	    {
-		printpixels = cb;
-	    }
-
-	    int clockbits = 0;
-
-	    uint8_t printpalette = 0;
-
-	    uint16_t currentchecksum = 0;
-	    uint8_t currentcommand = 0;
-	    uint16_t commanddatalength = 0;
-	    uint16_t comparechecksum = 0;
-	    bool checksumpass = false;
-
-	    State currentstate = State::MagicBytes;
-
-	    void update();
-	    void processbyte();
-	    void printpicture();
-
-	    vector<RGB> printoutbuffer;
-
-	    void transfer()
-	    {
-		// cout << hex << (int)(linkbyte) << endl;
-		if (printerrec)
-		{
-		    printerrec(linkbyte);
-		}
-		else
-		{
-		    cout << "Bad function call" << endl;
-		    exit(1);
-		}
-	    }
-    };
     
-    class LIBMBGB_API PowerAntennaInterface
+    class LIBMBGB_API SerialDevice
     {
         public:
-            PowerAntennaInterface();
-            ~PowerAntennaInterface();
+            SerialDevice();
+            ~SerialDevice();
             
-            virtual void ledoff() = 0;
-            virtual void ledonstrong() = 0;
-            virtual void ledonweak() = 0;
+            virtual void setlinkcallback(linkfunc cb) = 0;
+            virtual void deviceready(uint8_t byte, bool ismode) = 0;
+            virtual void update() = 0;
+            virtual void transfer() = 0;
+            virtual void swipebarcode() = 0;
+            virtual bool swipedcard() = 0; // This is required for proper emulation of the BTB and the Barcode Boy
+            virtual int serialcycles() = 0;
     };
     
-    class LIBMBGB_API PowerAntenna
+    class LIBMBGB_API Disconnected : public SerialDevice
+    {
+        public:
+            Disconnected();
+            ~Disconnected();
+            
+            linkfunc dislink;
+            
+            void setlinkcallback(linkfunc cb)
+            {
+                dislink = cb;
+            }
+            
+            void deviceready(uint8_t byte, bool ismode)
+            {
+            	if (ismode)
+            	{
+            	    update();
+            	}
+            }
+            
+            void update()
+            {
+            	transfer();
+            }
+            
+            void transfer()
+            {
+            	if (dislink)
+            	{
+            	    dislink(0xFF);
+            	}
+            }
+            
+            void swipebarcode()
+            {
+            	return;
+            }
+            
+            bool swipedcard()
+            {
+                return false;
+            }
+            
+            int serialcycles()
+            {
+                return 0;
+            }
+    };
+    
+    class LIBMBGB_API BarcodeBoy : public SerialDevice
     {
     	public:
-    	    PowerAntenna();
-    	    ~PowerAntenna();
+    	    BarcodeBoy();
+    	    ~BarcodeBoy();
     	    
-    	    PowerAntennaInterface *inter = NULL;
+    	    uint8_t recbyte = 0;
+    	    uint8_t linkbyte = 0;
     	    
-    	    void setinterface(PowerAntennaInterface *cb)
+    	    linkfunc powerlink;
+    	    
+    	    bool barcodeswiped = false;
+    	    
+    	    void setlinkcallback(linkfunc cb)
     	    {
-    	        inter = cb;
+    	    	powerlink = cb;
     	    }
     	    
-    	    uint8_t linkbyte = 0;
-    	    uint8_t recbyte = 0;
-    	    
-    	    linkfunc reclink;
+    	    void swipebarcode()
+    	    {
+    	    	if (state == BCBState::Active)
+    	    	{
+    	    	    state = BCBState::SendBarcode;
+    	    	    barcodeswiped = true;
+    	    	}
+    	    }
     	    
     	    void update();
     	    void processbyte();
     	    
-    	    void ledoff()
+    	    enum BCBState : int
     	    {
-    	        if (inter != NULL)
-    	        {
-    	            inter->ledoff();
-    	        }
-    	    }
+    	        Inactive = 0,
+    	        Active = 1,
+    	        SendBarcode = 2,
+    	        Finished = 3,
+    	    };
     	    
-    	    void ledonstrong()
-    	    {
-    	        if (inter != NULL)
-    	        {
-    	            inter->ledonstrong();
-    	        }
-    	    }
+    	    BCBState state = BCBState::Inactive;
     	    
-    	    void ledonweak()
-    	    {
-    	        if (inter != NULL)
-    	        {
-    	            inter->ledonweak();
-    	        }
-    	    }
+    	    array<uint8_t, 13> testcode = {0x34, 0x39, 0x30, 0x32, 0x37, 0x37, 0x36, 0x38, 0x30, 0x39, 0x33, 0x36, 0x37};
     	    
-    	    void setpowerreccallback(linkfunc cb)
-    	    {
-    	        reclink = cb;
-    	    }
+    	    int bcbcounter = 0;
     	    
     	    void transfer()
     	    {
-    	        if (reclink)
+    	        if (powerlink)
     	        {
-    	            reclink(linkbyte);
+    	            powerlink(linkbyte);
     	        }
     	    }
     	    
-    	    void powerready(uint8_t byte, bool ismode)
+    	    void deviceready(uint8_t byte, bool ismode)
     	    {
-    	    	if (ismode)
-    	    	{
-    	    	    recbyte = byte;
-    	    	    update();
-    	    	}
+    	        if (ismode)
+    	        {
+    	            recbyte = byte;
+    	            update();
+    	        }
+    	        else if (barcodeswiped)
+    	        {
+    	            update();
+    	        }
     	    }
-    };
-
-    class LIBMBGB_API LinkCable
-    {
-	public:
-	    LinkCable();
-	    ~LinkCable();
-
-	    linkfunc recievelink1;
-	    linkfunc recievelink2;
-
-	    void setlinkreccallbacks(linkfunc p1cb, linkfunc p2cb)
-	    {
-		recievelink1 = p1cb;
-		recievelink2 = p2cb;
-	    }
-			
-	    struct LinkData
-	    {
-		uint8_t byte = 0;
-		bool mode = false;
-		bool ready = false;
-	    };
-
-	    LinkData link1;
-	    LinkData link2;
-	
-	    bool islink2 = false;
-			
-	    void setlink2(bool val)
-	    {
-		islink2 = val;
-	    }
-
-	    void transfer()
-	    {
-		if (recievelink1)
-		{
-		     recievelink1(link2.byte);
-		}
-
-		if (recievelink2)
-		{
-		    recievelink2(link1.byte);
-		}
-
-		link1.ready = false;
-		link2.ready = false;
-	    }
-			
-	    void link1ready(uint8_t val, bool ismode)
-	    {
-		link1.byte = val;
-		link1.mode = ismode;
-		link1.ready = true;
-		update();
-	    }
-
-	    void link2ready(uint8_t val, bool ismode)
-	    {
-		link2.byte = val;
-		link2.mode = ismode;
-		link2.ready = true;
-		update();
-	    }
-
-	    void update();
+    	    
+    	    bool swipedcard()
+    	    {
+    	    	return barcodeswiped;
+    	    }
+    	    
+    	    int serialcycles()
+    	    {
+    	        return 0;
+    	    }
     };
 };
 

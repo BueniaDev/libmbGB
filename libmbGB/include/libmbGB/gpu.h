@@ -1,5 +1,6 @@
 // This file is part of libmbGB.
-// Copyright (C) 2019 Buenia.
+// Copyright (C) 2020 Buenia.
+//
 // libmbGB is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -24,6 +25,8 @@ using namespace std;
 
 namespace gb
 {
+    using pixelfunc = function<void()>;
+
     struct RGB
     {
 	uint8_t red;
@@ -106,9 +109,9 @@ namespace gb
 	    {
 		for (int i = 0; i < (160 * 144); i++)
 		{
-		    framebuffer[i].red = 255;
-		    framebuffer[i].green = 255;
-		    framebuffer[i].blue = 255;
+		    framebuffer[i].red = 0xFF;
+		    framebuffer[i].green = 0xFF;
+		    framebuffer[i].blue = 0xFF;
 		}
 	    }
 
@@ -136,6 +139,13 @@ namespace gb
 		
 	    uint8_t readlcd(uint16_t addr);
 	    void writelcd(uint16_t addr, uint8_t val);
+	    
+	    pixelfunc drawpixels;
+	    
+	    void setpixelcallback(pixelfunc cb)
+	    {
+	        drawpixels = cb;
+	    }
 		
 	    inline bool islcdenabled()
 	    {
@@ -277,7 +287,7 @@ namespace gb
 
 	    void updatepoweronstate(bool wasenabled);
 
-	    RGB framebuffer[160 * 144];
+	    RGB framebuffer[160 * 144] = {0, 0, 0};
 	    uint8_t screenbuffer[144][160];
 	    bool bgpriorline[160] = {false};
 

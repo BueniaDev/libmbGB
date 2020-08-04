@@ -10,12 +10,6 @@ using namespace std;
 using namespace std::placeholders;
 #undef main
 
-#ifdef LIBMBGB_SIGNED16
-using sampleformat = int16_t;
-#elif defined LIBMBGB_FLOAT32
-using sampleformat = float;
-#endif
-
 vector<int16_t> buffer;
 
 int screenwidth = 160;
@@ -96,11 +90,7 @@ bool init()
     SDL_RenderPresent(render);
 
     SDL_AudioSpec audiospec;
-    #ifdef LIBMBGB_SIGNED16
     audiospec.format = AUDIO_S16SYS;
-    #elif defined LIBMBGB_FLOAT32
-    audiospec.format = AUDIO_F32SYS;
-    #endif
     audiospec.freq = 48000;
     audiospec.samples = 4096;
     audiospec.channels = 2;
@@ -113,20 +103,25 @@ bool init()
     return true;
 }
 
-void sdlcallback(sampleformat left, sampleformat right)
+void sdlcallback(audiotype left, audiotype right)
 {
-    buffer.push_back(left);
-    buffer.push_back(right);
+    if (!holds_alternative<int16_t>(left) || !holds_alternative<int16_t>(right))
+    {
+        return;
+    }
+
+    buffer.push_back(get<int16_t>(left));
+    buffer.push_back(get<int16_t>(right));
 
     if (buffer.size() >= 4096)
     {
 	buffer.clear();
 
-	while ((SDL_GetQueuedAudioSize(1)) > (4096 * sizeof(sampleformat)))
+	while ((SDL_GetQueuedAudioSize(1)) > (4096 * sizeof(int16_t)))
 	{
 	    SDL_Delay(1);
 	}
-	SDL_QueueAudio(1, &buffer[0], (4096 * sizeof(sampleformat)));
+	SDL_QueueAudio(1, &buffer[0], (4096 * sizeof(int16_t)));
     }
 }
 
@@ -680,7 +675,10 @@ void guistuff()
 int main(int argc, char* argv[])
 {
     core.setsamplerate(48000);
+    core.setaudioflags(MBGB_SIGNED16);
     core.setaudiocallback(bind(&sdlcallback, _1, _2));
+    
+    core.connectserialdevice(new Disconnected());
 
     if (argc > 1)
     {

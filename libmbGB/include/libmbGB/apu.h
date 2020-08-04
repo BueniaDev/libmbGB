@@ -1,5 +1,6 @@
 // This file is part of libmbGB.
-// Copyright (C) 2019 Buenia.
+// Copyright (C) 2020 Buenia.
+// 
 // libmbGB is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -19,18 +20,27 @@
 #include "mmu.h"
 #include "libmbgb_api.h"
 #include <functional>
+#include <variant>
 using namespace gb;
 using namespace std;
 
 namespace gb
 {
-    #ifdef LIBMBGB_SIGNED16
-    using apuoutputfunc = function<void(int16_t, int16_t)>;
-    #elif defined LIBMBGB_FLOAT32
-    using apuoutputfunc = function<void(float, float)>;
-    #else
-    #error "Please define an audio output type."
-    #endif
+    using audiotype = variant<int16_t, float>;
+    using apuoutputfunc = function<void(audiotype, audiotype)>;
+    // Audio flags:
+    // Bit 0 - 1=Float samples, 0=Integer samples
+    // Bit 1 - 1=16-bit samples, 0=8/32-bit samples (defaults to 0 if bit 0 is set)
+    // Bit 2 - 1=8-bit samples, 0=32-bit samples (defaults to 0 if bit 0 or bit 1 is set)
+    // Bit 3 - 1=Signed samples, 0=Unsigned samples
+    
+    #define MBGB_UNSIGNED32 0x0
+    #define MBGB_FLOAT32 0x1
+    #define MBGB_UNSIGNED16 0x2
+    #define MBGB_UNSIGNED8 0x4
+    #define MBGB_SIGNED32 0x8
+    #define MBGB_SIGNED16 0xA
+    #define MBGB_SIGNED8 0xC
 
     class LIBMBGB_API APU
     {
@@ -39,12 +49,23 @@ namespace gb
 	    ~APU();
 
 	    MMU& apumem;
-
-	    #ifdef LIBMBGB_SIGNED16
-	    float divisor = 15.f;
-	    #elif defined LIBMBGB_FLOAT32
-	    float divisor = 100.f;
-	    #endif
+	    
+	    int audioflags = 0;
+	    
+	    float divisor = 0.f;
+	    bool fallback = false;
+	    
+	    void setaudioflags(int val)
+	    {
+	        audioflags = val;
+	        
+	        switch (audioflags)
+	        {
+	            case MBGB_SIGNED16: divisor = 15.f; break;
+	            case MBGB_FLOAT32: divisor = 100.f; break;
+	            default: cout << "Warning - unrecognized audio flag, falling back to signed 16-bit audio" << endl; divisor = 15.f; fallback = true; break;
+	        }
+	    }
 		
 	    int s1sweep = 0;
 	    bool s1negative = false;
@@ -131,14 +152,20 @@ namespace gb
 	    bool prevnoiseenvelopeinc = false;
 
 	    void updateaudio();
-
+	    
 	    inline void mixaudio()
 	    {
-		#ifdef LIBMBGB_SIGNED16
-		mixs16audio();
-		#elif defined LIBMBGB_FLOAT32
-		mixf32audio();
-		#endif
+	    	if (fallback == true)
+	    	{
+	    	    mixs16audio();
+	    	    return;
+	    	}
+	    
+	    	switch (audioflags)
+	    	{
+	    	    case MBGB_SIGNED16: mixs16audio(); break;
+	    	    case MBGB_FLOAT32: mixf32audio(); break;
+	    	}
 	    }
 
 	    void mixs16audio();

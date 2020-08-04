@@ -1,5 +1,5 @@
 // This file is part of libmbGB.
-// Copyright (C) 2019 Buenia.
+// Copyright (C) 2020 Buenia.
 //
 // libmbGB is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,8 +30,6 @@ using namespace std;
 
 namespace gb
 {
-    using serialfunc = function<void(uint8_t, bool)>;
-
     class LIBMBGB_API Serial
     {
 	public:
@@ -42,46 +40,52 @@ namespace gb
 	    void shutdown();
 
 	    MMU& serialmem;
-		
-	    serialfunc linkready;
-			
-	    void setlinkcallback(serialfunc cb)
+	    
+	    SerialDevice *dev;
+	    
+	    void setserialdevice(SerialDevice *cb)
 	    {
-		linkready = cb;
+	        dev = cb;
 	    }
-
-	    void signalready()
-	    {
-		if (linkready)
-		{
-		    linkready(bytetotransfer, TestBit(sc, 0));
-		    pendingrecieve = true;
-		}
-	    }
-
-	    void disconnectedready(uint8_t unused1, bool unused2)
-	    {
-		return;
-	    }
-
+	    
+	    bool dump = false;
+	    
 	    void recieve(uint8_t byte)
 	    {
-		bytetorecieve = byte;
-		serialmem.requestinterrupt(3);
-		sc &= 0x7F;
-		pendingrecieve = false;
+	        bytetorecieve = byte;
+	        serialmem.requestinterrupt(3);
+	        serialcontrol &= 0x7F;
+	        pendingrecieve = false;
 	    }
-
-	    void disrecieve(uint8_t byte)
+	    
+	    void signalready()
 	    {
-		return;
+	        if (dev != NULL)
+	        {
+	            dev->deviceready(bytetotransfer, TestBit(serialcontrol, 0));
+	            pendingrecieve = true;
+	        }
+	        else
+	        {
+	            cout << "Null pointer" << endl;
+	        }
+	    }
+	    
+	    bool swipedcard()
+	    {
+	    	return (dev != NULL) ? dev->swipedcard() : false;
+	    }
+	    
+	    int serialcycles()
+	    {
+	        return (dev != NULL) ? dev->serialcycles() : 0;
 	    }
 		
-	    uint8_t bytetotransfer = 0;
 	    uint8_t bytetorecieve = 0;
-		
-	    uint8_t sb = 0;
-	    uint8_t sc = 0;
+	    uint8_t bytetotransfer = 0;
+	    uint8_t serialcontrol = 0;
+	    
+	    bool pendingrecieve = false;
 		
 	    uint8_t readserial(uint16_t addr);
 	    void writeserial(uint16_t addr, uint8_t val);
@@ -91,11 +95,25 @@ namespace gb
 
 	    void updateserial();
 
-	    bool pendingrecieve = false;
-
 	    inline void initserialclock(uint8_t initval)
 	    {
 		serialclock = initval;
+	    }
+	    
+	    int gettransferrate()
+	    {
+	    	int temp = 0;
+	    	
+	    	if (serialcycles() != 0)
+	    	{
+	    	    temp = serialcycles();
+	    	}
+	    	else
+	    	{
+	    	    temp = ((TestBit(serialcontrol, 1) ? 16 : 512) >> serialmem.doublespeed);
+	    	}
+
+	    	return temp;
 	    }
     };
 };

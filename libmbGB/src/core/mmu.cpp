@@ -1,5 +1,5 @@
 // This file is part of libmbGB.
-// Copyright (C) 2019 Buenia.
+// Copyright (C) 2020 Buenia.
 //
 // libmbGB is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -402,58 +402,62 @@ namespace gb
 
     uint8_t MMU::readByte(uint16_t addr)
     {
+    	int temp = 0;
+    
 	if (addr < 0x4000)
 	{
-	    return readDirectly(addr); // Pocket Music and Disney's Aladdin (GBC ver.) rely on this in order to perform OAM DMA transfers properly
+	    temp = readDirectly(addr); // Pocket Music and Disney's Aladdin (GBC ver.) rely on this in order to perform OAM DMA transfers properly
 	}
 	else if (addr < 0x8000)
 	{
 	    if (dmabusblock != Bus::External)
 	    {
-		return readDirectly(addr);
+		temp = readDirectly(addr);
 	    }
 	    else
 	    {
-		return oamtransferbyte;
+		temp = oamtransferbyte;
 	    }
 	}
 	else if (addr < 0xA000)
 	{
 	    if (dmabusblock != Bus::Vram)
 	    {
-		return readDirectly(addr);
+		temp = readDirectly(addr);
 	    }
 	    else
 	    {
-		return oamtransferbyte;
+		temp = oamtransferbyte;
 	    }
 	}
 	else if (addr < 0xFE00)
 	{
 	    if (dmabusblock != Bus::External)
 	    {
-		return readDirectly(addr);
+		temp = readDirectly(addr);
 	    }
 	}
 	else if (addr < 0xFEA0)
 	{
 	    if (dmabusblock == Bus::None)
 	    {
-		return readDirectly(addr);
+		temp = readDirectly(addr);
 	    }
 	    else
 	    {
-		return 0xFF;
+		temp = 0xFF;
 	    }
 	}
 	else if (addr < 0xFF00)
 	{
-	    return 0x00;
+	    temp = 0x00;
 	}
 	else
 	{
-	    return readDirectly(addr);
+	    temp = readDirectly(addr);
 	}
+	
+	return temp;
     }
 
     void MMU::writeDirectly(uint16_t addr, uint8_t value)
@@ -599,6 +603,10 @@ namespace gb
 	{
 	    temp = memoryreadhandlers.at((addr - 0xFF00))(addr);
 	}
+	else if (addr == 0xFF56)
+	{
+	    temp = memoryreadhandlers.at((addr - 0xFF00))(addr);
+	}
 	else
 	{
 	    switch ((addr & 0xFF))
@@ -642,6 +650,10 @@ namespace gb
 	    memorywritehandlers.at((addr - 0xFF00))(addr, value);
 	}
 	else if (addr >= 0xFF47 && (addr <= 0xFF4B))
+	{
+	    memorywritehandlers.at((addr - 0xFF00))(addr, value);
+	}
+	else if (addr == 0xFF56)
 	{
 	    memorywritehandlers.at((addr - 0xFF00))(addr, value);
 	}
@@ -816,7 +828,7 @@ namespace gb
 		gbmode = Mode::DMG;
 	    }
 
-	    initvram();
+	    // initvram();
 
 	    cout << "Title: " << determinegametitle(cartmem) << endl;
 	    determinembctype(cartmem);

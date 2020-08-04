@@ -1,5 +1,5 @@
 // This file is part of libmbGB.
-// Copyright (C) 2019 Buenia.
+// Copyright (C) 2020 Buenia.
 //
 // libmbGB is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -39,9 +39,33 @@
 #include "timers.h"
 #include "libmbgb_api.h"
 using namespace std;
+using namespace std::placeholders;
 
 namespace gb
 {
+
+    class LIBMBGB_API mbGBFrontend
+    {
+	public:
+    	    mbGBFrontend()
+    	    {
+    	
+    	    }
+    	
+    	    ~mbGBFrontend()
+    	    {
+    	
+    	    }
+    	
+    	    virtual bool init() = 0;
+    	    virtual void shutdown() = 0;
+    	    virtual void runapp() = 0;
+    	    virtual void audiocallback(audiotype left, audiotype right) = 0;
+    	    virtual void rumblecallback(bool enabled) = 0;
+    	    virtual void sensorcallback(uint16_t& sensorx, uint16_t& sensory) = 0;
+    	    virtual void pixelcallback() = 0;
+    };
+
     class LIBMBGB_API GBCore
     {
 	public:
@@ -55,10 +79,13 @@ namespace gb
 	    unique_ptr<CPU> corecpu;
 	    unique_ptr<Serial> coreserial;
 	    unique_ptr<APU> coreapu;
+	    
+	    mbGBFrontend *front = NULL;
 
 	    void preinit();
 	    void init();
 	    void shutdown();
+	    void shutdown(bool frontend);
 
 	    bool getoptions(int argc, char* argv[]);
 	    bool loadBIOS(string filename);
@@ -74,6 +101,8 @@ namespace gb
 	    bool dumpmemory(string filename);
 	    void setdotrender(bool val);
 
+	    void setfrontend(mbGBFrontend *front);
+
 	    bool loadbackup();
 	    bool savebackup();
 	    bool paused = false;
@@ -81,6 +110,7 @@ namespace gb
 	    int overspentcycles = 0;
 	    int runinstruction();
 	    void runcore();
+	    void runapp();
 	    bool initcore();
 	    bool initcore(const char *filename, const uint8_t* buffer, int size);
 	    void resetcore();
@@ -89,16 +119,12 @@ namespace gb
 	    void setaudiocallback(apuoutputfunc cb);
 	    void setrumblecallback(rumblefunc cb);
 	    void setsensorcallback(sensorfunc cb);
+	    void setpixelcallback(pixelfunc cb);
+	    void setaudioflags(int val);
 	    bool isprinterenabled = false;
 	    bool ismobileenabled = false;
 	    bool ispowerenabled = false;
-
-	    MobileAdapterGB *mobilegb = NULL;
-
-	    void setmobileadapter(MobileAdapterGB *gb)
-	    {
-		mobilegb = gb;
-	    }
+	    bool isbcbenabled = false;
 
 	    inline bool isxmas()
 	    {
@@ -122,6 +148,15 @@ namespace gb
 	    {
 		return (coremmu->agbmode);
 	    }
+	    
+	    void swipebarcode()
+	    {
+	    	dev->swipebarcode();
+	    }
+	    
+	    SerialDevice *dev = NULL;
+	    
+	    void connectserialdevice(SerialDevice *cb);
     };
 };
 

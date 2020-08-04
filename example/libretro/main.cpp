@@ -1,30 +1,6 @@
 #include <libmbGB/libmbgb.h>
 #include "libretro.h"
-#include <array>
-#include <vector>
-#include <functional>
 using namespace gb;
-using namespace std;
-using namespace std::placeholders;
-
-static constexpr int screenwidth = 160;
-static constexpr int screenheight = 144;
-static constexpr int scale = 3;
-
-static constexpr int width = (screenwidth * scale);
-static constexpr int height = (screenheight * scale);
-
-static uint8_t rgb24torgb15(uint8_t c);
-static void retrocallback(int16_t left, int16_t right);
-static void processinput();
-static void drawpixels();
-
-static GBCore core;
-static vector<int16_t> apubuffer;
-static short framebuffer[screenwidth * screenheight];
-
-static const uint8_t *rombuffer;
-static int romsize;
 
 static array<pair<size_t, Button>, 8> keymap = 
 {
@@ -40,98 +16,291 @@ static array<pair<size_t, Button>, 8> keymap =
     }
 };
 
-static retro_environment_t environment_cb;
-static retro_video_refresh_t video_cb;
-static retro_audio_sample_batch_t audio_batch_cb;
-static retro_input_poll_t input_poll_cb;
-static retro_input_state_t input_state_cb;
-static retro_log_printf_t log_cb;
+class LibretroFrontend : public mbGBFrontend
+{
+    public:
+
+	LibretroFrontend(GBCore *corecb)
+	{
+    	    core = corecb;
+    	}
+    
+    	~LibretroFrontend()
+    	{
+    
+    	}
+    
+    	bool init()
+    	{
+    	    if (env(RETRO_ENVIRONMENT_GET_RUMBLE_INTERFACE, &rumble))
+    	    {
+    	    	printf("Rumble supported\n");
+    	    	rumbleenabled = true;
+    	    }
+    	    else
+    	    {
+    	    	printf("Rumble not supported\n");
+    	        rumbleenabled = false;
+    	    }
+    	
+    	    return true;
+    	}
+    
+    	void shutdown()
+    	{
+    
+    	}
+    
+    	void runapp()
+    	{
+    	    core->runcore();
+    	    pollinput();
+    	    
+    	    if (apubuffer.size() > 2)
+    	    {
+    	        samplebatch(apubuffer.data(), (apubuffer.size() / 2));
+    	        apubuffer.clear();
+    	    }
+    	}
+    	
+    	void pollinput()
+    	{
+    	    inputpoll();
+    	    
+    	    for (const auto& pair : keymap)
+    	    {
+    	        auto value = inputstate(0, RETRO_DEVICE_JOYPAD, 0, pair.first);
+    	        
+    	        if (value != 0)
+    	        {
+    	            core->keypressed(pair.second);
+    	        }
+    	        else
+    	        {
+    	            core->keyreleased(pair.second);
+    	        }
+    	    }
+    	}
+    
+    	void audiocallback(audiotype left, audiotype right)
+    	{
+    	    if (!holds_alternative<int16_t>(left) || !holds_alternative<int16_t>(right))
+    	    {
+    	        return;
+    	    }
+    	    
+    	    apubuffer.push_back(get<int16_t>(left));
+    	    apubuffer.push_back(get<int16_t>(right));
+    	}
+    
+    	void rumblecallback(bool enabled)
+    	{
+    	    if (!rumbleenabled)
+    	    {
+    	        return;
+    	    }
+    	
+    	    if (rumble.set_rumble_state)
+    	    {
+    	    	if (enabled && !isrumbling)
+    	    	{
+    	    	    rumble.set_rumble_state(1, RETRO_RUMBLE_STRONG, 0xFFFF); 
+    	    	    isrumbling = true;
+    	    	}
+    	    	else if (!enabled && isrumbling)
+    	    	{
+    	    	    rumble.set_rumble_state(1, RETRO_RUMBLE_STRONG, 0); 
+    	    	    isrumbling = false;
+    	    	}
+    	    }
+    	}
+    
+    	void sensorcallback(uint16_t& sensorx, uint16_t& sensory)
+    	{
+    	    
+    	}
+    
+    	void pixelcallback()
+    	{
+    	    short framebuffer[(160 * 144)];
+    
+    	    for (int i = 0; i < 160; i++)
+    	    {
+    	    	for (int j = 0; j < 144; j++)
+    	    	{
+    	    	    RGB framecolor = core->getpixel(i, j);
+    	    	    
+    	    	    auto red = rgb24torgb15(framecolor.red);
+    	    	    auto green = rgb24torgb15(framecolor.green);
+    	    	    auto blue = rgb24torgb15(framecolor.blue);
+    	    	    
+    	    	    short color = (0x8000 | (red << 10) | (green << 5) | blue);
+    	    	
+    	    	    framebuffer[(i + (j * 160))] = color;
+    	    	}
+    	    }
+    	
+    	    vidrefresh(framebuffer, 160, 144, (160 * sizeof(short)));
+    	}
+    
+    	void setenvironment(retro_environment_t cb)
+    	{
+            env = cb;
+    	}
+    
+    	void setvideorefresh(retro_video_refresh_t cb)
+    	{
+    	    vidrefresh = cb;
+    	}
+    
+        void setaudiosample(retro_audio_sample_t cb)
+    	{
+            sample = cb;
+    	}
+    
+    	void setaudiosamplebatch(retro_audio_sample_batch_t cb)
+    	{
+    	    samplebatch = cb;
+    	}
+    
+    	void setinputpoll(retro_input_poll_t cb)
+    	{
+    	    inputpoll = cb;
+    	}
+    
+    	void setinputstate(retro_input_state_t cb)
+    	{
+    	    inputstate = cb;
+    	}
+    
+    	void getsysteminfo(retro_system_info *info)
+    	{
+    	    info->library_name = "mbGB-Retro";
+    	    info->library_version = "0.1";
+    	    info->need_fullpath = false;
+    	    info->valid_extensions = "gb|gbc";
+    	}
+    
+    	void getsystemavinfo(retro_system_av_info *info)
+    	{
+    	    info->geometry.base_width = screenwidth;
+    	    info->geometry.base_height = screenheight;
+    	    info->geometry.max_width = screenwidth;
+    	    info->geometry.max_height = screenheight;
+    	    info->geometry.aspect_ratio = 0.0f;
+    	
+    	    info->timing.fps = 60.0f;
+    	    info->timing.sample_rate = 48000;
+    	}
+    	
+    	uint8_t rgb24torgb15(uint8_t color)
+    	{
+    	    float currentratio = ((float)color / 255.0f);
+    	    
+    	    return (uint8_t)((float)0x1F * currentratio);
+    	}
+    
+    	retro_environment_t env;
+    	retro_video_refresh_t vidrefresh;
+    	retro_audio_sample_t sample;
+    	retro_audio_sample_batch_t samplebatch;
+    	retro_input_poll_t inputpoll;
+    	retro_input_state_t inputstate;
+    	
+    	retro_rumble_interface rumble;
+    	retro_log_printf_t log;
+    
+    	int screenwidth = 160;
+    	int screenheight = 144;
+    	
+    	bool rumbleenabled = false;
+    	bool isrumbling = false;
+    	
+    	GBCore *core = NULL;
+    	
+    	vector<int16_t> apubuffer;
+};
+
+
+
+GBCore core;
+LibretroFrontend *front = new LibretroFrontend(&core);
 
 unsigned retro_api_version(void)
 {
     return RETRO_API_VERSION;
 }
 
-void retro_init()
+void retro_init(void)
 {
-    retro_log_callback log;
-    int level = 4;
+    core.setfrontend(front);
+}
 
-    if (environment_cb(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &log))
+void retro_deinit(void)
+{
+    core.shutdown();
+}
+
+void retro_run(void)
+{
+    core.runapp();
+}
+
+void retro_set_environment(retro_environment_t callback)
+{
+    front->setenvironment(callback);
+}
+
+void retro_set_video_refresh(retro_video_refresh_t callback)
+{
+    front->setvideorefresh(callback);
+}
+
+void retro_set_audio_sample(retro_audio_sample_t callback)
+{
+    front->setaudiosample(callback);
+}
+
+void retro_set_audio_sample_batch(retro_audio_sample_batch_t callback)
+{
+    front->setaudiosamplebatch(callback);
+}
+
+void retro_set_input_poll(retro_input_poll_t callback)
+{
+    front->setinputpoll(callback);
+}
+
+void retro_set_input_state(retro_input_state_t callback)
+{
+    front->setinputstate(callback);
+}
+
+bool retro_load_game(const struct retro_game_info *game)
+{
+    if (game && game->data)
     {
-	log_cb = log.log;
+    	core.setsamplerate(48000);
+    	core.setaudioflags(MBGB_SIGNED16);
+    	core.connectserialdevice(new Disconnected());
+    	core.setdotrender(true);
+    
+        core.initcore(game->path, (uint8_t*)game->data, game->size);
+        
+        return true;
     }
-    else
-    {
-	log_cb = nullptr;
-    }
-
-    environment_cb(RETRO_ENVIRONMENT_SET_PERFORMANCE_LEVEL, &level);
+    
+    return false;
 }
 
-void retro_deinit()
-{
-
-}
-
-void retro_get_system_info(retro_system_info* info)
-{
-    memset(info, 0, sizeof(retro_system_info));
-    info->library_name = "mbGB-retro";
-    info->library_version = "Alpha";
-    info->need_fullpath = false;
-    info->valid_extensions = "gb|gbc";
-}
-
-void retro_get_system_av_info(retro_system_av_info* info)
-{
-    memset(info, 0, sizeof(retro_system_av_info));
-    info->timing.fps = 60.0f;
-    info->timing.sample_rate = 48000;
-    info->geometry.base_width = screenwidth;
-    info->geometry.base_height = screenheight;
-    info->geometry.max_width = screenwidth;
-    info->geometry.max_height = screenheight;
-    info->geometry.aspect_ratio = (float)(160 / 144);
-}
-
-void retro_set_environment(retro_environment_t cb)
-{
-    environment_cb = cb;
-}
-
-bool retro_load_game(const retro_game_info* info)
-{
-    if (info && info->data)
-    {
-        core.setsamplerate(48000);
-	core.setaudiocallback(bind(&retrocallback, _1, _2));    	
-
-	core.preinit();	
-
-	if (!core.loadROM(info->path, (uint8_t*)(info->data), info->size))
-	{
-	    return false;
-	}
-
-	core.romname = info->path;
-	rombuffer = (uint8_t*)(info->data);
-	romsize = info->size;
-
-	core.init();
-
-	return true;
-    }
-}
-
-bool retro_load_game_special(unsigned game_type, const struct retro_game_info *info, size_t num_info)
+bool retro_load_game_special(unsigned game_type, const struct retro_game_info *game, size_t numinfo)
 {
     return false;
 }
 
 void retro_unload_game(void)
 {
-    core.shutdown();
+    return;
 }
 
 void retro_reset(void)
@@ -139,103 +308,19 @@ void retro_reset(void)
     core.resetcoreretro();
 }
 
-void retro_run(void)
-{  
-    core.runcore();
-
-    processinput();
-
-    drawpixels();
-
-    video_cb(framebuffer, screenwidth, screenheight, (screenwidth * sizeof(short)));
-
-    if (apubuffer.size() > 2)
-    {
-	audio_batch_cb(&apubuffer[0], (apubuffer.size() / 2));
-	apubuffer.clear();
-    }
+void retro_get_system_info(struct retro_system_info *info)
+{
+    front->getsysteminfo(info);
 }
 
-void retrocallback(int16_t left, int16_t right)
+void retro_get_system_av_info(struct retro_system_av_info *info)
 {
-    apubuffer.push_back(left);
-    apubuffer.push_back(right);
-}
-
-void processinput()
-{
-    input_poll_cb();
-
-    for (const auto& pair : keymap)
-    {
-	auto value = input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, pair.first);
-
-	if (value != 0)
-	{
-	    core.keypressed(pair.second);
-	}
-	else
-	{
-	    core.keyreleased(pair.second);
-	}
-    }
-}
-
-void drawpixels()
-{
-    for (int i = 0; i < 160; i++)
-    {
-	for (int j = 0; j < 144; j++)
-	{
-	    uint8_t red = core.getpixel(i, j).red;
-	    uint8_t green = core.getpixel(i, j).green;
-	    uint8_t blue = core.getpixel(i, j).blue;
-
-	    auto r = rgb24torgb15(red);
-	    auto g = rgb24torgb15(green);
-	    auto b = rgb24torgb15(blue);
-
-	    short rgb = (0x8000 | (r << 10) | (g << 5) | b);
-
-	    framebuffer[(i + (j * 160))] = rgb;
-	}
-    }
-}
-
-uint8_t rgb24torgb15(uint8_t c)
-{
-    static constexpr int max15 = 0x1F;
-    float currentratio = ((float)(c) / 255.0f);
-
-    return ((uint8_t)((float)(max15 * currentratio)));
-}
-
-void retro_set_audio_sample_batch(retro_audio_sample_batch_t cb)
-{
-    audio_batch_cb = cb;
-}
-
-void retro_set_video_refresh(retro_video_refresh_t cb)
-{
-    video_cb = cb;
-}
-
-void retro_set_audio_sample(retro_audio_sample_t cb)
-{
-}
-
-void retro_set_input_poll(retro_input_poll_t cb)
-{
-    input_poll_cb = cb;
-}
-
-void retro_set_input_state(retro_input_state_t cb)
-{
-    input_state_cb = cb;
+    front->getsystemavinfo(info);
 }
 
 void retro_set_controller_port_device(unsigned port, unsigned device)
 {
+    return;
 }
 
 size_t retro_serialize_size(void)
@@ -255,12 +340,12 @@ bool retro_unserialize(const void *data, size_t size)
 
 void retro_cheat_reset(void)
 {
-
+    return;
 }
 
 void retro_cheat_set(unsigned index, bool enabled, const char *code)
 {
-
+    return;
 }
 
 void *retro_get_memory_data(unsigned id)

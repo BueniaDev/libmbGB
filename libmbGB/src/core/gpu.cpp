@@ -1,5 +1,6 @@
 // This file is part of libmbGB.
-// Copyright (C) 2019 Buenia.
+// Copyright (C) 2020 Buenia.
+//
 // libmbGB is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -163,13 +164,18 @@ namespace gb
 		{
 		    statinterruptsignal |= TestBit(stat, 5);
 		}
+		
+		if (drawpixels)
+		{
+		    drawpixels();
+		}
 	    }
 	}
 
 	// Dot-based renderer logic
 	if (isdotrender())
 	{
-	    int16_t currentpixel = ((((scanlinecounter % 456) - 92) & ~3) + linexbias);
+	    int16_t currentpixel = (((scanlinecounter % 456 - 80) & ~7) + linexbias);
 
 	    for (int i = pixelx; i < currentpixel; i++)
 	    {
@@ -673,8 +679,8 @@ namespace gb
 
     void GPU::rendercgbbgpixel()
     {
-	int scy = (ly + scrolly);
-	int scx = (pixelx + scrollx);
+	int scy = ((ly + scrolly) & 0xFF);
+	int scx = ((pixelx + scrollx) & 0xFF);
 	int tx = (scx & 7);
 
 	if (tx == 0 || pixelx == 0)
@@ -815,6 +821,9 @@ namespace gb
 
 	    uint8_t palette = (obj.palette) ? objpalette1 : objpalette0;
 	    objcolor = getdmgcolor(objpal, palette);
+	    
+	    cout << dec << (int)(objcolor) << endl;
+	    
 	    objprior = obj.priority;
 	}
     }
@@ -1251,8 +1260,7 @@ namespace gb
 		{
 		    uint8_t xpixel = (xpos + pixel);
 		    int spritepixel = (xflip) ? pixel : ((pixel - 7) * -1);
-		    bool iswhite = (bgscanline[xpixel] == 0 && winscanline[xpixel] == 0);
-		    bool isbgwhite = (bgscanline[xpixel] == 0);
+		    bool iswhite = (bgscanline[xpixel] == 0);
 		    int colornum = BitGetVal(data2, spritepixel);
 		    colornum <<= 1;
 		    colornum |= BitGetVal(data1, spritepixel);
@@ -1266,7 +1274,6 @@ namespace gb
 		    if (gpumem.isdmgconsole())
 		    {
 	        	int color = getdmgcolor(colornum, coloraddr);
-
 
 			switch (color)
 			{
@@ -1291,12 +1298,11 @@ namespace gb
 		    else
 		    {
 			int color = getgbccolor((flags & 0x7), colornum, false);
-
 			red = getcolors(color).red;
 	 		green = getcolors(color).green;
 			blue = getcolors(color).blue;
 		    }
-
+		    
 		    if (xpixel >= 160)
 		    {
 			continue;
@@ -1306,23 +1312,24 @@ namespace gb
 		    {
 			continue;
 		    }
-
+		    
 		    if ((priority == true && !iswhite))
 		    {
 			continue;
 		    }
-
+		    
 		    if ((scanline < 0) || (scanline > 144))
 		    {
 			continue;
 		    }
-
-		    if (gpumem.isgbcmode() && TestBit(lcdc, 0) && (bgpriorline[xpixel] && !isbgwhite))
+		    
+		    if (gpumem.isgbcmode() && TestBit(lcdc, 0) && (bgpriorline[xpixel] && !iswhite))
 		    {
 			continue;
 		    }
-
+		    
 		    int index = (xpixel + (scanline * 160));
+		    
 		    framebuffer[index].red = red;
 		    framebuffer[index].green = green;
 		    framebuffer[index].blue = blue;

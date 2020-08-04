@@ -1,5 +1,5 @@
 // This file is part of libmbGB.
-// Copyright (C) 2019 Buenia.
+// Copyright (C) 2020 Buenia.
 //
 // libmbGB is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -77,48 +77,11 @@ namespace gb
     {
 	if (addr <= 0xFF26)
 	{
-	    if (!issoundon)
-	    {
-		switch ((addr & 0xFF))
+		if ((!issoundon) && (addr != 0xFF26))
 		{
-		    case 0x11:
-		    {
-			if (apumem.isdmgconsole())
-		        {
-			    reloads1lengthcounter();
-		        }
-		    }
-		    break;
-		    case 0x16:
-		    {
-			if (apumem.isdmgconsole())
-			{
-			    reloads2lengthcounter();
-		    	}
-		    }
-		    break;
-		    case 0x1B:
-		    {
-			if (apumem.isdmgconsole())
-		        {
-			    reloadwavelengthcounter();
-			}
-		    }
-		    break;
-		    case 0x20:
-		    {
-			if (apumem.isdmgconsole())
-		    	{
-			    reloadnoiselengthcounter();
-		    	}
-		    }
-		    break;
-		    case 0x26: writesoundon(value); break;
-	    	}
-
-		return;
-	    }
-
+			return;
+		}
+		
 	    switch ((addr & 0xFF))
 	    {
 		case 0x10: writes1sweep(value); break;
@@ -678,8 +641,8 @@ namespace gb
 	auto leftvolume = (((float)(mastervolleft)) / 7.0f);
 	auto rightvolume = (((float)(mastervolright)) / 7.0f);
 
-	auto left = (int16_t)(leftsample * leftvolume * ampl);
-	auto right = (int16_t)(rightsample * rightvolume * ampl);
+	audiotype left = (int16_t)(leftsample * leftvolume * ampl);
+	audiotype right = (int16_t)(rightsample * rightvolume * ampl);
 
 	if (audiocallback)
     	{
@@ -746,8 +709,8 @@ namespace gb
 	auto leftvolume = (((float)(mastervolleft)) / 7.0f);
 	auto rightvolume = (((float)(mastervolright)) / 7.0f);
 
-	auto left = (float)(leftsample * leftvolume);
-	auto right = (float)(rightsample * rightvolume);
+	audiotype left = (float)(leftsample * leftvolume);
+	audiotype right = (float)(rightsample * rightvolume);
 
 	if (audiocallback)
 	{

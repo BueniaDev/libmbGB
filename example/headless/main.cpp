@@ -1,43 +1,52 @@
-#include <libmbGB/libmbgb.h>
+// Minimal example for utilizing the libmbGB API
+
+#include <libmbGB/libmbgb.h> // This is the main header file for libmbGB
 #include <iostream>
 #include <functional>
-using namespace gb;
+using namespace gb; // The core emulation logic is tucked into the "gb" namespace
 using namespace std;
 using namespace std::placeholders;
 
-GBPrinter print;
-
-void printcb(vector<RGB> &buffer)
-{
-    return;
-}
-
-void recieve(uint8_t byte)
-{
-    cout << "Byte recieved: " << hex << (int)(byte) << endl;
-}
-
-void sendbyte(uint8_t byte)
-{
-    print.printerready(byte, true);
-}
-
 int main(int argc, char* argv[])
 {
-    print.setprintcallback(bind(&printcb, _1));
-    print.setprintreccallback(bind(&recieve, _1));
+    // Create an instance of the libmbGB core
+    GBCore core;
+    
+    // Set sample rate for audio playback, in kHz
+    core.setsamplerate(48000);
+    
+    // Set audio type (we set it to signed 16-bit integers)
+    core.setaudioflags(MBGB_SIGNED16);
+    
+    
+    // Set the audio callback (we set it below)
+    core.setaudiocallback([](audiotype left, audiotype right){
+    	if (holds_alternative<int16_t>(left))
+    	{
+    	    cout << "Left: " << dec << (int)(get<int16_t>(left)) << endl;
+    	}
+    	
+    	if (holds_alternative<int16_t>(right))
+    	{
+    	    cout << "Right: " << dec << (int)(get<int16_t>(right)) << endl;
+    	}
+    });
+    
+    // Process command-line arguments
+    if (!core.getoptions(argc, argv))
+    {
+        return 1;
+    }
+    
+    // Initalize the emulator
+    if (!core.initcore())
+    {
+        return 1;
+    }
+    
+    core.runcore(); // Run the emulator for 1 frame...
+    core.shutdown(); // ...and then shut it down
+    return 0;
 
-    sendbyte(0x88);
-    sendbyte(0x33);
-    sendbyte(0x0F);
-    sendbyte(0x00);
-    sendbyte(0x00);
-    sendbyte(0x00);
-    sendbyte(0x0F);
-    sendbyte(0x00);
-    sendbyte(0x00);
-
-    cout << "Program execution finished." << endl;
-	
     return 0;
 }

@@ -1,5 +1,5 @@
 // This file is part of libmbGB.
-// Copyright (C) 2019 Buenia.
+// Copyright (C) 2020 Buenia.
 //
 // libmbGB is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -62,15 +62,15 @@ namespace gb
 	coreserial->init();
 	loadbackup();
 
-	if (ismobileenabled && (mobilegb != NULL))
-	{
-	    mobilegb->loadadapterdata();
-	}
-
 	cout << "mbGB::Initialized" << endl;
     }
-
+    
     void GBCore::shutdown()
+    {
+        shutdown(true);
+    }
+
+    void GBCore::shutdown(bool frontend)
     {
 	coreserial->shutdown();
 	coreinput->shutdown();
@@ -78,13 +78,14 @@ namespace gb
 	coregpu->shutdown();
 	corecpu->shutdown();
 	savebackup();
-
-	if (ismobileenabled && (mobilegb != NULL))
-	{
-	    mobilegb->saveadapterdata();
-	}
-
+	
 	coremmu->shutdown();
+	
+	if (frontend && front != NULL)
+	{
+	    front->shutdown();
+	}
+	
 	cout << "mbGB::Shutting down..." << endl;
     }
 
@@ -104,6 +105,7 @@ namespace gb
 	cout << "--printer \t\t Emulates the Game Boy Printer." << endl;
 	cout << "--mobile \t\t Emulates the Mobile Adapter GB (currently WIP)." << endl;
 	cout << "--power \t\t Emulates the Power Antenna / Bug Sensor." << endl;
+	cout << "--bcb \t\t Emulates the Barcode Boy (DMG only)." << endl;
 	cout << "-h, --help \t\t Displays this help message." << endl;
 	cout << endl;
     }
@@ -198,29 +200,22 @@ namespace gb
 
 	    if ((strcmp(argv[i], "--printer") == 0))
 	    {
-		isprinterenabled = true;
-	    }
-	    else
-	    {
-		isprinterenabled = false;
+		connectserialdevice(new Disconnected());
 	    }
 		
 	    if ((strcmp(argv[i], "--mobile") == 0))
 	    {
-		ismobileenabled = true;
-	    }
-	    else
-	    {
-		ismobileenabled = false;
+		connectserialdevice(new Disconnected());
 	    }
 	    
 	    if ((strcmp(argv[i], "--power") == 0))
 	    {
-		ispowerenabled = true;
+		connectserialdevice(new Disconnected());
 	    }
-	    else
+	    
+	    if ((strcmp(argv[i], "--bcb") == 0))
 	    {
-		ispowerenabled = false;
+		connectserialdevice(new BarcodeBoy());
 	    }
 	}
 
@@ -235,7 +230,38 @@ namespace gb
 	    screenheight = 160;
 	}
 
+	if (dev == NULL)
+	{
+	    connectserialdevice(new Disconnected());
+	}
+
 	return true;
+    }
+    
+    void GBCore::connectserialdevice(SerialDevice *cb)
+    {
+    	dev = NULL;
+	auto serial = bind(&Serial::recieve, &*coreserial, _1);
+	cb->setlinkcallback(serial);
+	dev = cb;
+	coreserial->setserialdevice(dev);
+    }
+    
+    void GBCore::setfrontend(mbGBFrontend *cb)
+    {
+        front = cb;
+        
+        if (front != NULL)
+        {
+            setaudiocallback(bind(&mbGBFrontend::audiocallback, cb, _1, _2));
+            setrumblecallback(bind(&mbGBFrontend::rumblecallback, cb, _1));
+            setsensorcallback(bind(&mbGBFrontend::sensorcallback, cb, _1, _2));
+            setpixelcallback(bind(&mbGBFrontend::pixelcallback, cb));
+        }
+        else
+        {
+            cout << "Null pointer..." << endl;
+        }
     }
 
     bool GBCore::loadBIOS(string filename)
@@ -404,6 +430,14 @@ namespace gb
     {
 	return corecpu->runinstruction();
     }
+    
+    void GBCore::runapp()
+    {
+        if (front != NULL)
+        {
+            front->runapp();
+        }
+    }
 
     void GBCore::runcore()
     {
@@ -434,6 +468,12 @@ namespace gb
 	}
 
 	init();
+	
+	if (front != NULL)
+	{
+	    front->init();
+	}
+	
 	return true;
     }
 
@@ -449,6 +489,12 @@ namespace gb
 	romname = filename;
 
 	init();
+	
+	if (front != NULL)
+	{
+		front->init();
+	}
+	
 	return true;
     }
 
@@ -471,6 +517,16 @@ namespace gb
     {
 	coreapu->setaudiocallback(cb);
     }
+    
+    void GBCore::setpixelcallback(pixelfunc cb)
+    {
+	coregpu->setpixelcallback(cb);
+    }
+    
+    void GBCore::setaudioflags(int val)
+    {
+        coreapu->setaudioflags(val);
+    }
 
     void GBCore::resetcore()
     {
@@ -481,6 +537,7 @@ namespace gb
     void GBCore::resetcoreretro()
     {
 	shutdown();
+	preinit();
 	init();
     }
 };

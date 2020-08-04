@@ -170,15 +170,15 @@ Patching up graphical debugger
 
 Frontends for numerous systems (via mbGB-ports)
 
-Graphical frontend (via mbGB-Qt)
+Graphical frontends (via mbGB-Qt and mbGB-Gtk)
 
 Android frontend (via mbGB-droid)
 
-WebAssembly port
+WebAssembly port (via mbGB-wasm)
 
 ## Long-term
 
-Support for various obscure Game Boy (Color) addons (Zok Zok Heroes Full Changer, Barcode Boy, etc.)
+Support for various obscure Game Boy (Color) addons (Zok Zok Heroes Full Changer, Turbo File GB, etc.)
 
 # License
 
