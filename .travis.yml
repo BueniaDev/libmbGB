@@ -11,7 +11,7 @@ language: cpp
 matrix:
   include:
     - os: linux
-      dist: focal
+      dist: bionic
     - os: osx
       osx_image: xcode12u
 
