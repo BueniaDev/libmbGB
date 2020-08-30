@@ -26,6 +26,7 @@
 #include <sstream>
 #include <functional>
 #include <array>
+#include <ctime>
 #include "enums.h"
 #include "libmbgb_api.h"
 using namespace std;
@@ -486,6 +487,8 @@ namespace gb
 	    string ramsize;
 
 	    bool loadBIOS(string filename);
+	    bool loadBIOS(vector<uint8_t> data);
+            bool loadROM(vector<uint8_t> data);
 	    bool loadROM(string filename);
 	    bool loadROM(const char *filename, const uint8_t* buffer, int size);
 

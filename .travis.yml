@@ -1,0 +1,20 @@
+--- 
+addons: 
+  apt: 
+    packages: 
+      - cmake
+compiler: 
+  - gcc
+  - clang
+language: cpp
+os: 
+  - linux
+  - osx
+
+before_install:
+  - if [ $TRAVIS_OS_NAME = linux ]; then sudo apt-get install libsdl2-dev; else brew install sdl2; fi
+
+script: 
+  - mkdir build && cd build
+  - cmake .. -G "Unix Makefiles" -DBUILD_EXAMPLE="ON" -DCMAKE_BUILD_TYPE="Release"
+  - make -j4

@@ -258,25 +258,28 @@ namespace gb
             setsensorcallback(bind(&mbGBFrontend::sensorcallback, cb, _1, _2));
             setpixelcallback(bind(&mbGBFrontend::pixelcallback, cb));
         }
-        else
-        {
-            cout << "Null pointer..." << endl;
-        }
     }
 
     bool GBCore::loadBIOS(string filename)
     {
-	return coremmu->loadBIOS(filename);
+	cout << "mbGB::Loading BIOS..." << endl;
+        if (front != NULL)
+        {
+	    return coremmu->loadBIOS(front->loadfile(filename));
+	}
+
+	return false;
     }
 
     bool GBCore::loadROM(string filename)
     {
-	return coremmu->loadROM(filename);
-    }
+	cout << "mbGB::Loading ROM " << filename << "..." << endl;
+        if (front != NULL)
+        {
+	    return coremmu->loadROM(front->loadfile(filename));
+	}
 
-    bool GBCore::loadROM(const char *filename, const uint8_t* buffer, int size)
-    {
-	return coremmu->loadROM(filename, buffer, size);
+	return false;
     }
 
     bool GBCore::loadbackup()
@@ -472,27 +475,6 @@ namespace gb
 	if (front != NULL)
 	{
 	    front->init();
-	}
-	
-	return true;
-    }
-
-    bool GBCore::initcore(const char *filename, const uint8_t* buffer, int size)
-    {
-	preinit();	
-
-	if (!loadROM(filename, buffer, size))
-	{
-	    return false;
-	}
-
-	romname = filename;
-
-	init();
-	
-	if (front != NULL)
-	{
-		front->init();
 	}
 	
 	return true;

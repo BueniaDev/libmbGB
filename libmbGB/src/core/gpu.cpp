@@ -122,7 +122,7 @@ namespace gb
 		// Dot-based renderer logic
 		if (isdotrender())
 		{
-		    linexbias = (scrollx & 7);
+		    linexbias = -(scrollx & 7);
 		    pixelx = linexbias;
 
 		    scanline();
@@ -177,7 +177,7 @@ namespace gb
 	{
 	    int16_t currentpixel = (((scanlinecounter % 456 - 80) & ~7) + linexbias);
 
-	    for (int i = pixelx; i < currentpixel; i++)
+	    for (; pixelx < currentpixel; pixelx++)
 	    {
 		// Check to ensure that current pixel is within screen boundaries
 		if (pixelx >= 160)

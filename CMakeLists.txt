@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.5.1)
 project(libmbGB)
 
 option(BUILD_EXAMPLE "Enables the example renderer (requires SDL2)." OFF)
@@ -21,6 +21,7 @@ set(LIBMBGB_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libmbGB/include")
 
 set(LIBMBGB_API_HEADERS
 	libmbGB/include/libmbGB/libmbgb_api.h
+	libmbGB/include/libmbGB/utils.h
 	libmbGB/include/libmbGB/enums.h
 	libmbGB/include/libmbGB/mmu.h
 	libmbGB/include/libmbGB/cpu.h
@@ -33,6 +34,7 @@ set(LIBMBGB_API_HEADERS
 	libmbGB/include/libmbGB/libmbgb.h)
 
 set(LIBMBGB
+	libmbGB/src/core/utils.cpp
 	libmbGB/src/core/addons.cpp
 	libmbGB/src/core/mmu.cpp
 	libmbGB/src/core/mbc.cpp

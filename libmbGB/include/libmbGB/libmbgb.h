@@ -29,6 +29,7 @@
 #include <functional>
 #include <array>
 #include <ctime>
+#include "utils.h"
 #include "enums.h"
 #include "mmu.h"
 #include "serial.h"
@@ -38,12 +39,12 @@
 #include "input.h"
 #include "timers.h"
 #include "libmbgb_api.h"
+using namespace gb;
 using namespace std;
 using namespace std::placeholders;
 
 namespace gb
 {
-
     class LIBMBGB_API mbGBFrontend
     {
 	public:
@@ -64,6 +65,7 @@ namespace gb
     	    virtual void rumblecallback(bool enabled) = 0;
     	    virtual void sensorcallback(uint16_t& sensorx, uint16_t& sensory) = 0;
     	    virtual void pixelcallback() = 0;
+            virtual vector<uint8_t> loadfile(string filename, const void *data=NULL, int size=0) = 0;
     };
 
     class LIBMBGB_API GBCore
@@ -90,7 +92,6 @@ namespace gb
 	    bool getoptions(int argc, char* argv[]);
 	    bool loadBIOS(string filename);
 	    bool loadROM(string filename);
-	    bool loadROM(const char *filename, const uint8_t* buffer, int size);
 	    bool loadstate();
 	    bool savestate();
 	    RGB getpixel(int x, int y);
@@ -112,7 +113,6 @@ namespace gb
 	    void runcore();
 	    void runapp();
 	    bool initcore();
-	    bool initcore(const char *filename, const uint8_t* buffer, int size);
 	    void resetcore();
 	    void resetcoreretro();
 	    void setsamplerate(int val);

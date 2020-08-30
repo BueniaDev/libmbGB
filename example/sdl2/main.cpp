@@ -1,6 +1,5 @@
 #include <libmbGB/libmbgb.h>
 #include <SDL2/SDL.h>
-#include "termcolor.h"
 #include <iostream>
 #include <sstream>
 #include <functional>
@@ -274,6 +273,11 @@ class SDL2Frontend : public mbGBFrontend
 	        }
 	    }
 	}
+
+        bool isctrlshiftpressed(SDL_Event event)
+        {
+            return (event.key.keysym.mod & (KMOD_CTRL | KMOD_SHIFT)) ? true : false;
+        }
 	
 	void handleinput(SDL_Event event)
 	{
@@ -297,8 +301,30 @@ class SDL2Frontend : public mbGBFrontend
 		    case SDLK_i: updatesensor(GYRO_UP, true); break;
 		    case SDLK_j: updatesensor(GYRO_LEFT, true); break;
 		    case SDLK_k: updatesensor(GYRO_DOWN, true); break;
-		    case SDLK_l: updatesensor(GYRO_RIGHT, true); break;
-		    case SDLK_s: core->swipebarcode(); break;
+		    case SDLK_l: 
+                    {
+			if (isctrlshiftpressed(event))
+                        {
+                            core->loadstate();
+                        }
+                        else
+                        {
+                            updatesensor(GYRO_RIGHT, true);
+                        }
+                    }
+                    break;
+		    case SDLK_s: 
+                    {
+			if (isctrlshiftpressed(event))
+                        {
+                            core->savestate();
+                        }
+                        else
+                        {
+                            core->swipebarcode();
+                        }
+                    }
+                    break;
 		}
     	    }
 	    else if (event.type == SDL_KEYUP)
@@ -695,6 +721,24 @@ class SDL2Frontend : public mbGBFrontend
 	void pixelcallback()
 	{
 	    drawpixels();
+	}
+
+	vector<uint8_t> loadfile(string filename, const void *unused1, int unused2)
+	{
+	    vector<uint8_t> result;
+
+	    ifstream file(filename.c_str(), ios::in | ios::binary | ios::ate);
+
+	    if (file.is_open())
+	    {
+		streampos size = file.tellg();
+		result.resize(size, 0);
+		file.seekg(0, ios::beg);
+		file.read((char*)result.data(), size);
+		file.close();
+	    }
+
+	    return result;
 	}
 	    
 	GBCore *core;

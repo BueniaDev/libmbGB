@@ -39,7 +39,6 @@ namespace gb
 
     void MMU::init()
     {
-	rom.resize(0x8000, 0);
 	vram.resize(0x4000, 0);
 	sram.resize(0x2000, 0);
 	wram.resize(0x8000, 0);
@@ -925,6 +924,65 @@ namespace gb
 	}
     }
 
+    bool MMU::loadROM(vector<uint8_t> data)
+    {
+	if (!data.empty())
+	{
+	    cartmem = data;
+
+	    bool cgbflag = ((cartmem[0x0143] == 0xC0) || (cartmem[0x0143] == 0x80));
+
+	    if (gameboy == Console::Default)
+	    {
+		if (cgbflag)
+		{
+		    gameboy = (agbmode) ? Console::AGB : Console::CGB;
+		}
+		else
+		{
+		    gameboy = Console::DMG;
+		}
+	    }
+	    
+	    if (gameboy == Console::CGB && cgbflag && gbmode == Mode::Default)
+	    {
+		gbmode = Mode::CGB;
+	    }
+	    else
+	    {
+		gbmode = Mode::DMG;
+	    }
+
+	    cout << "Title: " << determinegametitle(cartmem) << endl;
+	    determinembctype(cartmem);
+	    cout << "MBC type: " << mbctype << endl;
+	    numrombanks = getrombanks(cartmem);
+	    cout << "ROM size: " << romsize << endl;
+	    numrambanks = getrambanks(cartmem);
+	    cout << "RAM size: " << ramsize << endl;
+
+	    if (gbmbc != MBCType::None && static_cast<int>(data.size()) != (numrombanks * 0x4000))
+	    {
+		cout << "MMU::Warning - Size of ROM does not match size in cartridge header." << endl;
+	    }
+
+	    if (gbmbc == MBCType::MBC7)
+	    {
+		rambanks.clear();
+		rambanks.resize(256, 0);
+	    }
+
+	    rom = vector<uint8_t>(cartmem.begin(), (cartmem.begin() + 0x8000));
+	    cout << "MMU::ROM succesfully loaded." << endl;
+	    return true;
+	}
+	else
+	{
+	    cout << "MMU::Error - ROM could not be opened." << endl;
+	    return false;
+	}
+    }
+
     bool MMU::loadBIOS(string filename)
     {
 	cout << "MMU::Loading BIOS..." << endl;
@@ -957,6 +1015,41 @@ namespace gb
 	    file.read((char*)&bios[0], size);
 	    cout << "MMU::BIOS succesfully loaded." << endl;
 	    file.close();
+	    return true;
+	}
+	else
+	{
+	    cout << "MMU::Error - BIOS could not be opened." << endl;
+	    return false;
+	}
+    }
+
+    bool MMU::loadBIOS(vector<uint8_t> data)
+    {
+	if (!data.empty())
+	{
+	    size_t size = data.size();
+
+	    if (size == 0x100)
+	    {
+		gameboy = Console::DMG;
+		bios.resize(0x100, 0);
+	    }
+	    else if (size == 0x900)
+	    {
+		gameboy = Console::CGB;
+		bios.resize(0x900, 0);
+	    }
+	    else
+	    {
+		cout << "MMU::Error - BIOS size does not match sizes of the official BIOS." << endl;
+		return false;
+	    }
+
+	    biossize = size;
+	    bios = data;
+
+	    cout << "MMU::BIOS succesfully loaded." << endl;
 	    return true;
 	}
 	else
