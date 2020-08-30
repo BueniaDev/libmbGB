@@ -7,9 +7,14 @@ compiler:
   - gcc
   - clang
 language: cpp
-os: 
-  - linux
-  - osx
+
+matrix:
+  include:
+    - os: linux
+      dist: focal
+    - os: osx
+      osx_image: xcode12u
+
 
 before_install:
   - if [ $TRAVIS_OS_NAME = linux ]; then sudo apt-get install libsdl2-dev; else brew install sdl2; fi

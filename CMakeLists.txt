@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5.1)
+cmake_minimum_required(VERSION 3.5)
 project(libmbGB)
 
 option(BUILD_EXAMPLE "Enables the example renderer (requires SDL2)." OFF)
