@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>320</width>
+    <height>318</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget"/>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>320</width>
+     <height>30</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <addaction name="openromaction"/>
+    <addaction name="closeromaction"/>
+    <addaction name="quitaction"/>
+   </widget>
+   <widget class="QMenu" name="menuEmulation">
+    <property name="title">
+     <string>Emulation</string>
+    </property>
+    <addaction name="pauseaction"/>
+    <addaction name="resetaction"/>
+    <addaction name="separator"/>
+    <addaction name="actionSettings_2"/>
+   </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>Help</string>
+    </property>
+    <addaction name="aboutaction"/>
+    <addaction name="aboutqtaction"/>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuEmulation"/>
+   <addaction name="menuHelp"/>
+  </widget>
+  <action name="openromaction">
+   <property name="text">
+    <string>Open ROM...</string>
+   </property>
+  </action>
+  <action name="closeromaction">
+   <property name="text">
+    <string>Close ROM...</string>
+   </property>
+  </action>
+  <action name="quitaction">
+   <property name="text">
+    <string>Quit</string>
+   </property>
+  </action>
+  <action name="pauseaction">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Pause</string>
+   </property>
+  </action>
+  <action name="resetaction">
+   <property name="text">
+    <string>Reset</string>
+   </property>
+  </action>
+  <action name="aboutaction">
+   <property name="text">
+    <string>About...</string>
+   </property>
+  </action>
+  <action name="aboutqtaction">
+   <property name="text">
+    <string>About Qt...</string>
+   </property>
+  </action>
+  <action name="actionSettings_2">
+   <property name="text">
+    <string>Settings...</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

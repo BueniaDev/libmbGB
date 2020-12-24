@@ -53,6 +53,22 @@ namespace gb
     {
 	cout << "GPU::Shutting down..." << endl;
     }
+
+    void GPU::dosavestate(mbGBSavestate &file)
+    {
+	file.section("GPU ");
+	file.var8(&lcdc);
+	file.var8(&stat);
+	file.var8(&scrolly);
+	file.var8(&scrollx);
+	file.var8(&ly);
+	file.var8(&lyc);
+	file.var8(&windowy);
+	file.var8(&windowx);
+	file.var8(&bgpalette);
+	file.var8(&objpalette0);
+	file.var8(&objpalette1);
+    }
 	
     uint8_t GPU::readlcd(uint16_t addr)
     {

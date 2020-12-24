@@ -1,10 +1,11 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.1)
 project(libmbGB)
 
 option(BUILD_EXAMPLE "Enables the example renderer (requires SDL2)." OFF)
 option(BUILD_HEADLESS "Enables the headless renderer." OFF)
 option(BUILD_LIBRETRO "Enables the Libretro core." OFF)
-option(BUILD_GUI "Enables the ImGUI renderer (requires SDL2)." OFF)
+option(BUILD_IMGUI "Enables the ImGUI renderer (requires SDL2, deprecated)." OFF)
+option(BUILD_QT5 "Enables the (WIP) Qt5 frontend (requires SDL2 and Qt5)." OFF)
 
 if (WIN32)
 	message(STATUS "Operating system is Windows.")
@@ -18,6 +19,10 @@ else()
 endif()
 
 set(LIBMBGB_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libmbGB/include")
+
+if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release")
+endif()
 
 set(LIBMBGB_API_HEADERS
 	libmbGB/include/libmbGB/libmbgb_api.h
@@ -47,6 +52,15 @@ set(LIBMBGB
 	libmbGB/src/core/ops.cpp
 	libmbGB/src/core/libmbgb.cpp)
 
+if (BUILD_LIBRETRO STREQUAL "ON")
+	if (BUILD_EXAMPLE)
+		message(WARNING "Building for Libretro, disabling SDL2 frontend")
+		set(BUILD_EXAMPLE OFF)
+	endif()
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+	add_subdirectory(example/libretro)
+endif()
+
 if (BUILD_EXAMPLE STREQUAL "ON")
 	add_subdirectory(example/sdl2)
 endif()
@@ -55,13 +69,15 @@ if (BUILD_HEADLESS STREQUAL "ON")
 	add_subdirectory(example/headless)
 endif()
 
-if (BUILD_LIBRETRO STREQUAL "ON")
-	add_subdirectory(example/libretro)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+if (BUILD_IMGUI STREQUAL "ON")
+	message(WARNING "This frontend is deprecated and will be removed sometime in the future.")
+	add_subdirectory(example/sdl2-imgui)
 endif()
 
-if (BUILD_GUI STREQUAL "ON")
-	add_subdirectory(example/sdl2-imgui)
+if (BUILD_QT5 STREQUAL "ON")
+	message(WARNING "This frontend is still a huge WIP, so tread lightly here!")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+	add_subdirectory(example/qt5)
 endif()
 
 if (WIN32)
@@ -93,11 +109,7 @@ elseif (APPLE)
 	endif()
 endif()
 
-if (WIN32 AND BUILD_LIBRETRO STREQUAL "OFF")
-	add_library(mbGB SHARED ${LIBMBGB} ${LIBMBGB_API_HEADERS})
-else()
-	add_library(mbGB STATIC ${LIBMBGB} ${LIBMBGB_API_HEADERS})
-endif()
+add_library(mbGB ${LIBMBGB} ${LIBMBGB_API_HEADERS})
 
 target_include_directories(mbGB PUBLIC ${LIBMBGB_INCLUDE_DIR})
 add_library(libmbGB ALIAS mbGB)

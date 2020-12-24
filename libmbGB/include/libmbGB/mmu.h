@@ -25,41 +25,30 @@
 #include <fstream>
 #include <sstream>
 #include <functional>
+#include <algorithm>
 #include <array>
 #include <ctime>
 #include "enums.h"
+#include "utils.h"
 #include "libmbgb_api.h"
 using namespace std;
 
 namespace gb
 {
-    inline bool TestBit(uint32_t reg, int bit)
-    {
-	return (reg & (1 << bit)) ? true : false;
-    }
-
-    inline uint8_t BitSet(uint32_t reg, int bit)
-    {
-	return (reg | (1 << bit));
-    }
-
-    inline uint8_t BitReset(uint32_t reg, int bit)
-    {
-	return (reg & ~(1 << bit));
-    }
-
-    inline int BitGetVal(uint32_t reg, int bit)
-    {
-	return (reg & (1 << bit)) ? 1 : 0;
-    }
+    using boolfunc = function<bool()>;
+    using voidfunc = function<void()>;
 
     using poweronfunc = function<void(bool)>;
-    using joypadfunc = function<void()>;
-    using statirqfunc = function<bool()>;
-    using screenfunc = function<void()>;
-    using apulengthfunc = function<bool()>;
+    using joypadfunc = voidfunc;
+    using statirqfunc = boolfunc;
+    using screenfunc = voidfunc;
+    using apulengthfunc = boolfunc;
     using rumblefunc = function<void(bool)>;
     using sensorfunc = function<void(uint16_t &, uint16_t &)>;
+    using caminitfunc = boolfunc;
+    using camstopfunc = voidfunc;
+    using camframefunc = function<bool(array<int, (128 * 120)>&)>;
+  
 	
     using memoryreadfunc = function<uint8_t(uint16_t)>;
     using memorywritefunc = function<void(uint16_t, uint8_t)>;
@@ -147,11 +136,13 @@ namespace gb
 		return;
 	    }
 
+	    void dosavestate(mbGBSavestate &file);
+
 	    bool loadmmu(int offs, string filename);
 	    bool savemmu(string filename);
 
-	    bool loadbackup(string filename);
-	    bool savebackup(string filename);
+	    bool loadbackup(vector<uint8_t> data);
+	    vector<uint8_t> savebackup();
 
 	    vector<uint8_t> rom;
 	    vector<uint8_t> vram;
@@ -185,11 +176,7 @@ namespace gb
 	    bool hybrid = false;
 	    bool doublespeed = false;
 
-
-	    bool rtclatch1 = true;
-	    bool rtclatch2 = true;
-	    void latchtimer();
-	    void updatetimer();
+	    bool rtclatch = false;
 	    time_t currenttime = 0;
 
 	    uint8_t realsecs = 0;
@@ -198,32 +185,35 @@ namespace gb
 	    uint8_t realdays = 0;
 	    uint8_t realdayshi = 0;
 
+	    void updatetimer();
+	    void latchtimer();
+
 	    uint8_t latchsecs = 0;
 	    uint8_t latchmins = 0;
 	    uint8_t latchhours = 0;
 	    uint8_t latchdays = 0;
 	    uint8_t latchdayshi = 0;
 
-	    void loadbackuprtc(fstream& file)
+	    void loadbackuprtc(vector<uint8_t> saveram, int ramsize)
 	    {
-		if (isrtcpres)
+		int size = ((int)saveram.size());
+
+		if (batteryenabled && (size == (ramsize + 48)))
 		{
-		    file.read((char*)&realsecs, sizeof(realsecs));
-		    file.read((char*)&realmins, sizeof(realmins));
-		    file.read((char*)&realhours, sizeof(realhours));
-		    file.read((char*)&realdays, sizeof(realdays));
-		    file.read((char*)&realdayshi, sizeof(realdayshi));
-		    file.read((char*)&latchsecs, sizeof(latchsecs));
-		    file.read((char*)&latchmins, sizeof(latchmins));
-		    file.read((char*)&latchhours, sizeof(latchhours));
-		    file.read((char*)&latchdays, sizeof(latchdays));
-		    file.read((char*)&latchdayshi, sizeof(latchdayshi));
-		    
+		    realsecs = saveram[ramsize];
+		    realmins = saveram[(ramsize + 4)];
+		    realhours = saveram[(ramsize + 8)];
+		    realdays = saveram[(ramsize + 12)];
+		    realdayshi = saveram[(ramsize + 16)];
+		    latchsecs = saveram[(ramsize + 20)];
+		    latchmins = saveram[(ramsize + 24)];
+		    latchhours = saveram[(ramsize + 28)];
+		    latchdays = saveram[(ramsize + 32)];
+		    latchdayshi = saveram[(ramsize + 36)];
+
 		    for (int i = 0; i < 8; i++)
 		    {
-			uint8_t temptime = 0;
-			file.read((char*)&temptime, sizeof(temptime));
-			currenttime |= (temptime << (8 * i));
+			currenttime |= (saveram[(ramsize + 40 + i)] << (i << 3));
 		    }
 
 		    if (currenttime <= 0)
@@ -235,25 +225,29 @@ namespace gb
 		}
 	    }
 
-	    void savebackuprtc(fstream& file)
+	    void savebackuprtc(vector<uint8_t> &saveram)
 	    {
-		if (isrtcpres)
+		int size = ((int)saveram.size());
+		cout << "Size: " << hex << (int)(size) << endl;
+
+		if (batteryenabled)
 		{
-		    file.write((char*)&realsecs, sizeof(realsecs));
-		    file.write((char*)&realmins, sizeof(realmins));
-		    file.write((char*)&realhours, sizeof(realhours));
-		    file.write((char*)&realdays, sizeof(realdays));
-		    file.write((char*)&realdayshi, sizeof(realdayshi));
-		    file.write((char*)&latchsecs, sizeof(latchsecs));
-		    file.write((char*)&latchmins, sizeof(latchmins));
-		    file.write((char*)&latchhours, sizeof(latchhours));
-		    file.write((char*)&latchdays, sizeof(latchdays));
-		    file.write((char*)&latchdayshi, sizeof(latchdayshi));
-		    
+		    updatetimer();
+		    saveram.resize((size + 48), 0);
+		    saveram[size] = realsecs;
+		    saveram[(size + 4)] = realmins;
+		    saveram[(size + 8)] = realhours;
+		    saveram[(size + 12)] = realdays;
+		    saveram[(size + 16)] = realdayshi;
+		    saveram[(size + 20)] = latchsecs;
+		    saveram[(size + 24)] = latchmins;
+		    saveram[(size + 28)] = latchhours;
+		    saveram[(size + 32)] = latchdays;
+		    saveram[(size + 36)] = latchdayshi;
+
 		    for (int i = 0; i < 8; i++)
 		    {
-			uint8_t temptime = (uint8_t)(currenttime >> (8 * i));
-			file.write((char*)&temptime, sizeof(temptime));
+			saveram[(size + 40 + i)] = ((uint8_t)(currenttime >> (i << 3)));
 		    }
 		}
 	    }
@@ -291,6 +285,38 @@ namespace gb
 		setrumble = cb;
 	    }
 
+	    bool cameramode = false;
+	    int camera_trigger = 0;
+	    uint8_t camera_outputedge = 0;
+	    uint16_t camera_exposure = 0;
+	    uint8_t camera_edge = 0;
+	    uint8_t camera_voltage = 0;
+	    bool camera_capture = false;
+	    int camera_clock = 0;
+	    array<uint8_t, 47> camera_matrix;
+	    int camera_bank = 0;
+
+	    uint8_t readgbcamreg(uint16_t addr);
+	    void writegbcamreg(uint16_t addr, uint8_t val);
+	    void updatecamera();
+
+	    caminitfunc caminit;
+	    camstopfunc camstop;
+	    camframefunc camframe;	
+
+	    array<int, (128 * 120)> cam_web_output;
+	    array<int, (128 * 120)> cam_ret_output;
+
+	    inline void setcamcallbacks(caminitfunc icb, camstopfunc scb, camframefunc fcb)
+	    {
+		caminit = icb;
+		camstop = scb;
+		camframe = fcb;
+	    }
+
+	    void take_camera_pic();
+	    int camera_matrix_process(int val, int x, int y);
+
 	    bool dump = false;
 
 	    int vrambank = 0;
@@ -302,7 +328,11 @@ namespace gb
 	    vector<uint8_t> gbcobjpalette;
 	    bool gbcbgpalinc = false;
 	    bool gbcobjpalinc = false;
-	
+
+	    bool isgbcamera()
+	    {
+		return (gbmbc == MBCType::Camera);
+	    }
 
 	    bool isdmgconsole()
 	    {
@@ -383,20 +413,20 @@ namespace gb
 
 	    inline void wisdomtreeorrom(vector<uint8_t>& rom)
 	    {
-		if (detectwisdomtree)
+		externalrampres = false;
+		batteryenabled = false;
+
+		if (iswisdomtree(rom))
 		{
-		    if (iswisdomtree(rom))
-		    {
-			gbmbc = MBCType::WisdomTree;
-			numrombanks = 64;
-			romsize = "1 MB";
-			mbctype = "WISDOM TREE";
-		    }
-		    else
-		    {
-			gbmbc = MBCType::None;
-			mbctype = "ROM ONLY";
-		    }
+		    gbmbc = MBCType::WisdomTree;
+		    numrombanks = 64;
+		    romsize = "1 MB";
+		    mbctype = "WISDOM TREE";
+		}
+		else
+		{
+		    gbmbc = MBCType::None;
+		    mbctype = "ROM ONLY";
 		}
 	    }
 
@@ -404,7 +434,7 @@ namespace gb
 	    {
 		switch (rom[0x0147])
 		{
-		    case 0x00: detectwisdomtree = true; gbmbc = MBCType::None; externalrampres = false; mbctype = "ROM ONLY"; batteryenabled = false; break;
+		    case 0x00: wisdomtreeorrom(rom); break;
 		    case 0x01: gbmbc = MBCType::MBC1; externalrampres = false; mbctype = "MBC1"; batteryenabled = false; break;
 		    case 0x02: gbmbc = MBCType::MBC1; externalrampres = true; mbctype = "MBC1 + RAM"; batteryenabled = false; break;
 		    case 0x03: gbmbc = MBCType::MBC1; externalrampres = true; mbctype = "MBC1 + RAM + BATTERY"; batteryenabled = true; break;
@@ -412,16 +442,19 @@ namespace gb
 		    case 0x06: gbmbc = MBCType::MBC2; externalrampres = false; mbctype = "MBC2 + BATTERY"; batteryenabled = true; break;
 		    case 0x08: gbmbc = MBCType::None; externalrampres = true; mbctype = "ROM + RAM"; batteryenabled = false; break;
 		    case 0x09: gbmbc = MBCType::None; externalrampres = true; mbctype = "ROM + RAM + BATTERY"; batteryenabled = true; break;
-		    case 0x0F: gbmbc = MBCType::MBC3; externalrampres = false; mbctype = "MBC3 + TIMER + BATTERY"; break;
+		    case 0x0F: gbmbc = MBCType::MBC3; externalrampres = false; mbctype = "MBC3 + TIMER + BATTERY"; batteryenabled = true; isrtcpres = true; break;
 		    case 0x10: gbmbc = MBCType::MBC3; externalrampres = true; mbctype = "MBC3 + TIMER + RAM + BATTERY"; batteryenabled = true; isrtcpres = true; break;
 		    case 0x11: gbmbc = MBCType::MBC3; externalrampres = false; mbctype = "MBC3"; batteryenabled = false; break;
 		    case 0x12: gbmbc = MBCType::MBC3; externalrampres = true; mbctype = "MBC3 + RAM"; batteryenabled = false; break;
 		    case 0x13: gbmbc = MBCType::MBC3; externalrampres = true; mbctype = "MBC3 + RAM + BATTERY"; batteryenabled = true; break;
 		    case 0x19: gbmbc = MBCType::MBC5; externalrampres = false; mbctype = "MBC5"; batteryenabled = false; break;
 		    case 0x1A: gbmbc = MBCType::MBC5; externalrampres = true; mbctype = "MBC5 + RAM"; batteryenabled = false; break;
-		    case 0x1B: gbmbc = MBCType::MBC5; externalrampres = true; mbctype = "MBC5 + RAM + BATTERY"; batteryenabled = true; break;
+		    case 0x1B: gbmbc = MBCType::MBC5; externalrampres = true; mbctype = "MBC5 + RAM + BATTERY"; batteryenabled = true; isrtcpres = false; break;
+		    case 0x1C: gbmbc = MBCType::MBC5; externalrampres = false; isrumblepres = true; mbctype = "MBC5 + RUMBLE"; batteryenabled = false; break;
+		    case 0x1D: gbmbc = MBCType::MBC5; externalrampres = true; isrumblepres = true; mbctype = "MBC5 + RUMBLE + RAM"; batteryenabled = false; break;
 		    case 0x1E: gbmbc = MBCType::MBC5; externalrampres = true; isrumblepres = true; mbctype = "MBC5 + RUMBLE + RAM + BATTERY"; batteryenabled = true; break;
 		    case 0x22: gbmbc = MBCType::MBC7; externalrampres = true; isrumblepres = true; mbctype = "MBC7 + SENSOR + RUMBLE + RAM + BATTERY"; batteryenabled = true; break;
+		    case 0xFC: gbmbc = MBCType::Camera; externalrampres = true; mbctype = "POCKET CAMERA"; batteryenabled = true; break;
 		    default: cout << "MMU::Error - Unrecognized MBC type of " << hex << (int)(rom[0x0147]) << endl; exit(1); break;
 		}
 	    }
@@ -434,7 +467,7 @@ namespace gb
 
 		switch (rom[0x0148])
 		{
-		    case 0: banks = 0; romsize = "32 KB"; break;
+		    case 0: banks = 1; romsize = "32 KB"; break;
 		    case 1: banks = 4; romsize = "64 KB"; break;
 		    case 2: banks = 8; romsize = "128 KB"; break;
 		    case 3: banks = 16; romsize = "256 KB"; break;
@@ -511,6 +544,8 @@ namespace gb
 	    void mbc5write(uint16_t addr, uint8_t value);
 	    uint8_t mbc7read(uint16_t addr);
 	    void mbc7write(uint16_t addr, uint8_t value);
+	    uint8_t gbcameraread(uint16_t addr);
+	    void gbcamerawrite(uint16_t addr, uint8_t value);
 	    uint8_t wisdomtreeread(uint16_t addr);
 	    void wisdomtreewrite(uint16_t addr, uint8_t value);
 
@@ -745,6 +780,11 @@ namespace gb
 
 	    inline void exitbios()
 	    {
+		if ((biossize == 0x900) && (cartmem[0x143] != 0x80) && (cartmem[0x143] != 0xC0))
+		{
+		    gbmode = Mode::DMG;
+		}
+
 		biosload = false;
 		cout << "MMU::Exiting BIOS..." << endl;
 		// screen();

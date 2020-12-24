@@ -21,7 +21,7 @@
 
 enum class Console {Default, DMG, CGB, AGB};
 enum class Mode {Default, DMG, CGB};
-enum class MBCType {None, MBC1, MBC2, MBC3, MBC5, MBC7, WisdomTree};
+enum class MBCType {None, MBC1, MBC2, MBC3, MBC5, MBC7, Camera, WisdomTree};
 enum CPUState : uint8_t
 {
     Running = 0, 

@@ -36,6 +36,8 @@ namespace gb
 	    void init();
 	    void shutdown();
 
+	    void dosavestate(mbGBSavestate &file);
+
 	    void updatetimer();
 
 	    bool prevtimainc = false;

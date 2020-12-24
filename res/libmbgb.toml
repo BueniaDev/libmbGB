@@ -1,0 +1,5 @@
+[general]
+pixel_renderer = 0
+
+[shaders]
+frag_shader = "default.fs"

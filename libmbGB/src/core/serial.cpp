@@ -54,7 +54,8 @@ namespace gb
 	{
 	    initserialclock(0xA0);
 	}
-		
+
+	serialtimestamp = 0;
 	cout << "Serial::Initialized" << endl;
     }
 

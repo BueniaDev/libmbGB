@@ -29,35 +29,108 @@
 #include <functional>
 #include <array>
 #include <ctime>
+#include <variant>
+#include "vecfile.h"
 #include "libmbgb_api.h"
 using namespace std;
 
 namespace gb
 {
-    class LIBMBGB_API mbGBSavestate
+    // This type is used for creating the final waveform
+    using audiotype = variant<int16_t, float>;
+
+    // Bit manipulation functions
+
+    // Test bit x of a value
+    inline bool TestBit(uint32_t val, int bit)
+    {
+	return (val & (1 << bit)) ? true : false;
+    }
+
+    // Set bit x of a value
+    inline uint32_t BitSet(uint32_t val, int bit)
+    {
+	return (val | (1 << bit));
+    }
+
+    // Reset bit x of a value
+    inline uint32_t BitReset(uint32_t val, int bit)
+    {
+	return (val & ~(1 << bit));
+    }
+
+    // Change bit of value depending on value of "is_set"
+    inline uint32_t BitChange(uint32_t val, int bit, bool is_set)
+    {
+	return (is_set) ? BitSet(val, bit) : BitReset(val, bit);
+    }
+
+    // Get value of bit x of a value
+    inline int BitGetVal(uint32_t val, int bit)
+    {
+	return (val & (1 << bit)) ? 1 : 0;
+    }
+
+    // Custom struct for storing RGB colors
+    struct gbRGB
+    {
+	uint8_t red;
+	uint8_t green;
+	uint8_t blue;
+    };
+
+    class LIBMBGB_API mbGBFrontend
     {
 	public:
-	    mbGBSavestate(bool save, vector<uint8_t> &data);
+    	    mbGBFrontend()
+    	    {
+    	
+    	    }
+    	
+    	    ~mbGBFrontend()
+    	    {
+    	
+    	    }
+    	
+    	    virtual bool init() = 0;
+    	    virtual void shutdown() = 0;
+    	    virtual void runapp() = 0;
+    	    virtual void audiocallback(audiotype left, audiotype right) = 0;
+    	    virtual void rumblecallback(bool enabled) = 0;
+    	    virtual void sensorcallback(uint16_t& sensorx, uint16_t& sensory) = 0;
+    	    virtual void pixelcallback() = 0;
+            virtual vector<uint8_t> loadfile(string filename) = 0;
+	    virtual bool savefile(string filename, vector<uint8_t> data) = 0;
+	    virtual bool camerainit() = 0;
+	    virtual void camerashutdown() = 0;
+	    virtual bool cameraframe(array<int, (128 * 120)> &arr) = 0;
+	    virtual void printerframe(vector<gbRGB> &temp, bool appending) = 0;
+    };
+
+    class mbGBSavestate
+    {
+	public:
+	    mbGBSavestate(VecFile &file, bool save);
 	    ~mbGBSavestate();
 
-	    bool error;
+	    bool error = false;
+
 	    bool issaving;
+	    uint16_t vermajor;
+	    uint16_t verminor;
+	    
+	    int cursection;
 
-	    uint32_t vermajor;
-	    uint32_t verminor;
-
-	    uint32_t cursection;
-
-	    void section(string magicstr);
-
+	    void section(const char* magic);
 	    void var8(uint8_t *var);
 	    void var16(uint16_t *var);
 	    void var32(uint32_t *var);
 	    void var64(uint64_t *var);
-
+	    void varint(int *var);
+	    void bool32(bool *var);
 	    void vararray(void *data, uint32_t len);
 
-	    bool isatleastversion(uint32_t major, uint32_t minor)
+	    bool isatleastversion(uint16_t major, uint16_t minor)
 	    {
 		if (vermajor > major)
 		{
@@ -72,12 +145,9 @@ namespace gb
 		return false;
 	    }
 
-	    vector<uint8_t> getsavestatefile()
-	    {
-		return file;
-	    }
+	    VecFile state_file;
 
-	    vector<uint8_t> file;
+	    VecFile get_savestate_file();
     };
 };
 

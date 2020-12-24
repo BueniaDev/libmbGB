@@ -48,14 +48,24 @@ namespace gb
     uint8_t MMU::mbc1rread(uint16_t addr)
     {
 	uint8_t temp = 0;
-
-	if ((addr >= 0x4000) && (addr < 0x8000))
+	if (addr < 0x4000)
+	{
+	    temp = rom[addr];
+	}
+	else if (addr < 0x8000)
 	{
 	    temp = cartmem[(addr - 0x4000) + (currentrombank * 0x4000)];
 	}
 	else if ((addr >= 0xA000) && (addr < 0xC000))
 	{
-	    temp = rambanks[(addr - 0xA000) + (currentrambank * 0x2000)];
+	    if (ramenabled)
+	    {
+	        temp = rambanks[(addr - 0xA000) + (currentrambank * 0x2000)];
+	    }
+	    else
+	    {
+		temp = 0x00;
+	    }
 	}
 
 	return temp;
@@ -65,16 +75,9 @@ namespace gb
     {
 	if (addr < 0x2000)
 	{
-	    if (mbcramsize != 0)
+	    if (externalrampres)
 	    {
-		if ((value & 0xA) == 0xA)
-		{
-		    ramenabled = true;
-		}
-		else if ((value & 0xA) == 0x0)
-		{
-		    ramenabled = false;
-		}
+		ramenabled = ((value & 0xF) == 0xA);
 	    }
 	}
 	else if (addr < 0x4000)
@@ -167,16 +170,9 @@ namespace gb
     {
 	if (addr < 0x2000)
 	{
-	    if (mbcramsize != 0)
+	    if (externalrampres)
 	    {
-		if ((value & 0xA) == 0xA)
-		{
-		    ramenabled = true;
-		}
-		else if ((value & 0xA) == 0x0)
-		{
-		    ramenabled = false;
-		}
+		ramenabled = ((value & 0xF) == 0xA);
 	    }
 	}
 	else if (addr < 0x4000)
@@ -204,7 +200,11 @@ namespace gb
     {
 	uint8_t temp = 0;
 
-	if ((addr >= 0x4000) && (addr < 0x8000))
+	if (addr < 0x4000)
+	{
+	    temp = rom[addr];
+	}
+	else if (addr < 0x8000)
 	{
 	    temp = cartmem[(addr - 0x4000) + (currentrombank * 0x4000)];
 	}
@@ -255,33 +255,49 @@ namespace gb
     uint8_t MMU::mbc3read(uint16_t addr)
     {
 	uint8_t temp = 0;
-
-	if ((addr >= 0x4000) && (addr < 0x8000))
+	if (addr < 0x4000)
+	{
+	    temp = rom[addr];
+	}
+	else if (addr < 0x8000)
 	{
 	    temp = cartmem[(addr - 0x4000) + (currentrombank * 0x4000)];
 	}
 	else if ((addr >= 0xA000) && (addr < 0xC000))
 	{
-	    if (currentrambank <= 3)
+	    if (currentrambank < 0x8)
 	    {
-		uint16_t currentaddr = (currentrambank * 0x2000);
-		temp = rambanks[(addr - 0xA000) + currentaddr];
-	    }
-	    else if (rtcenabled && ((currentrambank >= 0x8) && (currentrambank <= 0xC)))
-	    {
-		switch (currentrambank)
+		if (ramenabled)
 		{
-		    case 0x8: temp = realsecs; break;
-		    case 0x9: temp = realmins; break;
-		    case 0xA: temp = realhours; break;
-		    case 0xB: temp = realdays; break;
-		    case 0xC: temp = realdayshi; break;
+		    temp = rambanks[(addr - 0xA000) + (currentrambank * 0x2000)];
+		}
+		else
+		{
+		    temp = 0x00;
 		}
 	    }
-	}
-	else
-	{
-	    temp = 0xFF;
+	    else if (currentrambank <= 0xC)
+	    {
+		if (rtcenabled)
+		{
+		    switch (currentrambank)
+		    {
+			case 0x8: temp = latchsecs; break;
+			case 0x9: temp = latchmins; break;
+			case 0xA: temp = latchhours; break;
+			case 0xB: temp = latchdays; break;
+			case 0xC: temp = latchdayshi; break;
+		    }
+		}
+		else
+		{
+		    temp = 0x00;
+		}
+	    }
+	    else
+	    {
+		temp = 0x00;
+	    }
 	}
 
 	return temp;
@@ -291,22 +307,9 @@ namespace gb
     {
 	if (addr < 0x2000)
 	{
-	    if (mbcramsize != 0)
-	    {
-		if ((value & 0xF) == 0xA)
-		{
-		    ramenabled = true;
-		}
-		else if ((value & 0xF) == 0)
-		{
-		    ramenabled = false;
-		}
-
-		if (isrtcpres)
-		{
-		    rtcenabled = ramenabled;
-		}
-	    }
+	    bool isramrtcenabled = ((value & 0xF) == 0xA);
+	    ramenabled = (externalrampres && isramrtcenabled);
+	    rtcenabled = (isrtcpres && isramrtcenabled);
 	}
 	else if (addr < 0x4000)
 	{
@@ -314,55 +317,44 @@ namespace gb
 
 	    if (currentrombank == 0)
 	    {
-		currentrombank += 1;
+		currentrombank = 1;
 	    }
 
 	    currentrombank &= (numrombanks - 1);
 	}
 	else if (addr < 0x6000)
 	{
-	    if (value <= 3)
+	    currentrambank = value;
+
+	    if (!isrtcpres || (value < 0x8))
 	    {
-		currentrambank = value;
 		currentrambank &= (numrambanks - 1);
-	    }
-	    else
-	    {
-		if (rtcenabled)
-		{
-		    if ((value >= 0x08) && (value <= 0x0C))
-		    {
-			currentrambank = value;
-		    }
-		}
 	    }
 	}
 	else if (addr < 0x8000)
 	{
-	    if (rtcenabled)
+	    if (rtcenabled == true)
 	    {
-		if ((rtclatch1 == true) && (value == 0))
+		if ((value == 0) && !rtclatch)
 		{
-		    rtclatch1 = false;
+		    rtclatch = true;
 		}
-		else if ((rtclatch2 == true) && (value == 1))
+		else if ((value == 1) && rtclatch)
 		{
 		    latchtimer();
-		    rtclatch1 = rtclatch2 = true;
+		    rtclatch = false;
 		}
 	    }
 	}
 	else if ((addr >= 0xA000) && (addr < 0xC000))
 	{
-	    if (currentrambank <= 3)
+	    if (ramenabled && (currentrambank < 0x8))
 	    {
-		uint16_t currentaddr = (currentrambank * 0x2000);
-		rambanks[(addr - 0xA000) + currentaddr] = value;
+		rambanks[(addr - 0xA000) + (currentrambank * 0x2000)] = value;
 	    }
 	    else if (rtcenabled && ((currentrambank >= 0x8) && (currentrambank <= 0xC)))
 	    {
 		updatetimer();
-
 		switch (currentrambank)
 		{
 		    case 0x8: realsecs = value; break;
@@ -388,7 +380,6 @@ namespace gb
 	else
 	{
 	    currenttime = newtime;
-	    return;
 	}
 
 	unsigned int newsecs = (realsecs + difference);
@@ -418,7 +409,7 @@ namespace gb
 
 	realhours = (newhours % 24);
 
-	unsigned int realdaysunsplit = ((TestBit(realdayshi, 0) << 8) | realdays);
+	unsigned int realdaysunsplit = ((BitGetVal(realdayshi, 0) << 8) | realdays);
 	unsigned int newdays = (realdaysunsplit + (newhours / 24));
 
 	if (newdays == realdaysunsplit)
@@ -427,8 +418,9 @@ namespace gb
 	}
 
 	realdays = newdays;
+
 	realdayshi &= 0xFE;
-	realdayshi |= TestBit(newdays, 8);
+	realdays |= BitGetVal(newdays, 8);
 
 	if (newdays > 511)
 	{
@@ -446,18 +438,21 @@ namespace gb
 	latchdayshi = realdayshi;
     }
 
-
     uint8_t MMU::mbc5read(uint16_t addr)
     {
 	uint8_t temp = 0;
 
-	if ((addr >= 0x4000) && (addr < 0x8000))
+	if (addr < 0x4000)
+	{
+	    temp = rom[addr];
+	}
+	else if (addr < 0x8000)
 	{
 	    temp = cartmem[(addr - 0x4000) + (currentrombank * 0x4000)];
 	}
 	else if ((addr >= 0xA000) && (addr < 0xC000))
 	{
-	    if (ramenabled && mbcramsize > 0)
+	    if (ramenabled)
 	    {
 		int ramaddr = 0;
 		if (currentrambank != 0)
@@ -480,16 +475,9 @@ namespace gb
     {
 	if (addr < 0x2000)
 	{
-	    if (mbcramsize != 0)
+	    if (externalrampres)
 	    {
-		if ((value & 0xF) == 0xA)
-		{
-		    ramenabled = true;
-		}
-		else if ((value & 0xF) == 0)
-		{
-		    ramenabled = false;
-		}
+		ramenabled = ((value & 0xF) == 0xA);
 	    }
 	}
 	else if (addr < 0x3000)
@@ -509,25 +497,15 @@ namespace gb
 
 	    if (isrumblepres == true)
 	    {
-		if (TestBit(value, 3))
+		if (setrumble)
 		{
-		    if (setrumble)
-		    {
-		        setrumble(true);
-		    }
-		}
-		else
-		{
-		    if (setrumble)
-		    {
-		        setrumble(false);
-		    }
+		    setrumble(TestBit(value, 3));
 		}
 	    }
 	}
 	else if ((addr >= 0xA000) && (addr < 0xC000))
 	{
-	    if (ramenabled && mbcramsize > 0)
+	    if (ramenabled)
 	    {
 		uint16_t ramaddr = (currentrambank * 0x2000);
 		rambanks[(addr - 0xA000) + ramaddr] = value;
@@ -541,7 +519,11 @@ namespace gb
     {
 	uint8_t temp = 0;
 
-	if ((addr >= 0x4000) && (addr < 0x8000))
+	if (addr < 0x4000)
+	{
+	    temp = rom[addr];
+	}
+	else if (addr < 0x8000)
 	{
 	    temp = cartmem[(addr - 0x4000) + (currentrombank * 0x4000)];
 	}
@@ -564,14 +546,7 @@ namespace gb
     {
 	if (addr < 0x2000)
 	{
-	    if ((val & 0xF) == 0xA)
-	    {
-		ramenabled = true;
-	    }
-	    else if ((val & 0xF) == 0)
-	    {
-		ramenabled = false;
-	    }
+	    ramenabled = ((val & 0xF) == 0xA);
 	}
 	else if (addr < 0x4000)
 	{
@@ -860,6 +835,439 @@ namespace gb
 		    mbc7intstate = 0;
 		}
 	    }
+	}
+    }
+
+    uint8_t MMU::gbcameraread(uint16_t addr)
+    {
+	uint8_t temp = 0;
+
+	if (addr < 0x4000)
+	{
+	    temp = rom[addr];
+	}
+	else if (addr < 0x8000)
+	{
+	    temp = cartmem[(addr - 0x4000) + (currentrombank * 0x4000)];
+	}
+	else if ((addr >= 0xA000) && (addr < 0xC000))
+	{
+	    if (cameramode)
+	    {
+		temp = readgbcamreg(addr);
+	    }
+	    else
+	    {
+		temp = rambanks[(addr - 0xA000) + (currentrambank * 0x2000)];
+	    }
+	}
+
+	return temp;
+    }
+
+    void MMU::gbcamerawrite(uint16_t addr, uint8_t value)
+    {
+	if (addr < 0x2000)
+	{
+	    if (externalrampres)
+	    {
+		ramenabled = ((value & 0xF) == 0xA);
+	    }
+	}
+	else if (addr < 0x4000)
+	{
+	    currentrombank = (value & 0xFF);
+	    currentrombank &= (numrombanks - 1);
+	}
+	else if (addr < 0x5000)
+	{
+	    cameramode = TestBit(value, 4);
+	    camera_bank = (value & 0xF);
+
+	    if (!cameramode)
+	    {
+		currentrambank = (value & 0xFF);
+		currentrambank &= (numrambanks - 1);
+	    }
+	}
+	else if ((addr >= 0xA000) && (addr < 0xC000))
+	{
+	    if (cameramode)
+	    {
+		writegbcamreg(addr, value);
+	    }
+	    else
+	    {
+		if (ramenabled)
+		{
+		    rambanks[(addr - 0xA000) + (currentrambank * 0x2000)] = value;
+		}
+	    }
+	}
+
+	return;
+    }
+
+    uint8_t MMU::readgbcamreg(uint16_t addr)
+    {
+	uint8_t temp = 0x00;
+
+	int reg = (addr & 0x7F);
+
+	if (reg == 0)
+	{
+	    temp = camera_trigger;
+	}
+	else
+	{
+	    temp = 0x00;
+	}
+
+	return temp;
+    }
+
+    void MMU::writegbcamreg(uint16_t addr, uint8_t val)
+    {
+	int reg = (addr & 0x7F);
+
+	if (reg >= 0x36)
+	{
+	    return;
+	}
+
+	switch (reg)
+	{
+	    case 0x00:
+	    {
+		camera_trigger = (val & 0x6);
+		if (TestBit(val, 0) && camframe)
+		{
+		    camera_trigger = BitSet(camera_trigger, 0);
+		    take_camera_pic();
+		    camera_capture = true;
+		}
+	    }
+	    break;
+	    case 0x01: camera_outputedge = val; break;
+	    case 0x02: camera_exposure = ((val << 8) | (camera_exposure & 0xFF)); break;
+	    case 0x03: camera_exposure = ((camera_exposure & 0xFF00) | val); break;
+	    case 0x04: camera_edge = val; break;
+	    case 0x05: camera_voltage = val; break;
+	    default: camera_matrix[(reg - 6)] = val; break;
+	}
+
+	return;
+    }
+
+    void MMU::updatecamera()
+    {
+	if (gbmbc != MBCType::Camera)
+	{
+	    return;
+	}
+
+	if (!camera_capture)
+	{
+	    return;
+	}
+
+	if (camera_clock > 0)
+	{
+	    camera_clock -= 4;
+
+	    if (camera_clock <= 0)
+	    {
+		camera_clock = 0;
+		camera_trigger = BitReset(camera_trigger, 0);
+		camera_capture = false;
+	    }
+	}	
+    }
+
+    int MMU::camera_matrix_process(int val, int x, int y)
+    {
+	int xpos = (x & 3);
+	int ypos = (y & 3);
+
+	int base = ((ypos * 4 + xpos) * 3);
+
+	int r0 = camera_matrix[base];
+	int r1 = camera_matrix[(base + 1)];
+	int r2 = camera_matrix[(base + 2)];
+
+	if (val < r0)
+	{
+	    return 3;
+	}
+	else if (val < r1)
+	{
+	    return 2;
+	}
+	else if (val < r2)
+	{
+	    return 1;
+	}
+
+	return 0;
+    }
+
+    void MMU::take_camera_pic()
+    {
+	if (camframe)
+	{
+	    if (!camframe(cam_web_output))
+	    {
+		cout << "Could not get camera capture" << endl;
+		return;
+	    }
+	}
+	else
+	{
+	    return;
+	}
+
+	int cam_pm = ((camera_trigger >> 1) & 0x3);
+
+	int pbits = static_cast<int>(cam_pm > 0);
+	int mbits = (cam_pm >= 2) ? 2 : (1 - pbits);
+
+	bool nbit = TestBit(camera_outputedge, 7);
+	int vhbits = ((camera_outputedge >> 5) & 0x3);
+
+	uint16_t exposure = camera_exposure;
+
+	const float edge_ratio_lut[8] = { 0.5, 0.75, 1.00, 1.25, 2.00, 3.00, 4.00, 5.00 };
+	float edge_alpha = edge_ratio_lut[((camera_edge & 0x70) >> 4)];
+
+	bool e3bit = TestBit(camera_edge, 7);
+	bool ibit = TestBit(camera_edge, 3);
+
+	camera_clock = (32446 + (nbit ? 0 : 512) + 16 * exposure);
+
+	for (int i = 0; i < 128; i++)
+	{
+	    for (int j = 0; j < 120; j++)
+	    {
+		int value = cam_web_output[(i + (j * 128))];
+		value = ((value * exposure) / 0x300);
+		value = (128 + (((value - 128) * 1) / 8));
+		cam_ret_output[(i + (j * 128))] = clamp(value, 0, 255);
+	    }
+	}
+
+	if (ibit)
+	{
+	    for (int i = 0; i < (128 * 120); i++)
+	    {
+		cam_ret_output[i] = (255 - cam_ret_output[i]);
+	    }
+	}
+
+	for (int i = 0; i < (128 * 120); i++)
+	{
+	    cam_ret_output[i] = (cam_ret_output[i] - 128);
+	}
+
+	array<int, (128 * 120)> temp_buf;
+
+	int filter_mode = ((nbit << 3) | (vhbits << 1) | e3bit);
+
+	switch (filter_mode)
+	{
+	    case 0x0:
+	    {
+		for (int i = 0; i < (128 * 120); i++)
+		{
+		    temp_buf[i] = cam_ret_output[i];
+		}
+
+		for (int i = 0; i < 128; i++)
+		{
+		    for (int j = 0; j < 120; j++)
+		    {
+			int ms = temp_buf[(i + (min((j + 1), 119) * 128))];
+			int px = temp_buf[(i + (j * 128))];
+
+			int value = 0;
+
+			if (TestBit(pbits, 0))
+			{
+			    value += px;
+			}
+
+			if (TestBit(pbits, 1))
+			{
+			    value += ms;
+			}
+
+			if (TestBit(mbits, 0))
+			{
+			    value -= px;
+			}
+
+			if (TestBit(mbits, 1))
+			{
+			    value -= ms;
+			}
+
+			cam_ret_output[(i + (j * 128))] = clamp(value, -128, 127);
+		    }
+		}
+	    }
+	    break;
+	    case 0x1:
+	    {
+		for (int i = 0; i < (128 * 120); i++)
+		{
+		    cam_ret_output[i] = 0;
+		}
+	    }
+	    break;
+	    case 0x2:
+	    {
+		for (int i = 0; i < 128; i++)
+		{
+		    for (int j = 0; j < 120; j++)
+		    {
+			int mw = cam_ret_output[(max(0, (i - 1)) + (j * 128))];	
+			int me = cam_ret_output[(min((i + 1), 127) + (j * 128))];
+			int px = cam_ret_output[(i + (j * 128))];
+
+			int value = (px + ((2 * px - mw - me) * edge_alpha));
+
+			temp_buf[(i + (j * 128))] = clamp(value, 0, 255);
+		    }
+		}
+
+		for (int i = 0; i < 128; i++)
+		{
+		    for (int j = 0; j < 120; j++)
+		    {
+			int ms = temp_buf[(i + (min((j + 1), 119) * 128))];
+			int px = temp_buf[(i + (j * 128))];
+
+			int value = 0;
+
+			if (TestBit(pbits, 0))
+			{
+			    value += px;
+			}
+
+			if (TestBit(pbits, 1))
+			{
+			    value += ms;
+			}
+
+			if (TestBit(mbits, 0))
+			{
+			    value -= px;
+			}
+
+			if (TestBit(mbits, 1))
+			{
+			    value -= ms;
+			}
+
+			cam_ret_output[(i + (j * 128))] = clamp(value, -128, 127);
+		    }
+		}
+	    }
+	    break;
+	    case 0xE:
+	    {
+		for (int i = 0; i < 128; i++)
+		{
+		    for (int j = 0; j < 120; j++)
+		    {
+			int ms = cam_ret_output[(i + (min((j + 1), 119) * 128))];
+			int mn = cam_ret_output[(i + (max(0, (j - 1)) * 128))];
+			int mw = cam_ret_output[(max(0, (i - 1)) + (j * 128))];
+			int me = cam_ret_output[(min((i + 1), 127) + (j * 128))];
+			int px = cam_ret_output[(i + (j * 128))];
+
+			int value = (px + ((4 * px - mw - me - mn - ms) * edge_alpha));
+
+			temp_buf[(i + (j * 128))] = clamp(value, -128, 127);
+		    }
+		}
+
+		for (int i = 0; i < (128 * 120); i++)
+		{
+		    cam_ret_output[i] = temp_buf[i];
+		}
+	    }
+	    break;
+	}
+
+	for (int i = 0; i < (128 * 120); i++)
+	{
+	    cam_ret_output[i] = (cam_ret_output[i] + 128);
+	}
+
+	array<int, (128 * 112)> four_colors_buffer;
+
+	for (int i = 0; i < 128; i++)
+	{
+	    for (int j = 0; j < 112; j++)
+	    {
+		four_colors_buffer[(i + (j * 128))] = camera_matrix_process(cam_ret_output[(i + ((j + 4) * 128))], i, j);
+	    }
+	}
+
+	vector<uint8_t> final_buffer;
+
+	for (int tile = 0; tile < 224; tile++)
+	{
+	    for (int xpos = 0; xpos < 8; xpos++)
+	    {
+		uint8_t res_byte1 = 0;
+		uint8_t res_byte2 = 0;
+
+		for (int ypos = 0; ypos < 8; ypos++)
+		{
+		    res_byte1 <<= 1;
+		    res_byte2 <<= 1;
+
+		    int current_pixel = (((tile * 8) % 128) + (xpos * 128) + (1024 * (tile / 16)) + ypos);
+		    int final_color = four_colors_buffer[current_pixel];
+
+		    switch (final_color)
+		    {
+			case 0:
+			{
+			    res_byte1 |= 0;
+			    res_byte2 |= 0;
+			}
+			break;
+			case 1:
+			{
+			    res_byte1 |= 1;
+			    res_byte2 |= 0;
+			}
+			break;
+			case 2:
+			{
+			    res_byte1 |= 0;
+			    res_byte2 |= 1;
+			}
+			break;
+			case 3:
+			{
+			    res_byte1 |= 1;
+			    res_byte2 |= 1;
+			}
+			break;
+		    }
+		}
+
+		final_buffer.push_back(res_byte1);
+		final_buffer.push_back(res_byte2);
+	    }
+	}
+
+	for (int i = 0; i < static_cast<int>(final_buffer.size()); i++)
+	{
+	    rambanks[(0x100 + i)] = final_buffer[i];
 	}
     }
 

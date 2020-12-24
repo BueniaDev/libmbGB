@@ -27,13 +27,6 @@ namespace gb
 {
     using pixelfunc = function<void()>;
 
-    struct RGB
-    {
-	uint8_t red;
-	uint8_t green;
-	uint8_t blue;
-    };
-
     struct Sprites
     {
 	uint8_t x;
@@ -57,6 +50,8 @@ namespace gb
 
 	    void init();
 	    void shutdown();
+
+	    void dosavestate(mbGBSavestate &file);
 
 	    inline int gpusize()
 	    {
@@ -287,15 +282,15 @@ namespace gb
 
 	    void updatepoweronstate(bool wasenabled);
 
-	    RGB framebuffer[160 * 144] = {0, 0, 0};
+	    array<gbRGB, (160 * 144)> framebuffer;
 	    uint8_t screenbuffer[144][160];
 	    bool bgpriorline[160] = {false};
 
 	    bool accuratecolors = false;
 
-	    inline RGB getcolors(int color)
+	    inline gbRGB getcolors(int color)
 	    {
-		RGB temp;
+		gbRGB temp;
 
 		int tempred = (color & 0x1F);
 		int tempgreen = ((color >> 5) & 0x1F);
@@ -330,9 +325,9 @@ namespace gb
 	    }
 
 
-	    inline RGB getdmgpalette(int color, int offset, bool bg)
+	    inline gbRGB getdmgpalette(int color, int offset, bool bg)
 	    {
-		RGB temp;
+		gbRGB temp;
 
 		int tempc = ((offset + 2) * color);
 		

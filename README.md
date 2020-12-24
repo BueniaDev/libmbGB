@@ -10,79 +10,58 @@ The goal here is to do things right and fast (like melonDS). But, also, you know
 
 Able to run most commercial Game Boy (and most commercial Game Boy Color) titles with sound
 
+Game Boy Camera, Game Boy Printer and Barcode Boy support
+
 Exclusive "hybrid mode" that combines the Game Boy Color's DMG mode with emulation of some of the Game Boy's DMG-exclusive bugs, including the STAT IRQ bug that Legend of Zerd (aka. Zerd no Densetsu) relies on
 
 And more to come!
 
-# Quickstart
+# Building Instructions
 
-`git clone --recursive https://github.com/Buenia0/libmbGB.git`
-
-`cd libmbGB && source beemake`
-
-`bme`
-
-`./build/example/sdl2/example some.gb(c)`
-
-# Building
-
-For beginning programmers, a simple build script is included to build the library and its main example project.
-
-`python beemake.py --help`
-
-The beemake bash file has some aliases that save some keypresses.
-
-`source beemake`
-
-`bm  -> python beemake.py`
-
-`bmp  -> python beemake.py pull`
-
-`bmb  -> python beemake.py build`
-
-`bme  -> python beemake.py example`
-
-`bmn  -> python beemake.py nuke`
-
-# Commands
-
-## pull
-Does a `git pull` in addition to updating submodules. Use this, if possible, instead of git pull.
-
-`bm pull`
-
-## build
-
-Builds libmbGB with CMake.
-
-`bm build`
-
-## example
-
-Builds both libmbGB and its SDL2 renderer with CMake.
-
-`bm example`
-
-## nuke
-
-Cleans up libmbGB outputs. A full build will be required after this, so only run this command if you want to reclaim your disk space or something goes horribly wrong.
-
-`bm nuke`
-
-
-# Building Instructions (advanced)
-
-For advanced programmers who want to create a custom build of libmbGB, the following instructions apply:
+The libmbGB library does not have any dependencies and can be compiled with MinGW on Windows, and both GCC and Clang on Linux and (presumably) OSX. The examples contained in this repo, however, do have additional dependencies that need to be installed. All dependencies should be findable by CMake.
 
 ## Linux:
 
 Step 1: Install dependencies:
 
-`sudo apt-get install git cmake build-essential`
+Core dependencies:
+
+Compiler: GCC or Clang. You only need one of those two:
+
+GCC 10.2.0+ (earlier versions not tested):
+
+Debian: `sudo apt-get install build-essential`
+Arch (not tested): `sudo pacman -S base-devel`
+Fedora: `sudo dnf install gcc-c++`
+OpenSUSE (not tested): `sudo zypper in gcc-c++`
+
+Clang (not tested):
+
+Debian: `sudo apt-get install clang clang-format libc++-dev` (in some distros, clang-5.0)
+Arch: `pacman -S clang`, `libc++` is in the AUR. Use pacaur or yaourt to install it.
+Fedora: `dnf install clang libcxx-devel`
+OpenSUSE: `zypper in clang`
+
+Git (if not installed already) and CMake 3.5+:
+
+Debian: `sudo apt-get install git cmake`
+Arch (not tested): `sudo pacman -S git`
+Fedora: `sudo dnf install git cmake`
+OpenSUSE (not tested): `sudo zypper in git cmake extra-cmake-modules`
 
 For the SDL2 renderer:
 
-`sudo apt-get install libsdl2-dev`
+Debian: `sudo apt-get install libsdl2-dev`
+Arch (not tested): `sudo pacman -S sdl2`
+Fedora: `sudo dnf install SDL2-devel`
+OpenSUSE: (not tested): `sudo zypper in libSDL2-devel`
+
+For the (WIP) Qt5 frontend:
+
+Debian: `sudo apt-get install qtbase5-dev qtmultimedia5-dev`
+Arch (not tested): `sudo pacman -S qt5`
+Fedora: `sudo dnf install qt5-qtmultimedia-devel`
+OpenSUSE (not tested): `sudo zypper in libQt5Multimedia5 libqt5-qtmultimedia-devel libQt5Concurrent-devel`
 
 Step 2: Clone the repository:
 
@@ -94,22 +73,28 @@ Step 3: Compile:
 
 `mkdir build && cd build`
 
-`cmake .. -G "Unix Makefiles" -DBUILD_HEADLESS="<ON/OFF>" -DBUILD_EXAMPLE="<ON/OFF> -DCMAKE_BUILD_TYPE="<Debug/Release""`
+`cmake .. -G "Unix Makefiles" -DBUILD_HEADLESS="<ON/OFF>" -DBUILD_EXAMPLE="<ON/OFF>" -DBUILD_QT5="<ON/OFF>" -DCMAKE_BUILD_TYPE="<Debug/Release>""`
 
-`make -j4`
+`make -j$(nproc --all)`
 
-## Mac OS:
+## Mac OS (not tested):
 
 You will need [homebrew](https://brew.sh), a recent version of Xcode and the Xcode command-line tools to build libmbGB.
 Please note that due to personal financial constraints, libmbGB has not been tested on Mac OS as of yet.
 
 Step 1: Install dependencies:
 
-`brew install git cmake`
+`brew install git cmake pkg-config`
 
 For the SDL2 renderer:
 
 `brew install sdl2`
+
+For the (WIP) Qt5 frontend:
+
+`brew install qt5`
+
+Note: If you have Qt4 installed, then you will need to remove it before building with `brew unlink qt4`.
 
 Step 2: Clone the repository:
 
@@ -117,13 +102,17 @@ Step 2: Clone the repository:
 
 `cd libmbGB`
 
+Step 3: Tell CMake where your Qt5 is installed (add this line to ~/.profile if you want to make this permanent):
+
+`export Qt5_DIR=$(brew --prefix)/opt/qt5
+
 Step 3: Compile:
 
 `mkdir build && cd build`
 
-`cmake .. -G "Unix Makefiles" -DBUILD_HEADLESS="<ON/OFF>" -DBUILD_EXAMPLE="<ON/OFF> -DCMAKE_BUILD_TYPE="<Debug/Release""`
+`cmake .. -G "Unix Makefiles" -DBUILD_HEADLESS="<ON/OFF>" -DBUILD_EXAMPLE="<ON/OFF>" -DBUILD_QT5="<ON/OFF>" -DCMAKE_BUILD_TYPE="<Debug/Release>""`
 
-`make -j4`
+`make -j$(nproc --all)`
 
 ## Windows:
 
@@ -138,6 +127,10 @@ For the SDL2 renderer:
 
 `pacman -S mingw-w64-x86_64-SDL2`
 
+For the (WIP) Qt5 frontend:
+
+`pacman -S mingw-w64-x86_64-qt5`
+
 Step 2: Clone the repository:
 
 `git clone --recursive https://github.com/Buenia0/libmbGB.git`
@@ -148,9 +141,11 @@ Step 3: Compile:
 
 `mkdir build && cd build`
 
-`cmake .. -G "MSYS Makefiles" -DBUILD_HEADLESS="<ON/OFF>" -DBUILD_EXAMPLE="<ON/OFF> -DCMAKE_BUILD_TYPE="<Debug/Release""`
+`cmake .. -G "MSYS Makefiles" -DBUILD_HEADLESS="<ON/OFF>" -DBUILD_EXAMPLE="<ON/OFF>" -DBUILD_QT5="<ON/OFF>" -DCMAKE_BUILD_TYPE="<Debug/Release>""`
 
-`(mingw32-)make -j4`
+`(mingw32-)make -j$(nproc --all)`
+
+`../msys-dist.sh`
 
 # Known issues
 

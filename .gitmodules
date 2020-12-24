@@ -7,3 +7,6 @@
 [submodule "example/sdl2-imgui/external/tinyfiledialogs"]
 	path = example/sdl2-imgui/external/tinyfiledialogs
 	url = https://github.com/native-toolkit/tinyfiledialogs.git
+[submodule "example/libretro/external/libretro-common"]
+	path = example/libretro/external/libretro-common
+	url = https://github.com/libretro/libretro-common.git

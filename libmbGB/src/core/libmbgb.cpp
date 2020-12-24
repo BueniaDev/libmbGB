@@ -48,6 +48,11 @@ namespace gb
 
     void GBCore::init()
     {
+	if (dev == NULL)
+	{
+	    connectserialdevice(new Disconnected());
+	}
+
 	coremmu->resetio();
 
 	if (!coremmu->biosload)
@@ -57,6 +62,7 @@ namespace gb
 
 	corecpu->init();
 	coregpu->init();
+	coreapu->init();
 	coretimers->init();
 	coreinput->init();
 	coreserial->init();
@@ -72,9 +78,12 @@ namespace gb
 
     void GBCore::shutdown(bool frontend)
     {
+	dev = NULL;
+
 	coreserial->shutdown();
 	coreinput->shutdown();
 	coretimers->shutdown();
+	coreapu->shutdown();
 	coregpu->shutdown();
 	corecpu->shutdown();
 	savebackup();
@@ -83,6 +92,11 @@ namespace gb
 	
 	if (frontend && front != NULL)
 	{
+	    if (coremmu->isgbcamera())
+	    {
+		front->camerashutdown();
+	    }
+
 	    front->shutdown();
 	}
 	
@@ -97,14 +111,14 @@ namespace gb
 	cout << "-b [FILE], --bios [FILE] \t\t Loads and uses a BIOS file." << endl;
 	cout << "--sys-dmg \t\t Plays ROMs in DMG mode (GB/GBC ROMs only)." << endl;
 	cout << "--sys-gbc \t\t Plays ROMs in GBC mode (GB/GBC ROMs only)." << endl;
-	cout << "--sys-gba \t\t Plays ROMs in GBA mode." << endl;
+	cout << "--sys-gba \t\t Plays ROMs in GBA mode. (GB/GBC ROMs only, WIP)." << endl;
 	cout << "--sys-hybrid \t\t Plays ROMs in hybrid DMG/GBC mode. (GB/GBC ROMs only)." << endl;
 	cout << "--dotrender \t\t Enables the more accurate dot-based renderer." << endl;
 	cout << "--accurate-colors \t\t Improves the accuracy of the displayed colors (GBC only)." << endl;
 	cout << "--mbc1m \t\t Enables the MBC1 multicart mode, if applicable." << endl;
-	cout << "--printer \t\t Emulates the Game Boy Printer." << endl;
-	cout << "--mobile \t\t Emulates the Mobile Adapter GB (currently WIP)." << endl;
-	cout << "--power \t\t Emulates the Power Antenna / Bug Sensor." << endl;
+	cout << "--printer \t\t Emulates the Game Boy Printer (currently WIP)." << endl;
+	cout << "--mobile \t\t Emulates the Mobile Adapter GB (currently non-functional)." << endl;
+	cout << "--power \t\t Emulates the Power Antenna / Bug Sensor (currently non-functional)." << endl;
 	cout << "--bcb \t\t Emulates the Barcode Boy (DMG only)." << endl;
 	cout << "-h, --help \t\t Displays this help message." << endl;
 	cout << endl;
@@ -200,7 +214,7 @@ namespace gb
 
 	    if ((strcmp(argv[i], "--printer") == 0))
 	    {
-		connectserialdevice(new Disconnected());
+		connectserialdevice(new GBPrinter());
 	    }
 		
 	    if ((strcmp(argv[i], "--mobile") == 0))
@@ -230,20 +244,17 @@ namespace gb
 	    screenheight = 160;
 	}
 
-	if (dev == NULL)
-	{
-	    connectserialdevice(new Disconnected());
-	}
-
 	return true;
     }
     
     void GBCore::connectserialdevice(SerialDevice *cb)
     {
     	dev = NULL;
-	auto serial = bind(&Serial::recieve, &*coreserial, _1);
-	cb->setlinkcallback(serial);
+	cout << "Connecting addon of " << cb->getaddonname() << endl;
+	auto serialcb = bind(&Serial::recieve, &*coreserial, _1);
+	cb->setlinkcallback(serialcb);
 	dev = cb;
+	setprintercallback();
 	coreserial->setserialdevice(dev);
     }
     
@@ -251,12 +262,17 @@ namespace gb
     {
         front = cb;
         
+	cout << "Setting frontend..." << endl;
         if (front != NULL)
         {
             setaudiocallback(bind(&mbGBFrontend::audiocallback, cb, _1, _2));
             setrumblecallback(bind(&mbGBFrontend::rumblecallback, cb, _1));
             setsensorcallback(bind(&mbGBFrontend::sensorcallback, cb, _1, _2));
             setpixelcallback(bind(&mbGBFrontend::pixelcallback, cb));
+	    auto icb = bind(&mbGBFrontend::camerainit, cb);
+	    auto scb = bind(&mbGBFrontend::camerashutdown, cb);
+	    auto fcb = bind(&mbGBFrontend::cameraframe, cb, _1);
+	    setcamcallbacks(icb, scb, fcb);
         }
     }
 
@@ -288,7 +304,12 @@ namespace gb
 
 	saveram << romname << ".sav";
 
-	return coremmu->loadbackup(saveram.str());
+	if (front != NULL)
+	{
+	    return coremmu->loadbackup(front->loadfile(saveram.str()));
+	}
+	
+	return true;
     }
 
     bool GBCore::savebackup()
@@ -297,76 +318,95 @@ namespace gb
 
 	saveram << romname << ".sav";
 
-	return coremmu->savebackup(saveram.str());
+	if (front != NULL)
+	{
+	    return front->savefile(saveram.str(), coremmu->savebackup());
+	}
+	
+	return true;
+    }
+
+    size_t GBCore::getstatesize()
+    {
+	cout << "Fetching savestate size..." << endl;
+	void *data = malloc((16 * 1024 * 1024));
+	VecFile file = vfopen(data, (16 * 1024 * 1024));
+
+	mbGBSavestate savestate(file, true);
+	dosavestate(savestate);
+
+	size_t size = savestate.state_file.loc_pos;
+
+	free(data);
+	return size;
+    }
+
+    void GBCore::dosavestate(mbGBSavestate &file)
+    {
+	corecpu->dosavestate(file);
+	coremmu->dosavestate(file);
+	coregpu->dosavestate(file);	
+	coreapu->dosavestate(file);
+	coretimers->dosavestate(file);
     }
 
     bool GBCore::loadstate()
     {
-	paused = true;
-
-	stringstream savestate;
-
-	savestate << romname << ".mbsave";
-
-	string savename = savestate.str();
-
-	bool ret = false;
-
-	if (!corecpu->loadcpu(savename))
+	cout << "Loading savestate..." << endl;
+	if (front != NULL)
 	{
-	    cout << "mbGB::Save state could not be loaded." << endl;
-	    return false;
+	    stringstream str_name;
+	    str_name << romname << ".mbsave";
+
+	    vector<uint8_t> temp = front->loadfile(str_name.str());
+
+	    if (temp.empty())
+	    {
+		cout << "Error loading savestate." << endl;
+		return false;
+	    }
+
+	    VecFile file = vfopen(temp.data(), temp.size());
+
+	    mbGBSavestate savestate(file, false);
+	    dosavestate(savestate);
+	    vfclose(file);
 	}
 
-	int offs = corecpu->cpusize();
-
-	if (!coremmu->loadmmu(offs, savename))
-	{
-	    cout << "mbGB::Save state could not be loaded." << endl;
-	    return false;
-	}
-
-	cout << "mbGB::Save state succesfully loaded." << endl;
-	ret = true;
-	paused = false;
-	return ret;
+	return true;
     }
 
     bool GBCore::savestate()
     {
-	paused = true;
-	stringstream savestate;
-
-	savestate << romname << ".mbsave";
-
-	string savename = savestate.str();
-
-	cout << savename << endl;
-
-	bool ret = false;
-
-	if (!corecpu->savecpu(savename))
+	cout << "Saving savestate..." << endl;
+	if (front != NULL)
 	{
-	    cout << "mbGB::CPU save state could not be written." << endl;
-	    ret = false;
+	    vector<uint8_t> temp(getstatesize(), 0);
+	    VecFile file = vfopen(temp.data(), temp.size());
+
+	    mbGBSavestate savestate(file, true);
+
+	    stringstream str_name;
+	    str_name << romname << ".mbsave";
+
+	    dosavestate(savestate);
+
+	    bool ret = front->savefile(str_name.str(), savestate.get_savestate_file().data);
+	    vfclose(file);
+	    return ret;
 	}
 
-	if (!coremmu->savemmu(savename))
-	{
-	    cout << "mbGB::MMU save state could not be written." << endl;
-	    ret = false;
-	}
-
-	cout << "mbGB::Save state succesfully written." << endl;
-	ret = true;
-	paused = false;
-	
-	return ret;
+	return true;
     }
 
-    RGB GBCore::getpixel(int x, int y)
+    gbRGB GBCore::getpixel(int x, int y)
     {
 	return coregpu->framebuffer[x + (y * 160)];
+    }
+
+    array<gbRGB, (160 * 144)> GBCore::getframebuffer()
+    {
+	return coregpu->framebuffer;
     }
 
     void GBCore::keypressed(Button button)
@@ -424,6 +464,11 @@ namespace gb
 	}
     }
 
+    bool GBCore::islinkactive()
+    {
+	return coreserial->pendingrecieve;
+    }
+
     void GBCore::setdotrender(bool val)
     {
 	coregpu->setdotrender(val);
@@ -440,6 +485,14 @@ namespace gb
         {
             front->runapp();
         }
+    }
+
+    void GBCore::update(int steps)
+    {
+	while (steps--)
+	{
+	    runinstruction();
+	}
     }
 
     void GBCore::runcore()
@@ -475,6 +528,11 @@ namespace gb
 	if (front != NULL)
 	{
 	    front->init();
+
+	    if (coremmu->isgbcamera())
+	    {
+		return front->camerainit();
+	    }
 	}
 	
 	return true;
@@ -503,6 +561,25 @@ namespace gb
     void GBCore::setpixelcallback(pixelfunc cb)
     {
 	coregpu->setpixelcallback(cb);
+    }
+
+    void GBCore::setcamcallbacks(caminitfunc icb, camstopfunc scb, camframefunc fcb)
+    {
+	coremmu->setcamcallbacks(icb, scb, fcb);
+    }
+
+    void GBCore::setprintercallback()
+    {
+	auto printcb = bind(&mbGBFrontend::printerframe, front, _1, _2);
+	setprintcallback(printcb);
+    }
+
+    void GBCore::setprintcallback(printfunc cb)
+    {
+	if (dev != NULL)
+	{
+	    dev->setprintcallback(cb);
+	}
     }
     
     void GBCore::setaudioflags(int val)

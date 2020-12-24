@@ -33,6 +33,103 @@ namespace gb
     {
 
     }
+
+    void APU::init()
+    {
+	clearregisters();
+	s1lengthcounter = 0;
+	s2lengthcounter = 0;
+	wavelengthcounter = 0;
+	noiselengthcounter = 0;
+	cout << "APU::Initialized" << endl;
+    }
+
+    void APU::shutdown()
+    {
+	cout << "APU::Shutting down..." << endl;
+    }
+
+    void APU::dosavestate(mbGBSavestate &file)
+    {
+	file.section("APU ");
+	file.varint(&s1sweep);
+	file.bool32(&s1negative);
+	file.bool32(&s1sweepenabled);
+	file.var16(&s1shadowfreq);
+	file.varint(&s1sweepcounter);
+	file.varint(&s1soundlength);
+	file.varint(&s1lengthcounter);
+	file.varint(&s1volumeenvelope);
+	file.bool32(&s1envelopeenabled);
+	file.varint(&s1envelopecounter);
+	file.varint(&s1volume);
+	file.var8(&s1freqlo);
+	file.var8(&s1freqhi);
+	file.varint(&s1periodtimer);
+	file.bool32(&s1enabled);
+
+	file.varint(&s2soundlength);
+	file.varint(&s2lengthcounter);
+	file.varint(&s2volumeenvelope);
+	file.bool32(&s2envelopeenabled);
+	file.varint(&s2envelopecounter);
+	file.varint(&s2volume);
+	file.var8(&s2freqlo);
+	file.var8(&s2freqhi);
+	file.varint(&s2periodtimer);
+	file.bool32(&s2enabled);
+
+	file.varint(&wavesweep);
+	file.varint(&wavesoundlength);
+	file.varint(&wavelengthcounter);
+	file.varint(&wavevolumeenvelope);
+	file.varint(&wavevolume);
+	file.var8(&wavefreqlo);
+	file.var8(&wavefreqhi);
+	file.varint(&waveperiodtimer);
+	file.bool32(&waveenabled);
+	file.varint(&waveramlengthmask);
+	file.varint(&wavepos);
+	file.bool32(&wavechannelenabled);
+	file.var8(&wavecurrentsample);
+	file.var8(&wavelastplayedsample);
+	file.vararray(waveram.data(), 0x10);
+
+	file.varint(&noisesoundlength);
+	file.varint(&noiselengthcounter);
+	file.varint(&noisevolumeenvelope);
+	file.bool32(&noiseenvelopeenabled);
+	file.varint(&noiseenvelopecounter);
+	file.varint(&noiseperiodtimer);
+	file.var8(&noisefreqlo);
+	file.var8(&noisefreqhi);
+	file.varint(&noisevolume);
+	file.var16(&noiselfsr);
+	file.bool32(&noiseenabled);
+	
+	file.bool32(&issoundon);
+
+	file.varint(&mastervolume);
+	file.varint(&soundselect);
+	file.varint(&soundon);
+	file.vararray(s1dutycycle.data(), 8);
+	file.vararray(s2dutycycle.data(), 8);
+
+	file.varint(&frametimer);
+	file.varint(&s1seqpointer);
+	file.varint(&s2seqpointer);
+	file.varint(&samplecounter);
+	file.varint(&maxsamples);
+
+	file.bool32(&prevs1sweepinc);
+	file.bool32(&prevs1lengthdec);
+	file.bool32(&prevs1envelopeinc);
+	file.bool32(&prevs2lengthdec);
+	file.bool32(&prevs2envelopeinc);
+	file.bool32(&prevwavelengthdec);
+	file.bool32(&prevnoiselengthdec);
+	file.bool32(&prevnoiseenvelopeinc);
+    }
 	
     uint8_t APU::readapu(uint16_t addr)
     {
@@ -143,7 +240,7 @@ namespace gb
 		break;
 		case 0x1C:
 	    	{
-		    wavevolumeenvelope = (value & 0xE0);
+		    wavevolumeenvelope = (value & 0x60);
 		    int wavevolumeshift = ((wavevolumeenvelope & 0x60) >> 5);
 		    wavevolume = (wavevolumeshift) ? (wavevolumeshift - 1) : 4;
 	    	}
@@ -437,14 +534,7 @@ namespace gb
 	int outputvol = 0;
 	if (waveenabled)
 	{
-	    if (TestBit(wavevolumeenvelope, 7))
-	    {
-		outputvol = (wavecurrentsample) - (wavecurrentsample >> 2);
-	    }
-	    else
-	    {
-		outputvol = (wavecurrentsample >> wavevolume);
-	    }
+	    outputvol = (wavecurrentsample >> wavevolume);
 	}
 	else
 	{

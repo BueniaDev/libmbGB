@@ -119,6 +119,24 @@ namespace gb
 	cout << "CPU::Shutting down..." << endl;
     }
 
+    void CPU::dosavestate(mbGBSavestate &file)
+    {
+	file.section("CPU ");
+	file.var8(&af.hi);
+	file.var8(&af.lo);
+	file.var8(&bc.hi);
+	file.var8(&bc.lo);
+	file.var8(&de.hi);
+	file.var8(&de.lo);
+	file.var8(&hl.hi);
+	file.var8(&hl.lo);
+	file.var16(&pc);
+	file.var16(&sp);
+	file.var8(reinterpret_cast<uint8_t*>(&state));
+	file.bool32(&interruptmasterenable);
+	file.bool32(&enableinterruptsdelayed);
+    }
+
     bool CPU::loadcpu(string filename)
     {
 	printregs();
@@ -342,6 +360,7 @@ namespace gb
 	    link.updateserial();
 	    mem.updateoamdma();
 	    mem.updategbcdma();
+	    mem.updatecamera();
 	    gpu.updatelcd();
 
 	    for (int i = 0; i < (2 >> mem.doublespeed); i++)
@@ -359,6 +378,7 @@ namespace gb
 	{
 	    timer.updatetimer();
 	    link.updateserial();
+	    mem.updatecamera();
 	    gpu.updatelcd();
 
 	    for (int i = 0; i < (2 >> mem.doublespeed); i++)

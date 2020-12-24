@@ -90,6 +90,7 @@ namespace gb
 	    uint8_t readserial(uint16_t addr);
 	    void writeserial(uint16_t addr, uint8_t val);
 
+	    int serialtimestamp = 0;
 	    int serialclock = 0;
 	    int shiftcounter = 0;
 

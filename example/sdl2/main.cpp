@@ -1,17 +1,14 @@
-#include <libmbGB/libmbgb.h>
-#include <SDL2/SDL.h>
-#include <iostream>
-#include <sstream>
-#include <functional>
-#include <ctime>
+#include "main.h"
 using namespace gb;
 using namespace std;
+using namespace toml;
 using namespace std::placeholders;
 
-#define GYRO_LEFT 1
-#define GYRO_RIGHT 2
-#define GYRO_UP 4
-#define GYRO_DOWN 8
+#ifdef __cpp_lib_filesystem
+using namespace std::filesystem;
+#else
+using namespace std::experimental::filesystem;
+#endif
 
 GBCore core;
 
@@ -75,18 +72,55 @@ JoypadControllers control;
 class SDL2Frontend : public mbGBFrontend
 {
     public:
-        SDL2Frontend(GBCore *cb)
+        SDL2Frontend(GBCore *cb, char *argv[]) : core(cb)
         {
-            core = cb;
+	    set_path(argv);
         }
         
         ~SDL2Frontend()
         {
         
         }
+
+	int pixel_renderer = -1;
+	string vert_shader = "";
+	string frag_shader = "";
+	path shader_path;
+
+	bool init_config()
+	{
+	    auto file_path = u8path(appname).parent_path();
+	    auto stream = ifstream(file_path / "libmbgb.toml");
+	    ParseResult pr = parse(stream);
+
+	    if (!pr.valid())
+	    {
+		cout << "Config file could not be parsed! toml::errorReason: " << pr.errorReason << endl;
+		return false;
+	    }
+
+	    const auto toml = pr.value;
+
+	    pixel_renderer = toml.get<int>("general.pixel_renderer");
+
+	    shader_path = file_path / "shaders";
+
+	    string shader = toml.get<string>("shaders.frag_shader");
+
+	    vert_shader = (shader_path / "vertex.vs").string();
+	    frag_shader = (shader_path / shader).string();
+
+	    return true;
+	}
         
         bool init()
         {
+	    if (!init_config())
+	    {
+		cout << "Error parsing config file." << endl;
+		return false;
+	    }
+
 	    #ifdef __WIN32
    	    putenv("SDL_AUDIODRIVER=DirectSound");
 	    #endif
@@ -97,7 +131,12 @@ class SDL2Frontend : public mbGBFrontend
 		return false;
 	    }
 
-	    window = SDL_CreateWindow("mbGB-SDL2", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, (core->screenwidth * scale), (core->screenheight * scale), SDL_WINDOW_SHOWN);
+	    if (pixel_renderer == 1)
+	    {
+		window_flags |= SDL_WINDOW_OPENGL;
+	    }
+
+	    window = SDL_CreateWindow("mbGB-SDL2", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, (core->screenwidth * scale), (core->screenheight * scale), window_flags);
 
 	    if (window == NULL)
 	    {
@@ -105,7 +144,24 @@ class SDL2Frontend : public mbGBFrontend
 		return false;
 	    }
 
-	    surface = SDL_GetWindowSurface(window);
+	    switch (pixel_renderer)
+	    {
+		case 0: pix_render = new SoftwareRenderer(core, window); break;
+		case 1: pix_render = new OpenGLRenderer(core, window); break;
+		default: cout << "Unrecognized renderer option of " << dec << (int)(pixel_renderer) << endl; break;
+	    }
+
+	    if (pix_render == NULL)
+	    {
+		cout << "Falling back to software renderer..." << endl;
+		pix_render = new SoftwareRenderer(core, window);
+	    }
+
+	    if (!pix_render->init_renderer(vert_shader, frag_shader))
+	    {
+		cout << "Error: failed to initalize renderer" << endl;
+		return false;
+	    }
 
 	    SDL_AudioSpec audiospec;
 	    audiospec.format = AUDIO_S16SYS;
@@ -162,6 +218,8 @@ class SDL2Frontend : public mbGBFrontend
 	    }
 
 	    SDL_CloseAudio();
+	    pix_render->shutdown_renderer();
+	    pix_render = NULL;
 	    SDL_DestroyWindow(window);
 	    SDL_Quit();
 	}
@@ -206,7 +264,7 @@ class SDL2Frontend : public mbGBFrontend
 	    screenstring.append(std::to_string(currenttime));
 	    screenstring.append(".bmp");
 
-	    SDL_SaveBMP(surface, screenstring.c_str());
+	    pix_render->take_screenshot(screenstring);
 
 	    cout << "Screenshot saved." << endl;
 	}
@@ -293,8 +351,6 @@ class SDL2Frontend : public mbGBFrontend
 		    case SDLK_b: core->keypressed(Button::B); break;
 		    case SDLK_RETURN: core->keypressed(Button::Start); break;
 		    case SDLK_SPACE: core->keypressed(Button::Select); break;
-		    case SDLK_F1: core->loadstate(); break;
-		    case SDLK_F2: core->savestate(); break;
 		    case SDLK_p: core->paused = !core->paused; break;
 		    case SDLK_r: core->resetcore(); break;
 		    case SDLK_q: screenshot(); break;
@@ -357,22 +413,8 @@ class SDL2Frontend : public mbGBFrontend
 		    case SDL_CONTROLLER_BUTTON_DPAD_DOWN: core->keypressed(Button::Down); break;
 		    case SDL_CONTROLLER_BUTTON_DPAD_LEFT: core->keypressed(Button::Left); break;
 		    case SDL_CONTROLLER_BUTTON_DPAD_RIGHT: core->keypressed(Button::Right); break;
-		    case SDL_CONTROLLER_BUTTON_LEFTSHOULDER: 
-		    {
-			if (!core->savestate())
-			{
-			    exit(1);
-			}
-		    }
-		    break;
-		    case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER: 
-		    {
-			if (!core->loadstate())
-			{
-			    exit(1);
-			}
-		    }
-		    break;
+		    case SDL_CONTROLLER_BUTTON_LEFTSHOULDER: core->savestate(); break;
+		    case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER: core->loadstate(); break;
 		    case SDL_CONTROLLER_BUTTON_X: core->paused = !core->paused; break;
 		}
     	    }
@@ -488,45 +530,7 @@ class SDL2Frontend : public mbGBFrontend
 	
 	void drawpixels()
 	{
-	    SDL_Rect pixel = {0, 0, scale, scale};
-
-	    if (!core->isagbmode())
-	    {
-		for (int i = 0; i < core->screenwidth; i++)
-    		{
-		    pixel.x = (i * scale);
-		    for (int j = 0; j < core->screenheight; j++)
-		    {
-	    		pixel.y = (j * scale);
-	    		uint8_t red = core->getpixel(i, j).red;
-	    		uint8_t green = core->getpixel(i, j).green;
-	    		uint8_t blue = core->getpixel(i, j).blue;
-
-	    		SDL_FillRect(surface, &pixel, SDL_MapRGBA(surface->format, red, green, blue, 255));
-		    }
-		}
-	    }
-	    else
-    	    {
-		for (int i = 40; i < 200; i++)
-		{
-		    pixel.x = (i * scale);
-		    for (int j = 8; j < 152; j++)
-		    {
-	    		pixel.y = (j * scale);
-	    		int xpos = (i - 40);
-	    		int ypos = (j - 8);
-	    		uint8_t red = core->getpixel(xpos, ypos).red;
-	    		uint8_t green = core->getpixel(xpos, ypos).green;
-	    		uint8_t blue = core->getpixel(xpos, ypos).blue;
-
-	    		SDL_FillRect(surface, &pixel, SDL_MapRGBA(surface->format, red, green, blue, 255));
-		    }
-    		}
-    
-    	    }
-
-	    SDL_UpdateWindowSurface(window);
+	    pix_render->draw_pixels(core->getframebuffer(), scale);
 	}
 	
 	void audiocallback(audiotype left, audiotype right)
@@ -723,11 +727,11 @@ class SDL2Frontend : public mbGBFrontend
 	    drawpixels();
 	}
 
-	vector<uint8_t> loadfile(string filename, const void *unused1, int unused2)
+	vector<uint8_t> loadfile(string filename)
 	{
 	    vector<uint8_t> result;
 
-	    ifstream file(filename.c_str(), ios::in | ios::binary | ios::ate);
+	    fstream file(filename.c_str(), ios::in | ios::binary | ios::ate);
 
 	    if (file.is_open())
 	    {
@@ -740,11 +744,306 @@ class SDL2Frontend : public mbGBFrontend
 
 	    return result;
 	}
+
+	bool savefile(string filename, vector<uint8_t> data)
+	{
+	    fstream file(filename.c_str(), ios::out | ios::binary);
+
+	    if (!file.is_open())
+	    {
+		cout << "mbGB::File could not be written." << endl;
+		return false;
+	    }
+	    else
+	    {
+		file.write((char*)data.data(), data.size());
+		cout << "mbGB::File succesfully written." << endl;
+		file.close();
+		return true;
+	    }
+	}
+
+	bool camerainit()
+	{
+	    #ifdef LIBMBGB_CAMERA
+	    if (camera_enabled == true)
+	    {
+		return true;
+	    }
+
+	    if (!cap.open(0))
+	    {
+		cout << "OpenCV error: couldn't open camera" << endl;
+		return false;
+	    }
+
+	    camera_enabled = true;
+
+	    int width = 160;
+	    int height = 120;
+
+	    while (true)
+	    {
+		cap.set(CAP_PROP_FRAME_WIDTH, width);
+		cap.set(CAP_PROP_FRAME_HEIGHT, height);
+
+		width = cap.get(CAP_PROP_FRAME_WIDTH);
+		height = cap.get(CAP_PROP_FRAME_HEIGHT);
+
+		if ((width >= 128) && (height >= 120))
+		{
+		    break;
+		}
+		else
+		{
+		    width <<= 1;
+		    height <<= 1;
+		}
+
+		if (width >= 1024)
+		{
+		    break;
+		}
+	    }
+
+	    Mat frame;
+	    cap >> frame;
+
+	    if (frame.empty())
+	    {
+		camerashutdown();
+		cout << "OpenCV error: couldn't get frame" << endl;
+		return false;
+	    }
+
+	    Size size = frame.size();
+	    width = size.width;
+	    height = size.height;
+
+	    cout << "Camera resolution is " << dec << (int)(width) << "x" << dec << (int)(height) << endl;
+
+	    if ((width < 128) || (height < 120))
+	    {
+		cout << "Camera resolution is too small..." << endl;
+		return false;
+	    }
+
+	    int xfactor = (width / 128);
+	    int yfactor = (height / 120);
+
+	    camera_zoomfactor = (xfactor > yfactor) ? yfactor : xfactor;
+
+	    #elif defined LIBMBGB_DEBUG
+	    cout << "This build of libmbGB was compiled without webcam support." << endl;
+	    #endif // LIBMBGB_CAMERA
+
+	    return true;
+	}
+
+	void camerashutdown()
+	{
+	    #ifdef LIBMBGB_CAMERA
+
+	    if (!camera_enabled)
+	    {
+		return;
+	    }
+
+	    cap.release();
+	    camera_enabled = false;
+
+	    #else
+	    return;
+	    #endif // LIBMBGB_CAMERA
+	}
+
+	void gen_noise(array<int, (128 * 120)> &arr)
+	{
+	    srand(time(NULL));
+	    for (int i = 0; i < 128; i++)
+	    {
+		for (int j = 0; j < 120; j++)
+		{
+		    arr[(i + (j * 128))] = (rand() & 0xFF);
+		}
+	    }
+	}
+
+	bool cameraframe(array<int, (128 * 120)> &arr)
+	{
+	    #ifdef LIBMBGB_CAMERA
+
+	    if (!camera_enabled)
+	    {
+		gen_noise(arr);
+	    }
+	    else
+	    {
+		Mat frame, converted_frame;
+		cap >> frame;
+
+		if (frame.empty())
+		{
+		    camerashutdown();
+		    cout << "OpenCV error: couldn't get frame" << endl;
+		    return false;
+		}
+
+		frame.convertTo(converted_frame, CV_8U);
+		uint8_t *p = converted_frame.data;
+
+		Size size = converted_frame.size();
+
+		int width = size.width;
+
+		int channels = converted_frame.channels();
+
+		if (channels != 3)
+		{
+		    cout << "OpenCV error: Invalid camera output" << endl;
+		    return false;
+		}
+
+		size_t step = converted_frame.elemSize();
+
+		for (int i = 0; i < 128; i++)
+		{
+		    for (int j = 0; j < 120; j++)
+		    {
+			size_t index = (((j * camera_zoomfactor) * width * step) + ((i * camera_zoomfactor) * 3));
+
+			int red = p[index];
+			int green = p[(index + 1)];
+			int blue = p[(index + 2)];
+
+			arr[(i + (j * 128))] = ((2 * red + 5 * green + 1 * blue) >> 3);
+		    }
+		}
+	    }
+
+	    return true;
+	    #else
+	    gen_noise(arr);
+	    return true;
+	    #endif // LIBMBGB_CAMERA
+	}
+
+	void printerframe(vector<gbRGB> &temp, bool appending)
+	{
+	    cout << "Size of printer data: " << dec << (int)(temp.size()) << endl;
+	    string isappending = (appending) ? "Yes" : "No";
+	    cout << "Appending image? " << isappending << endl;
+
+	    if (appending)
+	    {
+		appendbmp(temp);
+	    }
+	    else
+	    {
+		savebmp(temp);
+	    }	    
+	}
+
+	void appendbmp(vector<gbRGB> &temp)
+	{
+	    SDL_Surface *surface = SDL_LoadBMP(printer_filename.c_str());
+
+	    if (surface == NULL)
+	    {
+		cout << "BMP could not be loaded! SDL_Error: " << SDL_GetError() << endl;
+		return;
+	    }
+
+	    int append_height = (temp.size() / 160);
+
+	    int prev_width = (surface->w / scale);
+	    int prev_height = (surface->h / scale);
+
+	    int combined_height = (prev_height + append_height);
+
+	    SDL_Surface *printout = SDL_CreateRGBSurface(0, (160 * scale), (combined_height * scale), 32, 0, 0, 0, 0);
+
+	    SDL_Rect pixel = {0, 0, scale, scale};
+
+	    for (int i = 0; i < prev_width; i++)
+	    {
+		pixel.x = (i * scale);
+
+		for (int j = 0; j < prev_height; j++)
+		{
+		    pixel.y = (j * scale);
+
+		    SDL_FillSurfaceRect(printout, &pixel, surface);
+		}
+	    }
+
+	    int new_width = (printout->w / scale);
+	    int new_height = append_height;
+
+	    SDL_Rect new_pixel = {0, 0, scale, scale};
+	    for (int i = 0; i < new_width; i++)
+	    {
+		new_pixel.x = (i * scale);
+
+		for (int j = 0; j < new_height; j++)
+		{
+		    new_pixel.y = (surface->h + (j * scale));
+
+		    gbRGB color = temp[(i + (j * new_width))];
+
+		    SDL_FillRect(printout, &pixel, SDL_MapRGB(printout->format, color.red, color.green, color.blue));
+		}
+	    }
+
+	    SDL_SaveBMP(printout, printer_filename.c_str());
+	    SDL_FreeSurface(surface);
+	    SDL_FreeSurface(printout);
+	}
+
+	void savebmp(vector<gbRGB> &temp)
+	{
+	    int buffer_height = (temp.size() / 160);
+	    SDL_Surface *printout = SDL_CreateRGBSurface(0, (160 * scale), (buffer_height * scale), 32, 0, 0, 0, 0);
+
+	    SDL_Rect pixel = {0, 0, scale, scale};
+
+	    int width = (printout->w / scale);
+	    int height = (printout->h / scale);
+
+	    for (int i = 0; i < width; i++)
+	    {
+		pixel.x = (i * scale);
+
+		for (int j = 0; j < height; j++)
+		{
+		    pixel.y = (j * scale);
+
+		    gbRGB color = temp[(i + (j * width))];
+
+		    SDL_FillRect(printout, &pixel, SDL_MapRGB(printout->format, color.red, color.green, color.blue));
+		}
+	    }
+
+	    time_t currenttime = time(nullptr);
+	    string filepath = "mbGBPrinter_";
+	    filepath.append(to_string(currenttime));
+	    filepath.append(".bmp");
+	    printer_filename = filepath;
+
+	    SDL_SaveBMP(printout, printer_filename.c_str());
+	    SDL_FreeSurface(printout);
+	}
+
+	void set_path(char *argv[])
+	{
+	    appname = argv[0];
+	}
+
+	string appname;
 	    
 	GBCore *core;
         
 	SDL_Window *window = NULL;
-	SDL_Surface *surface = NULL;
 	SDL_GameController *player1 = NULL;
 	SDL_Haptic *haptic = NULL;
         
@@ -778,6 +1077,18 @@ class SDL2Frontend : public mbGBFrontend
 	vector<int16_t> buffer;
 	
 	const int controllerdeadzone = 8000;
+
+	PixelRenderer *pix_render = NULL;
+
+	Uint32 window_flags = SDL_WINDOW_SHOWN;
+
+	#ifdef LIBMBGB_CAMERA
+	VideoCapture cap;
+	bool camera_enabled = false;
+	int camera_zoomfactor = 1;
+	#endif
+
+	string printer_filename = "";
 };
 
 int main(int argc, char* argv[])
@@ -785,7 +1096,7 @@ int main(int argc, char* argv[])
     core.setsamplerate(48000);
     core.setaudioflags(MBGB_SIGNED16);
 
-    SDL2Frontend *front = new SDL2Frontend(&core);
+    SDL2Frontend *front = new SDL2Frontend(&core, argv);
     core.setfrontend(front);
     
     if (!core.getoptions(argc, argv))

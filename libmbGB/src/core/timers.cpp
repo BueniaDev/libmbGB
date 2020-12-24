@@ -60,6 +60,19 @@ namespace gb
     {
 	cout << "Timers::Shutting down..." << endl;
     }
+
+    void Timers::dosavestate(mbGBSavestate &file)
+    {
+	file.section("TIMR");
+	file.var16(&divider);
+	file.var8(&tima);
+	file.var8(&tma);
+	file.var8(&tac);
+	file.bool32(&timaoverflownotinterrupted);
+	file.bool32(&timaoverflow);
+	file.var8(&prevtimaval);
+	file.bool32(&prevtimainc);
+    }
 	
     uint8_t Timers::readtimer(uint16_t addr)
     {

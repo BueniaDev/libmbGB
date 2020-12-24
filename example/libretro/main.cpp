@@ -1,6 +1,8 @@
 #include <libmbGB/libmbgb.h>
-#include "libretro.h"
+#include <libretro.h>
+#include <stdio.h>
 using namespace gb;
+using namespace std;
 
 static array<pair<size_t, Button>, 8> keymap = 
 {
@@ -19,7 +21,6 @@ static array<pair<size_t, Button>, 8> keymap =
 class LibretroFrontend : public mbGBFrontend
 {
     public:
-
 	LibretroFrontend(GBCore *corecb)
 	{
     	    core = corecb;
@@ -142,6 +143,79 @@ class LibretroFrontend : public mbGBFrontend
     	
     	    vidrefresh(framebuffer, 160, 144, (160 * sizeof(short)));
     	}
+
+	vector<uint8_t> loadfile(string filename)
+	{
+	    vector<uint8_t> temp;
+	    FILE *ret = fopen(filename.c_str(), "rb");
+	    
+	    if (ret == NULL)
+	    {
+		cout << "Error: could not load file." << endl;
+	    }
+	    else
+	    {
+		fseek(ret, 0, SEEK_END);
+		size_t sz = ftell(ret);
+
+		fseek(ret, 0, SEEK_SET);
+		temp.resize(sz, 0);
+		fread(temp.data(), temp.size(), 1, ret);
+		cout << "File succesfully loaded." << endl;
+		fclose(ret);
+	    }
+
+	    return temp;
+	}
+
+	bool savefile(string filename, vector<uint8_t> data)
+	{
+	    FILE *ret = fopen(filename.c_str(), "wb");
+	    
+	    if (ret == NULL)
+	    {
+		cout << "Error: could not save file." << endl;
+		return false;
+	    }
+	    else
+	    {
+		fwrite(data.data(), data.size(), 1, ret);
+		cout << "File succesfully written." << endl;
+		fclose(ret);
+	    }
+
+	    return true;
+	}
+
+	// Not sure if Libretro has any webcam APIs, so we're just gonna stub these functions...
+
+	bool camerainit()
+	{
+	    return true;
+	}
+
+	void camerashutdown()
+	{
+	    return;
+	}
+
+	void gen_noise(array<int, (128 * 120)> &arr)
+	{
+	    srand(time(NULL));
+	    for (int i = 0; i < 128; i++)
+	    {
+		for (int j = 0; j < 120; j++)
+		{
+		    arr[(i + (j * 128))] = (rand() & 0xFF);
+		}
+	    }
+	}
+
+	bool cameraframe(array<int, (128 * 120)> &arr)
+	{
+	    gen_noise(arr);
+	    return true;
+	}
     
     	void setenvironment(retro_environment_t cb)
     	{
@@ -176,7 +250,7 @@ class LibretroFrontend : public mbGBFrontend
     	void getsysteminfo(retro_system_info *info)
     	{
     	    info->library_name = "mbGB-Retro";
-    	    info->library_version = "0.1";
+    	    info->library_version = "0.2";
     	    info->need_fullpath = false;
     	    info->valid_extensions = "gb|gbc";
     	}
@@ -283,9 +357,9 @@ bool retro_load_game(const struct retro_game_info *game)
     	core.setsamplerate(48000);
     	core.setaudioflags(MBGB_SIGNED16);
     	core.connectserialdevice(new Disconnected());
-    	core.setdotrender(true);
-    
-        core.initcore(game->path, (uint8_t*)game->data, game->size);
+
+	core.romname = game->path;
+        core.initcore();
         
         return true;
     }
@@ -305,7 +379,7 @@ void retro_unload_game(void)
 
 void retro_reset(void)
 {
-    core.resetcoreretro();
+    core.resetcore();
 }
 
 void retro_get_system_info(struct retro_system_info *info)
@@ -325,17 +399,28 @@ void retro_set_controller_port_device(unsigned port, unsigned device)
 
 size_t retro_serialize_size(void)
 {
-    return 0;
+    cout << "Fetching size of libretro savestate..." << endl;
+    return core.getstatesize();
 }
 
 bool retro_serialize(void *data, size_t size)
 {
-    return false;
+    void *temp_data = data;
+    VecFile file = vfopen(temp_data, size);
+    mbGBSavestate savestate(file, true);
+    core.dosavestate(savestate);
+    memcpy(data, savestate.get_savestate_file().data.data(), size);
+    vfclose(file);
+    return true;
 }
 
 bool retro_unserialize(const void *data, size_t size)
 {
-    return false;
+    VecFile file = vfopen(const_cast<void*>(data), size);
+    mbGBSavestate savestate(file, false);
+    core.dosavestate(savestate);
+    vfclose(file);
+    return true;
 }
 
 void retro_cheat_reset(void)

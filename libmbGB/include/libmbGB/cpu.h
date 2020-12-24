@@ -92,6 +92,8 @@ namespace gb
 
 	    bool loaded = false;
 
+	    void dosavestate(mbGBSavestate &file);
+
 	    inline int cpusize()
 	    {
 		int size = 0;

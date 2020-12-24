@@ -56,6 +56,7 @@ namespace gb
 	cout << "MMU::Initialized" << endl;
 
 	gbmode = Mode::Default; // DO NOT DISABLE THIS! Doing so breaks the emulator on reset!
+	gameboy = Console::Default; // DO NOT DISABLE THIS! Doing so breaks the emulator on reset!
     }
 
     void MMU::initvram()
@@ -132,6 +133,29 @@ namespace gb
 	rambanks.clear();
 	
 	cout << "MMU::Shutting down..." << endl;
+    }
+
+    void MMU::dosavestate(mbGBSavestate &file)
+    {
+	file.section("MMU ");
+
+	file.vararray(rambanks.data(), rambanks.size());
+	file.vararray(vram.data(), 0x4000);
+	file.vararray(wram.data(), 0x8000);
+	file.vararray(oam.data(), 0xA0);
+	file.vararray(hram.data(), 0x7F);
+	file.vararray(gbcbgpalette.data(), 0x40);
+	file.vararray(gbcobjpalette.data(), 0x40);
+	file.varint(&gbcbgpaletteindex);
+	file.varint(&gbcobjpaletteindex);
+	file.bool32(&doublespeed);
+	file.var8(&currentrombank);
+	file.var8(&currentrambank);
+	file.var8(&wisdomrombank);
+	file.varint(&higherrombankbits);
+	file.bool32(&rommode);
+	file.bool32(&ramenabled);
+	file.bool32(&externalrampres);
     }
 
     bool MMU::loadmmu(int offset, string filename)
@@ -220,33 +244,30 @@ namespace gb
 	return true;
     }
 
-    bool MMU::loadbackup(string filename)
+    bool MMU::loadbackup(vector<uint8_t> data)
     {
-	bool success = false;	
+	bool success = true;	
 
 	if (batteryenabled)
 	{
-	    fstream sram(filename.c_str(), ios::in | ios::binary);
-
-	    if (!sram.is_open())
+	    if (data.empty())
 	    {
-		cout << "MMU::Save data could not be loaded." << endl;
-		success = false;
+		success = true;
 	    }
 	    else
 	    {
-		if (gbmbc != MBCType::None && batteryenabled)
+		if ((gbmbc != MBCType::None) && (gbmbc != MBCType::MBC7))
 		{
-		    int rambanksize = (gbmbc == MBCType::MBC7) ? 0x200 : 0x10000;
-		    sram.read((char*)&rambanks[0], rambanksize);
-		    loadbackuprtc(sram);
-		    cout << "MMU::Save data succesfully loaded." << endl;
-		    sram.close();
-		    success = true;
+		    int rambanksize = (mbcramsize << 10);
+		    rambanks = vector<uint8_t>(data.begin(), (data.begin() + rambanksize));
+		    if (isrtcpres)
+		    {
+			loadbackuprtc(data, rambanksize);
+		    }
 		}
-		else
+		else if (gbmbc == MBCType::MBC7)
 		{
-		    success = false;
+		    rambanks = vector<uint8_t>(data.begin(), (data.begin() + 256));
 		}
 	    }
 	}
@@ -254,86 +275,81 @@ namespace gb
 	return success;
     }
 
-    bool MMU::savebackup(string filename)
+    vector<uint8_t> MMU::savebackup()
     {
-	bool success = false;
-	
+	vector<uint8_t> save;
 	if (batteryenabled)
 	{
-	    fstream sram(filename.c_str(), ios::out | ios::binary);
+	    if ((gbmbc != MBCType::None) && (gbmbc != MBCType::MBC7))
+	    {
+		int rambanksize = (mbcramsize << 10);
+		cout << "RAM size: " << dec << (int)(rambanksize >> 10) << " KB" << endl;
+		save = vector<uint8_t>(rambanks.begin(), (rambanks.begin() + rambanksize));
 
-	    if (!sram.is_open())
-	    {
-		cout << "MMU::Save data could not be written." << endl;
-		success = false;
+		if (isrtcpres)
+		{
+		    savebackuprtc(save);
+		}
 	    }
-	    else
+	    else if (gbmbc == MBCType::MBC7)
 	    {
-		if (gbmbc != MBCType::None && batteryenabled)
-		{
-		    int rambanksize = (gbmbc == MBCType::MBC7) ? 0x200 : 0x10000;
-		    sram.write((char*)&rambanks[0], rambanksize);
-		    savebackuprtc(sram);
-		    cout << "MMU::Save data succesfully stored." << endl;
-		    sram.close();
-		    success = true;
-		}
-		else
-		{
-		    success = false;
-		}
+		save = vector<uint8_t>(rambanks.begin(), (rambanks.begin() + 256));
 	    }
 	}
 
-	return success;
+	return save;
     }
 
     uint8_t MMU::readDirectly(uint16_t addr)
     {
-	if (addr < 0x4000)
+	if (addr < 0x8000)
 	{
+	    uint8_t temp = 0;
+
+	    bool isromread = false;
+
 	    if (biosload == true)
 	    {
 		if ((biossize == 0x900) && (addr > 0x100) && (addr < 0x200))
 		{
-		    return rom[addr];
+		    isromread = true;
 		}
 		else if (addr == 0x100)
 		{
 		    exitbios();
-		    return rom[addr];
+		    isromread = true;
 		}
 		else if (addr < biossize)
 		{
-		    return bios[addr];
+		    isromread = false;
 		}
 		else
 		{
-		    return rom[addr];
+		    isromread = true;
 		}
-	    }
-	    else if (ismulticart)
-	    {
-		return mbc1mread(addr);
 	    }
 	    else
 	    {
-		return (gbmbc == MBCType::WisdomTree) ? wisdomtreeread(addr) : rom[addr];
+		isromread = true;
 	    }
-	}
-	else if (addr < 0x8000)
-	{
-	    uint8_t temp = 0;
 
-	    switch (gbmbc)
+	    if (isromread == true)
 	    {
-		case MBCType::None: temp = rom[addr]; break;
-		case MBCType::MBC1: temp = mbc1read(addr); break;
-		case MBCType::MBC2: temp = mbc2read(addr); break;
-		case MBCType::MBC3: temp = mbc3read(addr); break;
-		case MBCType::MBC5: temp = mbc5read(addr); break;
-		case MBCType::MBC7: temp = mbc7read(addr); break;
-		case MBCType::WisdomTree: temp = wisdomtreeread(addr); break;
+		switch (gbmbc)
+		{
+		    case MBCType::None: temp = rom[addr]; break;
+		    case MBCType::MBC1: temp = mbc1read(addr); break;
+		    case MBCType::MBC2: temp = mbc2read(addr); break;
+		    case MBCType::MBC3: temp = mbc3read(addr); break;
+		    case MBCType::MBC5: temp = mbc5read(addr); break;
+		    case MBCType::MBC7: temp = mbc7read(addr); break;
+		    case MBCType::Camera: temp = gbcameraread(addr); break;
+		    case MBCType::WisdomTree: temp = wisdomtreeread(addr); break;
+		}
+	    }
+	    else
+	    {
+		return bios[addr];
 	    }
 
 	    return temp;
@@ -354,6 +370,7 @@ namespace gb
 		case MBCType::MBC3: temp = mbc3read(addr); break;
 		case MBCType::MBC5: temp = mbc5read(addr); break;
 		case MBCType::MBC7: temp = mbc7read(addr); break;
+		case MBCType::Camera: temp = gbcameraread(addr); break;
 		case MBCType::WisdomTree: temp = wisdomtreeread(addr); break;
 	    }
 
@@ -471,6 +488,7 @@ namespace gb
 		case MBCType::MBC3: mbc3write(addr, value); break;
 		case MBCType::MBC5: mbc5write(addr, value); break;
 		case MBCType::MBC7: mbc7write(addr, value); break;
+		case MBCType::Camera: gbcamerawrite(addr, value); break;
 		case MBCType::WisdomTree: wisdomtreewrite(addr, value); break;
 	    }
 	}
@@ -488,6 +506,7 @@ namespace gb
 		case MBCType::MBC3: mbc3write(addr, value); break;
 		case MBCType::MBC5: mbc5write(addr, value); break;
 		case MBCType::MBC7: mbc7write(addr, value); break;
+		case MBCType::Camera: gbcamerawrite(addr, value); break;
 		case MBCType::WisdomTree: wisdomtreewrite(addr, value); break;
 	    }
 	}
@@ -619,8 +638,19 @@ namespace gb
 	    	case 0x07: temp = memoryreadhandlers.at((addr - 0xFF00))(addr); break;
 	    	case 0x0F: temp = (interruptflags | 0xE0); break;
 	    	case 0x46: temp = oamdmastart; break;
-	    	case 0x4D: temp = (key1 | (isgbcmode() ? 0x7E : 0xFF)); break;
-	    	case 0x4F: temp = (vrambank | 0xFE); break;
+	    	case 0x4D: temp = (key1 | ((isgbcmode()) ? 0x7E : 0xFF)); break;
+	    	case 0x4F:
+		{
+		    if (isgbcconsole())
+		    {
+			temp = ((isgbcmode()) ? (vrambank | 0xFE) : 0xFE);
+		    }
+		    else
+		    {
+			temp = 0xFF;
+		    }
+		}
+		break;
 	    	case 0x55: temp = ((!ishdmaactive) | 0x7F); break;
 	    	case 0x68: temp = (isgbcconsole()) ? gbcbgpaletteindex : 0xFF; break;
 	    	case 0x69: temp = (isgbcconsole()) ? gbcbgpalette[gbcbgpaletteindex] : 0xFF; break;
@@ -676,7 +706,7 @@ namespace gb
 		break;
 		case 0x4F: 
 		{
-		    vrambank = (isgbcconsole()) ? BitGetVal(value, 0) : 0;
+		    vrambank = (isgbcmode()) ? BitGetVal(value, 0) : 0;
 		}
 		break;
 		case 0x51:
@@ -723,7 +753,7 @@ namespace gb
 		break;
 		case 0x68:
 		{
-		    if (!isgbcconsole())
+		    if (isdmgconsole())
 		    {
 		    	return;
 		    }	
@@ -932,6 +962,9 @@ namespace gb
 
 	    bool cgbflag = ((cartmem[0x0143] == 0xC0) || (cartmem[0x0143] == 0x80));
 
+	    cout << "Console (before): " << dec << (int)(gameboy) << endl;
+	    cout << "Mode (before): " << dec << (int)(gbmode) << endl;
+
 	    if (gameboy == Console::Default)
 	    {
 		if (cgbflag)
@@ -953,12 +986,21 @@ namespace gb
 		gbmode = Mode::DMG;
 	    }
 
+	    cout << "Console (after): " << dec << (int)(gameboy) << endl;
+	    cout << "Mode (after): " << dec << (int)(gbmode) << endl;
+
 	    cout << "Title: " << determinegametitle(cartmem) << endl;
 	    determinembctype(cartmem);
 	    cout << "MBC type: " << mbctype << endl;
 	    numrombanks = getrombanks(cartmem);
 	    cout << "ROM size: " << romsize << endl;
 	    numrambanks = getrambanks(cartmem);
+	    
+	    if (mbcramsize != 0)
+	    {
+		rambanks.resize((mbcramsize << 10), 0);
+	    }
+
 	    cout << "RAM size: " << ramsize << endl;
 
 	    if (gbmbc != MBCType::None && static_cast<int>(data.size()) != (numrombanks * 0x4000))

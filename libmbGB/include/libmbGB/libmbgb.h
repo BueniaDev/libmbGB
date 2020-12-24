@@ -45,29 +45,6 @@ using namespace std::placeholders;
 
 namespace gb
 {
-    class LIBMBGB_API mbGBFrontend
-    {
-	public:
-    	    mbGBFrontend()
-    	    {
-    	
-    	    }
-    	
-    	    ~mbGBFrontend()
-    	    {
-    	
-    	    }
-    	
-    	    virtual bool init() = 0;
-    	    virtual void shutdown() = 0;
-    	    virtual void runapp() = 0;
-    	    virtual void audiocallback(audiotype left, audiotype right) = 0;
-    	    virtual void rumblecallback(bool enabled) = 0;
-    	    virtual void sensorcallback(uint16_t& sensorx, uint16_t& sensory) = 0;
-    	    virtual void pixelcallback() = 0;
-            virtual vector<uint8_t> loadfile(string filename, const void *data=NULL, int size=0) = 0;
-    };
-
     class LIBMBGB_API GBCore
     {
 	public:
@@ -92,9 +69,12 @@ namespace gb
 	    bool getoptions(int argc, char* argv[]);
 	    bool loadBIOS(string filename);
 	    bool loadROM(string filename);
+	    size_t getstatesize();
 	    bool loadstate();
 	    bool savestate();
-	    RGB getpixel(int x, int y);
+	    void dosavestate(mbGBSavestate &file);
+	    gbRGB getpixel(int x, int y);
+	    array<gbRGB, (160 * 144)> getframebuffer();
 	    void printusage(char *argv);
 	    void keypressed(Button button);
 	    void keyreleased(Button button);
@@ -106,12 +86,15 @@ namespace gb
 
 	    bool loadbackup();
 	    bool savebackup();
+	    
 	    bool paused = false;
 
 	    int overspentcycles = 0;
 	    int runinstruction();
+	    void update(int steps);
 	    void runcore();
 	    void runapp();
+	    bool islinkactive();
 	    bool initcore();
 	    void resetcore();
 	    void resetcoreretro();
@@ -120,6 +103,9 @@ namespace gb
 	    void setrumblecallback(rumblefunc cb);
 	    void setsensorcallback(sensorfunc cb);
 	    void setpixelcallback(pixelfunc cb);
+	    void setcamcallbacks(caminitfunc icb, camstopfunc scb, camframefunc fcb);
+	    void setprintercallback();
+	    void setprintcallback(printfunc cb);
 	    void setaudioflags(int val);
 	    bool isprinterenabled = false;
 	    bool ismobileenabled = false;
@@ -137,6 +123,9 @@ namespace gb
 	    string romname;
 	    string biosname;
 
+	    string kujoipaddr;
+	    int kujoport;
+
 	    bool biosload();
 
 	    int screenwidth = 0;
@@ -151,7 +140,10 @@ namespace gb
 	    
 	    void swipebarcode()
 	    {
-	    	dev->swipebarcode();
+		if (dev != NULL)
+		{
+	    	    dev->swipebarcode();
+		}
 	    }
 	    
 	    SerialDevice *dev = NULL;

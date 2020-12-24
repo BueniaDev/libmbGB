@@ -18,6 +18,7 @@
 #define LIBMBGB_APU
 
 #include "mmu.h"
+#include "utils.h"
 #include "libmbgb_api.h"
 #include <functional>
 #include <variant>
@@ -26,7 +27,7 @@ using namespace std;
 
 namespace gb
 {
-    using audiotype = variant<int16_t, float>;
+
     using apuoutputfunc = function<void(audiotype, audiotype)>;
     // Audio flags:
     // Bit 0 - 1=Float samples, 0=Integer samples
@@ -47,6 +48,11 @@ namespace gb
 	public:
 	    APU(MMU& memory);
 	    ~APU();
+
+	    void init();
+	    void shutdown();
+
+	    void dosavestate(mbGBSavestate &file);
 
 	    MMU& apumem;
 	    
