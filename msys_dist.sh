@@ -14,11 +14,11 @@ if [ -d "example/sdl2" ]; then
 	cp example/sdl2/example.exe dist
 fi
 
-if [ -d "example/qt5" ]; then
-	for lib in $(ldd example/qt5/mbGB-Qt.exe | grep mingw | sed "s/.*=> //" | sed "s/(.*)//"); do
+if [ -d "example/qt" ]; then
+	for lib in $(ldd example/qt/mbGB-Qt.exe | grep mingw | sed "s/.*=> //" | sed "s/(.*)//"); do
 		cp "${lib}" dist
 	done
-	cp example/qt5/mbGB-Qt.exe dist
+	cp example/qt/mbGB-Qt.exe dist
 fi
 
 cp ../res/bootroms/bin/dmg_bios.bin dist
@@ -26,6 +26,6 @@ cp ../res/bootroms/bin/cgb_bios.bin dist
 cp ../res/bootroms/bin/agb_bios.bin dist
 cp -r ../res/shaders dist
 cp ../res/libmbgb.toml dist
-if [ -d "example/qt5" ]; then
+if [ -d "example/qt" ]; then
     windeployqt dist/mbGB-Qt.exe
 fi

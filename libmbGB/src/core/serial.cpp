@@ -27,9 +27,6 @@ namespace gb
 	    serialmem.addmemoryreadhandler(i, bind(&Serial::readserial, this, _1));
 	    serialmem.addmemorywritehandler(i, bind(&Serial::writeserial, this, _1, _2));
 	}
-	
-	serialmem.addmemoryreadhandler(0xFF56, bind(&Serial::readserial, this, _1));
-	serialmem.addmemorywritehandler(0xFF56, bind(&Serial::writeserial, this, _1, _2));
     }
 
     Serial::~Serial()
@@ -72,12 +69,6 @@ namespace gb
 	{
 	    case 0x01: temp = bytetorecieve; break;
 	    case 0x02: temp = (serialcontrol & 0x7E); break;
-	    case 0x56:
-	    {
-	    	cout << "Reading RP..." << endl;
-	    	temp = 0x00;
-	    }
-	    break;
 	}
 		
 	return temp;
@@ -93,11 +84,6 @@ namespace gb
 	        serialcontrol = val;
 	        pendingrecieve = false;
 	    }    
-	    break;
-	    case 0x56:
-	    {
-	    	cout << "Writing RP..." << endl;
-	    }
 	    break;
 	}
     }

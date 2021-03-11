@@ -149,99 +149,19 @@ namespace gb
 	file.varint(&gbcbgpaletteindex);
 	file.varint(&gbcobjpaletteindex);
 	file.bool32(&doublespeed);
-	file.var8(&currentrombank);
-	file.var8(&currentrambank);
-	file.var8(&wisdomrombank);
+	file.varint(&currentrombank);
+	file.varint(&currentrambank);
+	file.varint(&wisdomrombank);
+	file.varint(&mbc6rombanka);
+	file.varint(&mbc6rombankb);
+	file.varint(&mbc6rambanka);
+	file.varint(&mbc6rambankb);
 	file.varint(&higherrombankbits);
 	file.bool32(&rommode);
 	file.bool32(&ramenabled);
 	file.bool32(&externalrampres);
-    }
-
-    bool MMU::loadmmu(int offset, string filename)
-    {
-	vram.clear();
-	sram.clear();
-	wram.clear();
-	oam.clear();
-	hram.clear();
-	rambanks.clear();
-	gbcbgpalette.clear();
-	gbcobjpalette.clear();
-
-	int rambanksize = (gbmbc == MBCType::MBC7) ? 0x200 : 0x10000;
-
-	vram.resize(0x4000, 0);
-	sram.resize(0x2000, 0);
-	wram.resize(0x8000, 0);
-	oam.resize(0xA0, 0);
-	hram.resize(0x7F, 0);
-	rambanks.resize(rambanksize, 0);
-	gbcbgpalette.resize(0x40, 0);
-	gbcobjpalette.resize(0x40, 0);
-	
-	ifstream file(filename.c_str(), ios::binary);
-
-	if (!file.is_open())
-	{
-	    cout << "CPU::Error opening MMU state" << endl;
-	    return false;
-	}
-
-	file.seekg(offset);
-
-	file.read((char*)&cartmem[0], sizeof(cartmem));
-	file.read((char*)&rambanks[0], rambanksize);
-	file.read((char*)&vram[0], 0x4000);
-	file.read((char*)&wram[0], 0x8000);
-	file.read((char*)&oam[0], 0xA0);
-	file.read((char*)&hram[0], 0x7F);
-	file.read((char*)&gbcbgpalette[0], 0x40);
-	file.read((char*)&gbcobjpalette[0], 0x40);
-	file.read((char*)&gbcbgpaletteindex, sizeof(gbcbgpaletteindex));
-	file.read((char*)&gbcobjpaletteindex, sizeof(gbcobjpaletteindex));
-	file.read((char*)&doublespeed, sizeof(doublespeed));
-	file.read((char*)&currentrombank, sizeof(currentrombank));
-	file.read((char*)&currentrambank, sizeof(currentrambank));
-	file.read((char*)&higherrombankbits, sizeof(higherrombankbits));
-	file.read((char*)&rommode, sizeof(rommode));
-	file.read((char*)&ramenabled, sizeof(ramenabled));
-	file.read((char*)&externalrampres, sizeof(externalrampres));
-	file.close();
-	return true;
-    }
-
-    bool MMU::savemmu(string filename)
-    {
-	ofstream file(filename.c_str(), ios::binary | ios::app);
-
-	if (!file.is_open())
-	{
-	    cout << "CPU::Error opening MMU state" << endl;
-	    return false;
-	}
-
-	int rambanksize = (gbmbc == MBCType::MBC7) ? 0x200 : 0x10000;
-
-	file.write((char*)&cartmem[0], sizeof(cartmem));
-	file.write((char*)&rambanks[0], rambanksize);
-	file.write((char*)&vram[0], 0x4000);
-	file.write((char*)&wram[0], 0x8000);
-	file.write((char*)&oam[0], 0xA0);
-	file.write((char*)&hram[0], 0x7F);
-	file.write((char*)&gbcbgpalette[0], 0x40);
-	file.write((char*)&gbcobjpalette[0], 0x40);
-	file.write((char*)&gbcbgpaletteindex, sizeof(gbcbgpaletteindex));
-	file.write((char*)&gbcobjpaletteindex, sizeof(gbcobjpaletteindex));
-	file.write((char*)&doublespeed, sizeof(doublespeed));
-	file.write((char*)&currentrombank, sizeof(currentrombank));
-	file.write((char*)&currentrambank, sizeof(currentrambank));
-	file.write((char*)&higherrombankbits, sizeof(higherrombankbits));
-	file.write((char*)&rommode, sizeof(rommode));
-	file.write((char*)&ramenabled, sizeof(ramenabled));
-	file.write((char*)&externalrampres, sizeof(externalrampres));
-	file.close();
-	return true;
+	file.bool32(&mbc6flashenable);
+	file.bool32(&mbc6flashwriteenable);
     }
 
     bool MMU::loadbackup(vector<uint8_t> data)
@@ -342,6 +262,7 @@ namespace gb
 		    case MBCType::MBC2: temp = mbc2read(addr); break;
 		    case MBCType::MBC3: temp = mbc3read(addr); break;
 		    case MBCType::MBC5: temp = mbc5read(addr); break;
+		    case MBCType::MBC6: temp = mbc6read(addr); break;
 		    case MBCType::MBC7: temp = mbc7read(addr); break;
 		    case MBCType::Camera: temp = gbcameraread(addr); break;
 		    case MBCType::WisdomTree: temp = wisdomtreeread(addr); break;
@@ -369,6 +290,7 @@ namespace gb
 		case MBCType::MBC2: temp = mbc2read(addr); break;
 		case MBCType::MBC3: temp = mbc3read(addr); break;
 		case MBCType::MBC5: temp = mbc5read(addr); break;
+		case MBCType::MBC6: temp = mbc6read(addr); break;
 		case MBCType::MBC7: temp = mbc7read(addr); break;
 		case MBCType::Camera: temp = gbcameraread(addr); break;
 		case MBCType::WisdomTree: temp = wisdomtreeread(addr); break;
@@ -487,6 +409,7 @@ namespace gb
 		case MBCType::MBC2: mbc2write(addr, value); break;
 		case MBCType::MBC3: mbc3write(addr, value); break;
 		case MBCType::MBC5: mbc5write(addr, value); break;
+		case MBCType::MBC6: mbc6write(addr, value); break;
 		case MBCType::MBC7: mbc7write(addr, value); break;
 		case MBCType::Camera: gbcamerawrite(addr, value); break;
 		case MBCType::WisdomTree: wisdomtreewrite(addr, value); break;
@@ -505,6 +428,7 @@ namespace gb
 		case MBCType::MBC2: mbc2write(addr, value); break;
 		case MBCType::MBC3: mbc3write(addr, value); break;
 		case MBCType::MBC5: mbc5write(addr, value); break;
+		case MBCType::MBC6: mbc6write(addr, value); break;
 		case MBCType::MBC7: mbc7write(addr, value); break;
 		case MBCType::Camera: gbcamerawrite(addr, value); break;
 		case MBCType::WisdomTree: wisdomtreewrite(addr, value); break;
@@ -863,7 +787,7 @@ namespace gb
 	    determinembctype(cartmem);
 	    numrombanks = getrombanks(cartmem);
 	    numrambanks = getrambanks(cartmem);
-	    wisdomtreeorrom(cartmem);
+	    isromonly(cartmem);
 	    cout << "MBC type: " << mbctype << endl;
 	    cout << "ROM size: " << romsize << endl;
 	    cout << "RAM size: " << ramsize << endl;
@@ -962,9 +886,6 @@ namespace gb
 
 	    bool cgbflag = ((cartmem[0x0143] == 0xC0) || (cartmem[0x0143] == 0x80));
 
-	    cout << "Console (before): " << dec << (int)(gameboy) << endl;
-	    cout << "Mode (before): " << dec << (int)(gbmode) << endl;
-
 	    if (gameboy == Console::Default)
 	    {
 		if (cgbflag)
@@ -986,9 +907,6 @@ namespace gb
 		gbmode = Mode::DMG;
 	    }
 
-	    cout << "Console (after): " << dec << (int)(gameboy) << endl;
-	    cout << "Mode (after): " << dec << (int)(gbmode) << endl;
-
 	    cout << "Title: " << determinegametitle(cartmem) << endl;
 	    determinembctype(cartmem);
 	    cout << "MBC type: " << mbctype << endl;
@@ -1000,8 +918,6 @@ namespace gb
 	    {
 		rambanks.resize((mbcramsize << 10), 0);
 	    }
-
-	    cout << "RAM size: " << ramsize << endl;
 
 	    if (gbmbc != MBCType::None && static_cast<int>(data.size()) != (numrombanks * 0x4000))
 	    {

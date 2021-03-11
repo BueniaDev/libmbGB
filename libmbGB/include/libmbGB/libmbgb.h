@@ -28,11 +28,14 @@
 #include <sstream>
 #include <functional>
 #include <array>
+#include <mutex>
+#include <thread>
 #include <ctime>
 #include "utils.h"
 #include "enums.h"
 #include "mmu.h"
 #include "serial.h"
+#include "infrared.h"
 #include "cpu.h"
 #include "gpu.h"
 #include "addons.h"
@@ -57,7 +60,10 @@ namespace gb
 	    unique_ptr<Input> coreinput;
 	    unique_ptr<CPU> corecpu;
 	    unique_ptr<Serial> coreserial;
+	    unique_ptr<Infrared> coreinfrared;
 	    unique_ptr<APU> coreapu;
+
+	    vector<GBCore*> gbcores;
 	    
 	    mbGBFrontend *front = NULL;
 
@@ -65,6 +71,8 @@ namespace gb
 	    void init();
 	    void shutdown();
 	    void shutdown(bool frontend);
+
+	    void addcore(string romfile);
 
 	    bool getoptions(int argc, char* argv[]);
 	    bool loadBIOS(string filename);
@@ -74,10 +82,14 @@ namespace gb
 	    bool savestate();
 	    void dosavestate(mbGBSavestate &file);
 	    gbRGB getpixel(int x, int y);
+	    uint32_t getpixel_u32(int x, int y);
 	    array<gbRGB, (160 * 144)> getframebuffer();
+	    array<uint32_t, (160 * 144)> getframebuffer_u32();
 	    void printusage(char *argv);
-	    void keypressed(Button button);
-	    void keyreleased(Button button);
+	    void keypressed(gbButton button);
+	    void keyreleased(gbButton button);
+	    void sensorpressed(gbGyro pos);
+	    void sensorreleased(gbGyro pos);
 	    bool dumpvram(string filename);
 	    bool dumpmemory(string filename);
 	    void setdotrender(bool val);
@@ -86,6 +98,9 @@ namespace gb
 
 	    bool loadbackup();
 	    bool savebackup();
+
+	    bool loadconfigaddon();
+	    bool saveconfigaddon();
 	    
 	    bool paused = false;
 
@@ -101,7 +116,6 @@ namespace gb
 	    void setsamplerate(int val);
 	    void setaudiocallback(apuoutputfunc cb);
 	    void setrumblecallback(rumblefunc cb);
-	    void setsensorcallback(sensorfunc cb);
 	    void setpixelcallback(pixelfunc cb);
 	    void setcamcallbacks(caminitfunc icb, camstopfunc scb, camframefunc fcb);
 	    void setprintercallback();
@@ -122,9 +136,6 @@ namespace gb
 
 	    string romname;
 	    string biosname;
-
-	    string kujoipaddr;
-	    int kujoport;
 
 	    bool biosload();
 
@@ -147,8 +158,10 @@ namespace gb
 	    }
 	    
 	    SerialDevice *dev = NULL;
+	    InfraredDevice *devir = NULL;
 	    
 	    void connectserialdevice(SerialDevice *cb);
+	    void connectirdevice(InfraredDevice *cb);
     };
 };
 

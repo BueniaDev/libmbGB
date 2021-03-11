@@ -174,11 +174,11 @@ namespace gb
     {
 	if (addr <= 0xFF26)
 	{
-		if ((!issoundon) && (addr != 0xFF26))
-		{
-			return;
-		}
-		
+	    if ((!issoundon) && (addr != 0xFF26))
+	    {
+		return;
+	    }
+
 	    switch ((addr & 0xFF))
 	    {
 		case 0x10: writes1sweep(value); break;
@@ -193,9 +193,14 @@ namespace gb
 	    	{
 		    s1volumeenvelope = value;
 
-		if (((s1volumeenvelope & 0xF0) >> 4) == 0)
+		    if (((s1volumeenvelope & 0xF8) >> 3) == 0)
 		    {
+			s1dacenabled = false;
 			s1enabled = false;
+		    }
+		    else
+		    {
+			s1dacenabled = true;
 		    }
 	   	}
 		break;
@@ -212,9 +217,14 @@ namespace gb
 	    	{
 		    s2volumeenvelope = value;
 
-		    if (((s2volumeenvelope & 0xF0) >> 4) == 0)
+		    if (((s2volumeenvelope & 0xF8) >> 3) == 0)
 		    {
+			s2dacenabled = false;
 			s2enabled = false;
+		    }
+		    else
+		    {
+			s2dacenabled = true;
 		    }
 	    	}
 		break;
@@ -253,7 +263,21 @@ namespace gb
 		    reloadnoiselengthcounter();
 	    	}
 		break;
-		case 0x21: writenoiseenvelope(value); break;
+		case 0x21:
+		{
+		    noisevolumeenvelope = value;
+
+		    if (((noisevolumeenvelope & 0xF8) >> 3) == 0)
+		    {
+			noisedacenabled = false;
+			noiseenabled = false;
+		    }
+		    else
+		    {
+			noisedacenabled = true;
+		    }
+		}
+		break;
 		case 0x22: noisefreqlo = value; break;
 		case 0x23: noisewritereset(value); break;
 		case 0x24: mastervolume = value; break;
@@ -394,7 +418,7 @@ namespace gb
 	int outputvol = 0;
 	outputvol = (s1dutycycle[s1seqpointer] * s1volume);
 
-	return ((float)(outputvol) / divisor);
+	return ((float)(outputvol) / 100.f);
     }
 	
     void APU::s2lengthcountertick(int frameseq)
@@ -479,7 +503,7 @@ namespace gb
 	int outputvol = 0;
 	outputvol = (s2dutycycle[s2seqpointer] * s2volume);
 
-	return ((float)(outputvol) / divisor);
+	return ((float)(outputvol) / 100.f);
     }
 	
     void APU::wavetimertick()
@@ -541,7 +565,7 @@ namespace gb
 	    outputvol = 0;
 	}
 
-	return ((float)(outputvol) / divisor);
+	return ((float)(outputvol) / 100.f);
     }
 	
     void APU::noiselengthcountertick(int frameseq)
@@ -647,7 +671,7 @@ namespace gb
 	    outputvol = 0;
 	}
 
-	return ((float)(outputvol) / divisor);
+	return ((float)(outputvol) / 100.f);
     }
 
     void APU::updateaudio()
@@ -670,77 +694,7 @@ namespace gb
         }
     }
 
-    void APU::mixs16audio()
-    {
-	static constexpr float ampl = 30000;
-
-	auto sound1 = gets1outputvol();
-	auto sound2 = gets2outputvol();
-	auto sound3 = getwaveoutputvol();
-	auto sound4 = getnoiseoutputvol();
-
-        float leftsample = 0;
-        float rightsample = 0;
-
-	if (s1enabledleft())
-        {
-	    leftsample += sound1;
-        }
-
-	if (s1enabledright())
-        {
-	    rightsample += sound1;
-        }
-
-	if (s2enabledleft())
-        {
-	    leftsample += sound2;
-        }
-
-	if (s2enabledright())
-        {
-	    rightsample += sound2;
-        }
-
-	if (waveenabledleft())
-        {
-	    leftsample += sound3;
-        }
-
-	if (waveenabledright())
-        {
-	    rightsample += sound3;
-        }
-
-	if (noiseenabledleft())
-        {
-	    leftsample += sound4;
-        }
-
-	if (noiseenabledright())
-        {
-	    rightsample += sound4;
-        }
-
-	leftsample /= 4.0f;
-	rightsample /= 4.0f;
-
-	int mastervolleft = ((mastervolume >> 4) & 0x7);
-	int mastervolright = (mastervolume & 0x7);
-
-	auto leftvolume = (((float)(mastervolleft)) / 7.0f);
-	auto rightvolume = (((float)(mastervolright)) / 7.0f);
-
-	audiotype left = (int16_t)(leftsample * leftvolume * ampl);
-	audiotype right = (int16_t)(rightsample * rightvolume * ampl);
-
-	if (audiocallback)
-    	{
-	    audiocallback(left, right);
-    	}
-    }
-
-    void APU::mixf32audio()
+    void APU::mixaudio()
     {
 	auto sound1 = gets1outputvol();
 	auto sound2 = gets2outputvol();
@@ -799,8 +753,62 @@ namespace gb
 	auto leftvolume = (((float)(mastervolleft)) / 7.0f);
 	auto rightvolume = (((float)(mastervolright)) / 7.0f);
 
-	audiotype left = (float)(leftsample * leftvolume);
-	audiotype right = (float)(rightsample * rightvolume);
+	float leftfloat = (float)(leftsample * leftvolume);
+	float rightfloat = (float)(rightsample * rightvolume);
+
+	audiotype left;
+	audiotype right;
+
+	switch (audioflags)
+	{
+	    case MBGB_SIGNED8:
+	    {
+		static constexpr float ampl = 117;
+		left = (int8_t)(leftfloat * ampl);
+		right = (int8_t)(rightfloat * ampl);
+	    }
+	    break;
+	    case MBGB_SIGNED16:
+	    {
+		static constexpr float ampl = 30000;
+		left = (int16_t)(leftfloat * ampl);
+		right = (int16_t)(rightfloat * ampl);
+	    }
+	    break;
+	    case MBGB_SIGNED32:
+	    {
+		static constexpr float ampl = 1966080000;
+		left = (int32_t)(leftfloat * ampl);
+		right = (int32_t)(rightfloat * ampl);
+	    }
+	    break;
+	    case MBGB_UNSIGNED8:
+	    {
+		static constexpr float ampl = 117;
+		int8_t left8 = (int8_t)(leftfloat * ampl);
+		int8_t right8 = (int8_t)(rightfloat * ampl);
+		left = (uint8_t)(left8 + 128);
+		right = (uint8_t)(right8 + 128);
+	    }
+	    break;
+	    case MBGB_UNSIGNED16:
+	    {
+		static constexpr float ampl = 30000;
+		int16_t left16 = (int16_t)(leftfloat * ampl);
+		int16_t right16 = (int16_t)(rightfloat * ampl);
+		left = (uint16_t)(left16 + 32768);
+		right = (uint16_t)(right16 + 32768);
+	    }
+	    break;
+	    case MBGB_FLOAT32:
+	    {
+		left = leftfloat;
+		right = rightfloat;
+	    }
+	    break;
+	    default: break;
+	}
+	
 
 	if (audiocallback)
 	{

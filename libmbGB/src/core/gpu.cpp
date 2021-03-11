@@ -124,7 +124,11 @@ namespace gb
 	    return;
 	}
 
-	scanlinecounter += 4; // Increment scanline counter
+	// Each scanline takes 456 cycles in single-speed mode, or 912 cycles in double-speed mode
+	int atomic_increase = (gpumem.doublespeed) ? 2 : 4;
+
+	// Increment scanline counter
+	scanlinecounter += atomic_increase;
 
 	updately(); // Update LY register
 	updatelycomparesignal(); // Update LY=LYC comparision
@@ -188,6 +192,8 @@ namespace gb
 	    }
 	}
 
+	checkstatinterrupt(); // Check STAT IRQ signal
+
 	// Dot-based renderer logic
 	if (isdotrender())
 	{
@@ -209,8 +215,6 @@ namespace gb
 		renderpixel(); // Renders current pixel
 	    }
 	}
-
-	checkstatinterrupt(); // Check STAT IRQ signal
     }
 
     void GPU::updatelycomparesignal()
@@ -271,14 +275,7 @@ namespace gb
 	if (!wasenabled && islcdenabled())
 	{
 	    // Set scanline counter to these values so it automatically ticks over to 0
-	    if (gpumem.doublespeed)
-	    {
-		scanlinecounter = 908;
-	    }
-	    else
-	    {
-		scanlinecounter = 452;
-	    }
+	    scanlinecounter = 452;
 	    currentscanline = 153;
 	}
 	else if (wasenabled && !islcdenabled())
@@ -298,7 +295,7 @@ namespace gb
 	}
 
 	// LY increments once every 456 cycles (or every 912 cycles in double speed mode)
-	if (scanlinecounter == (456 << gpumem.doublespeed)) 
+	if (scanlinecounter == 456) 
 	{
 	    scanlinecounter = 0;
 
@@ -564,7 +561,6 @@ namespace gb
 	framebuffer[index].red = gbcolor;
 	framebuffer[index].green = gbcolor;
 	framebuffer[index].blue = gbcolor;
-	pixelx += 1;
     }
 
     void GPU::rendercgbpixel()
@@ -675,7 +671,6 @@ namespace gb
 	framebuffer[index].red = red;
 	framebuffer[index].green = green;
 	framebuffer[index].blue = blue;
-	pixelx += 1;
     }
 
     void GPU::renderdmgbgpixel()

@@ -27,8 +27,9 @@ namespace gb
 	coretimers = make_unique<Timers>(*coremmu);
 	coreinput = make_unique<Input>(*coremmu);
 	coreserial = make_unique<Serial>(*coremmu);
+	coreinfrared = make_unique<Infrared>(*coremmu);
 	coreapu = make_unique<APU>(*coremmu);
-	corecpu = make_unique<CPU>(*coremmu, *coregpu, *coretimers, *coreserial, *coreapu);
+	corecpu = make_unique<CPU>(*coremmu, *coregpu, *coretimers, *coreserial, *coreapu, *coreinfrared);
     }
 
     GBCore::~GBCore()
@@ -51,6 +52,11 @@ namespace gb
 	if (dev == NULL)
 	{
 	    connectserialdevice(new Disconnected());
+	}
+
+	if (devir == NULL || !coremmu->isgbcconsole())
+	{
+	    connectirdevice(new DisconnectedIR());
 	}
 
 	coremmu->resetio();
@@ -78,6 +84,22 @@ namespace gb
 
     void GBCore::shutdown(bool frontend)
     {
+	if (!gbcores.empty())
+	{
+	    for (auto &core : gbcores)
+	    {
+		core->shutdown();
+		core = NULL;
+	    }
+	}
+
+	gbcores.clear();
+
+	if (dev != NULL)
+	{
+	    saveconfigaddon();
+	}
+
 	dev = NULL;
 
 	coreserial->shutdown();
@@ -116,10 +138,17 @@ namespace gb
 	cout << "--dotrender \t\t Enables the more accurate dot-based renderer." << endl;
 	cout << "--accurate-colors \t\t Improves the accuracy of the displayed colors (GBC only)." << endl;
 	cout << "--mbc1m \t\t Enables the MBC1 multicart mode, if applicable." << endl;
-	cout << "--printer \t\t Emulates the Game Boy Printer (currently WIP)." << endl;
-	cout << "--mobile \t\t Emulates the Mobile Adapter GB (currently non-functional)." << endl;
+	cout << "--serialdebug \t\t Emulates the custom SerialDebug device (useful for reverse-engineering of Link Cable-based addons)." << endl;
+	cout << "--printer \t\t Emulates the Game Boy Printer." << endl;
+	cout << "--mobile \t\t Emulates the Mobile Adapter GB (currently WIP)." << endl;
 	cout << "--power \t\t Emulates the Power Antenna / Bug Sensor (currently non-functional)." << endl;
+	cout << "--turbo-file \t\t Emulates the Turbo File GB (currently WIP)." << endl;
 	cout << "--bcb \t\t Emulates the Barcode Boy (DMG only)." << endl;
+	cout << "--ir [DEVICE NAME] \t\t Emulates one of the infrared devices shown below (GBC only, currently WIP)." << endl;
+	cout << "    dev \t\t Emulates the custom IRDebug device (useful for reverse-engineering of infrared protocols)." << endl;
+	cout << "    cca \t\t Emulates an artifical light source (used by Chee Chai Alien, currently WIP)." << endl;
+	cout << "    zzh \t\t Emulates the Full Changer (used by Zok Zok Heroes, currently non-functional)." << endl;
+	cout << "    tvr \t\t Emulates a TV remote (currently non-functional)." << endl;
 	cout << "-h, --help \t\t Displays this help message." << endl;
 	cout << endl;
     }
@@ -161,6 +190,36 @@ namespace gb
 		{
 		    coremmu->biosload = true;
 		    biosname = argv[i + 1];
+		}
+	    }
+
+	    if ((strcmp(argv[i], "--ir") == 0))
+	    {
+		if ((i + 1) == argc)
+		{
+		    connectirdevice(new DisconnectedIR());
+		}
+		else
+		{
+		    char *devname = argv[i + 1];
+
+
+		    if ((strcmp(devname, "dev") == 0))
+		    {
+			connectirdevice(new InfraredDebug());
+		    }
+		    else if ((strcmp(devname, "cca") == 0))
+		    {
+			connectirdevice(new CheeChaiLight());
+		    }
+		    else if ((strcmp(devname, "zzh") == 0))
+		    {
+			connectirdevice(new DisconnectedIR());
+		    }
+		    else if ((strcmp(devname, "tvr") == 0))
+		    {
+			connectirdevice(new DisconnectedIR());
+		    }
 		}
 	    }
 
@@ -212,6 +271,11 @@ namespace gb
 		coremmu->ismulticart = false;
 	    }
 
+	    if ((strcmp(argv[i], "--serialdebug") == 0))
+	    {
+		connectserialdevice(new SerialDebug());
+	    }
+
 	    if ((strcmp(argv[i], "--printer") == 0))
 	    {
 		connectserialdevice(new GBPrinter());
@@ -219,12 +283,17 @@ namespace gb
 		
 	    if ((strcmp(argv[i], "--mobile") == 0))
 	    {
-		connectserialdevice(new Disconnected());
+		connectserialdevice(new MobileAdapterGB());
 	    }
 	    
 	    if ((strcmp(argv[i], "--power") == 0))
 	    {
 		connectserialdevice(new Disconnected());
+	    }
+
+	    if ((strcmp(argv[i], "--turbo-file") == 0))
+	    {
+		connectserialdevice(new TurboFileGB());
 	    }
 	    
 	    if ((strcmp(argv[i], "--bcb") == 0))
@@ -249,13 +318,36 @@ namespace gb
     
     void GBCore::connectserialdevice(SerialDevice *cb)
     {
+	// Sanity check to prevent possible buffer overflow
+	// with NULL serial device pointer
+	if (cb == NULL)
+	{
+	    cb = new Disconnected();
+	}
+
     	dev = NULL;
 	cout << "Connecting addon of " << cb->getaddonname() << endl;
 	auto serialcb = bind(&Serial::recieve, &*coreserial, _1);
 	cb->setlinkcallback(serialcb);
 	dev = cb;
 	setprintercallback();
+	loadconfigaddon();
 	coreserial->setserialdevice(dev);
+    }
+
+    void GBCore::connectirdevice(InfraredDevice *cb)
+    {
+	// Sanity check to prevent possible buffer overflow
+	// with NULL IR device pointer
+	if (cb == NULL)
+	{
+	    cb = new DisconnectedIR();
+	}
+
+    	devir = NULL;
+	cout << "Connecting IR device of " << cb->getdevicename() << endl;
+	devir = cb;
+	coreinfrared->setirdevice(devir);
     }
     
     void GBCore::setfrontend(mbGBFrontend *cb)
@@ -267,7 +359,6 @@ namespace gb
         {
             setaudiocallback(bind(&mbGBFrontend::audiocallback, cb, _1, _2));
             setrumblecallback(bind(&mbGBFrontend::rumblecallback, cb, _1));
-            setsensorcallback(bind(&mbGBFrontend::sensorcallback, cb, _1, _2));
             setpixelcallback(bind(&mbGBFrontend::pixelcallback, cb));
 	    auto icb = bind(&mbGBFrontend::camerainit, cb);
 	    auto scb = bind(&mbGBFrontend::camerashutdown, cb);
@@ -296,6 +387,26 @@ namespace gb
 	}
 
 	return false;
+    }
+
+    bool GBCore::loadconfigaddon()
+    {
+	if (dev->getsavefilename() != "")
+	{
+	    return dev->loadfile(front->loadfile(dev->getsavefilename()));
+	}
+	
+	return true;
+    }
+
+    bool GBCore::saveconfigaddon()
+    {
+	if (dev->getsavefilename() != "")
+	{
+	    return front->savefile(dev->getsavefilename(), dev->getsavefiledata());
+	}
+	
+	return true;
     }
 
     bool GBCore::loadbackup()
@@ -404,19 +515,81 @@ namespace gb
 	return coregpu->framebuffer[x + (y * 160)];
     }
 
+    // Fetch pixel from framebuffer (formatted as an ARGB32 pixel)
+    uint32_t GBCore::getpixel_u32(int x, int y)
+    {
+	// Fetch pixel from framebuffer (as internal RGB type)
+	gbRGB pixel = getpixel(x, y);
+
+	// Alpha component (set to 255)
+	uint32_t pixel_u32 = (0xFF << 24);
+	
+	// Red component
+	pixel_u32 |= (pixel.red << 16);
+
+	// Green component
+	pixel_u32 |= (pixel.green << 8);
+
+	// Blue component
+	pixel_u32 |= pixel.blue;
+
+	// Return final pixel value
+	return pixel_u32;
+    }
+
     array<gbRGB, (160 * 144)> GBCore::getframebuffer()
     {
 	return coregpu->framebuffer;
     }
 
-    void GBCore::keypressed(Button button)
+    // Fetch framebuffer (formatted as an array of ARGB32 pixels)
+    array<uint32_t, (160 * 144)> GBCore::getframebuffer_u32()
+    {
+	// Initialize final array
+	array<uint32_t, (160 * 144)> temp;
+	temp.fill(0);
+
+	// Populate array with ARGB-32 formatted pixels from framebuffer
+	for (int x = 0; x < 160; x++)
+	{
+	    for (int y = 0; y < 144; y++)
+	    {
+		temp[(x + (y * 160))] = getpixel_u32(x, y);
+	    }
+	}
+
+	// Return populated array here
+	return temp;
+    }
+
+    void GBCore::keypressed(gbButton button)
     {
 	coreinput->keypressed(button);
     }
 
-    void GBCore::keyreleased(Button button)
+    void GBCore::keyreleased(gbButton button)
     {
 	coreinput->keyreleased(button);
+    }
+
+    void GBCore::sensorpressed(gbGyro pos)
+    {
+	if (!coremmu->istiltsensor())
+	{
+	    return;
+	}
+
+	coremmu->sensorpressed(pos);
+    }
+
+    void GBCore::sensorreleased(gbGyro pos)
+    {
+	if (!coremmu->istiltsensor())
+	{
+	    return;
+	}
+
+	coremmu->sensorreleased(pos);
     }
 
     bool GBCore::dumpvram(string filename)
@@ -546,11 +719,6 @@ namespace gb
     void GBCore::setrumblecallback(rumblefunc cb)
     {
 	coremmu->setrumblecallback(cb);
-    }
-
-    void GBCore::setsensorcallback(sensorfunc cb)
-    {
-	coremmu->setsensorcallback(cb);
     }
 
     void GBCore::setaudiocallback(apuoutputfunc cb)

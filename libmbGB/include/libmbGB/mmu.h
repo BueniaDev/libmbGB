@@ -44,7 +44,6 @@ namespace gb
     using screenfunc = voidfunc;
     using apulengthfunc = boolfunc;
     using rumblefunc = function<void(bool)>;
-    using sensorfunc = function<void(uint16_t &, uint16_t &)>;
     using caminitfunc = boolfunc;
     using camstopfunc = voidfunc;
     using camframefunc = function<bool(array<int, (128 * 120)>&)>;
@@ -52,6 +51,14 @@ namespace gb
 	
     using memoryreadfunc = function<uint8_t(uint16_t)>;
     using memorywritefunc = function<void(uint16_t, uint8_t)>;
+
+    enum gbGyro : int
+    {
+	gyLeft = 0,
+	gyRight = 1,
+	gyUp = 2,
+	gyDown = 3,
+    };
 
     class LIBMBGB_API MMU
     {
@@ -159,9 +166,9 @@ namespace gb
 	    bool isrumblepres = false;
 	    bool isrtcpres = false;
 	    bool biosload = false;
-	    uint8_t currentrombank = 1;
-	    uint8_t currentrambank = 0;
-	    uint8_t wisdomrombank = 0;
+	    int currentrombank = 1;
+	    int currentrambank = 0;
+	    int wisdomrombank = 0;
 	    int higherrombankbits = 0;
 	    bool ramenabled = false;
 	    bool batteryenabled = false;
@@ -177,22 +184,27 @@ namespace gb
 	    bool doublespeed = false;
 
 	    bool rtclatch = false;
-	    time_t currenttime = 0;
+	    time_t current_time = 0;
+
+	    int timercounter = 0;
 
 	    uint8_t realsecs = 0;
 	    uint8_t realmins = 0;
 	    uint8_t realhours = 0;
-	    uint8_t realdays = 0;
-	    uint8_t realdayshi = 0;
+	    uint16_t realdays = 0;
+	    bool rtchalt = false;
+	    bool realdayscarry = false;
 
+	    void inittimer();
 	    void updatetimer();
 	    void latchtimer();
 
 	    uint8_t latchsecs = 0;
 	    uint8_t latchmins = 0;
 	    uint8_t latchhours = 0;
-	    uint8_t latchdays = 0;
-	    uint8_t latchdayshi = 0;
+	    uint16_t latchdays = 0;
+	    bool latchhalt = false;
+	    bool latchdayscarry = false;
 
 	    void loadbackuprtc(vector<uint8_t> saveram, int ramsize)
 	    {
@@ -203,25 +215,33 @@ namespace gb
 		    realsecs = saveram[ramsize];
 		    realmins = saveram[(ramsize + 4)];
 		    realhours = saveram[(ramsize + 8)];
-		    realdays = saveram[(ramsize + 12)];
-		    realdayshi = saveram[(ramsize + 16)];
+		    uint8_t realdayslo = saveram[(ramsize + 12)];
+		    uint8_t realdayshi = saveram[(ramsize + 16)];
 		    latchsecs = saveram[(ramsize + 20)];
 		    latchmins = saveram[(ramsize + 24)];
 		    latchhours = saveram[(ramsize + 28)];
-		    latchdays = saveram[(ramsize + 32)];
-		    latchdayshi = saveram[(ramsize + 36)];
+		    uint8_t latchdayslo = saveram[(ramsize + 32)];
+		    uint8_t latchdayshi = saveram[(ramsize + 36)];
+
+		    realdays = ((BitGetVal(realdayshi, 0) << 8) | realdayslo);
+		    rtchalt = TestBit(realdayshi, 6);
+		    realdayscarry = TestBit(realdayshi, 7);
+
+		    latchdays = ((BitGetVal(latchdayshi, 0) << 8) | latchdayslo);
+		    latchhalt = TestBit(latchdayshi, 6);
+		    latchdayscarry = TestBit(latchdayshi, 7);
 
 		    for (int i = 0; i < 8; i++)
 		    {
-			currenttime |= (saveram[(ramsize + 40 + i)] << (i << 3));
+			current_time |= (saveram[(ramsize + 40 + i)] << (i << 3));
 		    }
 
-		    if (currenttime <= 0)
+		    if (current_time <= 0)
 		    {
-			currenttime = time(NULL);
+			current_time = time(NULL);
 		    }
 
-		    updatetimer();
+		    inittimer();
 		}
 	    }
 
@@ -232,25 +252,35 @@ namespace gb
 
 		if (batteryenabled)
 		{
-		    updatetimer();
+		    inittimer();
 		    saveram.resize((size + 48), 0);
 		    saveram[size] = realsecs;
 		    saveram[(size + 4)] = realmins;
 		    saveram[(size + 8)] = realhours;
-		    saveram[(size + 12)] = realdays;
-		    saveram[(size + 16)] = realdayshi;
+		    saveram[(size + 12)] = (realdays & 0xFF);
+		    saveram[(size + 16)] = (((realdays >> 8) & 0x1) | (rtchalt << 6) | (realdayscarry << 7));
 		    saveram[(size + 20)] = latchsecs;
 		    saveram[(size + 24)] = latchmins;
 		    saveram[(size + 28)] = latchhours;
-		    saveram[(size + 32)] = latchdays;
-		    saveram[(size + 36)] = latchdayshi;
+		    saveram[(size + 32)] = (latchdays & 0xFF);
+		    saveram[(size + 36)] = (((latchdays >> 8) & 0x1) | (latchhalt << 6) | (latchdayscarry << 7));
 
 		    for (int i = 0; i < 8; i++)
 		    {
-			saveram[(size + 40 + i)] = ((uint8_t)(currenttime >> (i << 3)));
+			saveram[(size + 40 + i)] = ((uint8_t)(current_time >> (i << 3)));
 		    }
 		}
 	    }
+
+	    int mbc6rombanka = 0;
+	    int mbc6rombankb = 0;
+	    int mbc6rambanka = 0;
+	    int mbc6rambankb = 0;
+	    bool mbc6bankaflash = false;
+	    bool mbc6bankbflash = false;
+
+	    bool mbc6flashenable = false;
+	    bool mbc6flashwriteenable = false;
 
 	    uint8_t readmbc7ram(uint16_t addr);
 	    void writembc7ram(uint16_t addr, uint8_t val);
@@ -271,14 +301,20 @@ namespace gb
 	    uint16_t mbc7sensorx = 0x8000;
 	    uint16_t mbc7sensory = 0x8000;
 
-	    sensorfunc setsensor;
+	    int mbc7gyroval = 0;
+
+	    void sensorpressed(gbGyro pos);
+	    void sensorreleased(gbGyro pos);
+
+	    int xsensor = 0;
+	    int ysensor = 0;
+
+	    void updategyro();
+
+	    void updatesensor(gbGyro pos, bool ispressed);
+	    void setsensor();
 
 	    rumblefunc setrumble;
-
-	    inline void setsensorcallback(sensorfunc cb)
-	    {
-		setsensor = cb;
-	    }
 
 	    inline void setrumblecallback(rumblefunc cb)
 	    {
@@ -334,9 +370,24 @@ namespace gb
 		return (gbmbc == MBCType::Camera);
 	    }
 
+	    bool istiltsensor()
+	    {
+		return (gbmbc == MBCType::MBC7);
+	    }
+
 	    bool isdmgconsole()
 	    {
 		return (gameboy == Console::DMG);
+	    }
+
+	    bool iscgbconsole()
+	    {
+		return (gameboy == Console::CGB);
+	    }
+
+	    bool isagbconsole()
+	    {
+		return (gameboy == Console::AGB);
 	    }
 
 	    bool isdmgmode()
@@ -351,7 +402,7 @@ namespace gb
 
 	    bool isgbcconsole()
 	    {
-		return (gameboy == Console::CGB || gameboy == Console::AGB);
+		return (iscgbconsole() || isagbconsole());
 	    }
 
 	    bool isgbcdmgmode()
@@ -411,7 +462,7 @@ namespace gb
 		return false;
 	    }
 
-	    inline void wisdomtreeorrom(vector<uint8_t>& rom)
+	    inline void isromonly(vector<uint8_t>& rom)
 	    {
 		externalrampres = false;
 		batteryenabled = false;
@@ -422,6 +473,14 @@ namespace gb
 		    numrombanks = 64;
 		    romsize = "1 MB";
 		    mbctype = "WISDOM TREE";
+		}
+		else if (rom.size() > 0x8000)
+		{
+		    cout << "ROM header reports no MBC, but file size is over 32 KB. Assuming cartridge uses MBC3..." << endl;
+		    gbmbc = MBCType::MBC3;
+		    externalrampres = false;
+		    mbctype = "MBC3";
+		    batteryenabled = false;
 		}
 		else
 		{
@@ -434,7 +493,7 @@ namespace gb
 	    {
 		switch (rom[0x0147])
 		{
-		    case 0x00: wisdomtreeorrom(rom); break;
+		    case 0x00: isromonly(rom); break;
 		    case 0x01: gbmbc = MBCType::MBC1; externalrampres = false; mbctype = "MBC1"; batteryenabled = false; break;
 		    case 0x02: gbmbc = MBCType::MBC1; externalrampres = true; mbctype = "MBC1 + RAM"; batteryenabled = false; break;
 		    case 0x03: gbmbc = MBCType::MBC1; externalrampres = true; mbctype = "MBC1 + RAM + BATTERY"; batteryenabled = true; break;
@@ -453,6 +512,7 @@ namespace gb
 		    case 0x1C: gbmbc = MBCType::MBC5; externalrampres = false; isrumblepres = true; mbctype = "MBC5 + RUMBLE"; batteryenabled = false; break;
 		    case 0x1D: gbmbc = MBCType::MBC5; externalrampres = true; isrumblepres = true; mbctype = "MBC5 + RUMBLE + RAM"; batteryenabled = false; break;
 		    case 0x1E: gbmbc = MBCType::MBC5; externalrampres = true; isrumblepres = true; mbctype = "MBC5 + RUMBLE + RAM + BATTERY"; batteryenabled = true; break;
+		    case 0x20: gbmbc = MBCType::MBC6; externalrampres = true; isrumblepres = false; mbctype = "MBC6"; batteryenabled = true; break;
 		    case 0x22: gbmbc = MBCType::MBC7; externalrampres = true; isrumblepres = true; mbctype = "MBC7 + SENSOR + RUMBLE + RAM + BATTERY"; batteryenabled = true; break;
 		    case 0xFC: gbmbc = MBCType::Camera; externalrampres = true; mbctype = "POCKET CAMERA"; batteryenabled = true; break;
 		    default: cout << "MMU::Error - Unrecognized MBC type of " << hex << (int)(rom[0x0147]) << endl; exit(1); break;
@@ -542,6 +602,8 @@ namespace gb
 	    void mbc3write(uint16_t addr, uint8_t value);
 	    uint8_t mbc5read(uint16_t addr);
 	    void mbc5write(uint16_t addr, uint8_t value);
+	    uint8_t mbc6read(uint16_t addr);
+	    void mbc6write(uint16_t addr, uint8_t value);
 	    uint8_t mbc7read(uint16_t addr);
 	    void mbc7write(uint16_t addr, uint8_t value);
 	    uint8_t gbcameraread(uint16_t addr);

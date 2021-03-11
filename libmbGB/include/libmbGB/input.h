@@ -25,7 +25,7 @@ using namespace std;
 
 namespace gb
 {
-    enum Button : int
+    enum gbButton : int
     {
 	Right = 0,
 	Left = 1,
@@ -63,12 +63,12 @@ namespace gb
 		updatejoypad();
 	    }
 
-	    inline void keypressed(Button button)
+	    inline void keypressed(gbButton button)
 	    {
 		buttonstates = BitReset(buttonstates, button);
 	    }
 
-	    inline void keyreleased(Button button)
+	    inline void keyreleased(gbButton button)
 	    {
 		buttonstates = BitSet(buttonstates, button);
 	    }

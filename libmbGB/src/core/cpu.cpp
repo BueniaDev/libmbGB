@@ -19,7 +19,7 @@ using namespace gb;
 
 namespace gb
 {
-    CPU::CPU(MMU& memory, GPU& graphics, Timers& timers, Serial& serial, APU& audio) : mem(memory), gpu(graphics), timer(timers), link(serial), apu(audio)
+    CPU::CPU(MMU& memory, GPU& graphics, Timers& timers, Serial& serial, APU& audio, Infrared& infrared) : mem(memory), gpu(graphics), timer(timers), link(serial), apu(audio), ir(infrared)
     {
 
     }
@@ -135,65 +135,6 @@ namespace gb
 	file.var8(reinterpret_cast<uint8_t*>(&state));
 	file.bool32(&interruptmasterenable);
 	file.bool32(&enableinterruptsdelayed);
-    }
-
-    bool CPU::loadcpu(string filename)
-    {
-	printregs();
-	ifstream file(filename.c_str(), ios::binary);
-
-	if (!file.is_open())
-	{
-	    cout << "CPU::Error opening CPU state" << endl;
-	    return false;
-	}
-
-	file.seekg(0);
-
-	file.read((char*)&af.hi, sizeof(af.hi));
-	file.read((char*)&af.lo, sizeof(af.lo));
-	file.read((char*)&bc.hi, sizeof(bc.hi));
-	file.read((char*)&bc.lo, sizeof(bc.lo));
-	file.read((char*)&de.hi, sizeof(de.hi));
-	file.read((char*)&de.lo, sizeof(de.lo));
-	file.read((char*)&hl.hi, sizeof(hl.hi));
-	file.read((char*)&hl.lo, sizeof(hl.lo));
-	file.read((char*)&pc, sizeof(pc));
-	file.read((char*)&sp, sizeof(sp));
-	file.read((char*)&state, sizeof(uint8_t));
-	file.read((char*)&interruptmasterenable, sizeof(interruptmasterenable));
-	file.read((char*)&enableinterruptsdelayed, sizeof(enableinterruptsdelayed));
-	gpu.loadgpu(file);
-	file.close();
-	return true;
-    }
-
-    bool CPU::savecpu(string filename)
-    {
-	ofstream file(filename.c_str(), ios::binary | ios::trunc);
-
-	if (!file.is_open())
-	{
-	    cout << "CPU::Error opening CPU state" << endl;
-	    return false;
-	}
-
-	file.write((char*)&af.hi, sizeof(af.hi));
-	file.write((char*)&af.lo, sizeof(af.lo));
-	file.write((char*)&bc.hi, sizeof(bc.hi));
-	file.write((char*)&bc.lo, sizeof(bc.lo));
-	file.write((char*)&de.hi, sizeof(de.hi));
-	file.write((char*)&de.lo, sizeof(de.lo));
-	file.write((char*)&hl.hi, sizeof(hl.hi));
-	file.write((char*)&hl.lo, sizeof(hl.lo));
-	file.write((char*)&pc, sizeof(pc));
-	file.write((char*)&sp, sizeof(sp));
-	file.write((char*)&state, sizeof(uint8_t));
-	file.write((char*)&interruptmasterenable, sizeof(interruptmasterenable));
-	file.write((char*)&enableinterruptsdelayed, sizeof(enableinterruptsdelayed));
-	gpu.savegpu(file);
-	file.close();
-	return true;
     }
 
     void CPU::printregs()
@@ -361,7 +302,9 @@ namespace gb
 	    mem.updateoamdma();
 	    mem.updategbcdma();
 	    mem.updatecamera();
+	    mem.updatetimer();
 	    gpu.updatelcd();
+	    ir.updateinfrared();
 
 	    for (int i = 0; i < (2 >> mem.doublespeed); i++)
 	    {
@@ -379,7 +322,9 @@ namespace gb
 	    timer.updatetimer();
 	    link.updateserial();
 	    mem.updatecamera();
+	    mem.updatetimer();
 	    gpu.updatelcd();
+	    ir.updateinfrared();
 
 	    for (int i = 0; i < (2 >> mem.doublespeed); i++)
 	    {

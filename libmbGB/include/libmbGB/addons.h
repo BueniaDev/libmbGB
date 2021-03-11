@@ -50,6 +50,9 @@ namespace gb
             virtual void swipebarcode() = 0; // This function is hooked up to a hotkey in the frontend
             virtual bool swipedcard() = 0; // This is required for proper emulation of the BTB and the Barcode Boy
             virtual int serialcycles() = 0; // Possible returned values: 0=Use normal link cable timings, all other values=use returned value for custom link cable timings (i.e. for DMG-07)
+	    virtual bool loadfile(vector<uint8_t> data) = 0; // Used for loading config files (for example, the config memory of the Mobile Adapter GB)
+	    virtual string getsavefilename() = 0; // Used for fetching the name of the config file to save
+	    virtual vector<uint8_t> getsavefiledata() = 0; // Used for fetching the data to save to the config file
     };
     
     // Emulates a disconnected Link Cable
@@ -112,9 +115,109 @@ namespace gb
             {
                 return 0;
             }
+
+	    bool loadfile(vector<uint8_t> data)
+	    {
+		return true;
+	    }
+
+	    string getsavefilename()
+	    {
+		return "";
+	    }
+
+	    vector<uint8_t> getsavefiledata()
+	    {
+		vector<uint8_t> empty;
+		return empty;
+	    }
     };
 
-    // (WIP) netplay protocol client (tabled for future versions)
+    // Emulates a disconnected Link Cable, but also prints debug logs (for debugging purposes)
+    class LIBMBGB_API SerialDebug : public SerialDevice
+    {
+        public:
+            SerialDebug();
+            ~SerialDebug();
+            
+            linkfunc debuglink;
+
+	    string getaddonname()
+	    {
+		return "SerialDebug";
+	    }
+            
+            void setlinkcallback(linkfunc cb)
+            {
+                debuglink = cb;
+            }
+
+	    void setprintcallback(printfunc cb)
+	    {
+		return;
+	    }
+            
+            void deviceready(uint8_t byte, bool ismode)
+            {
+		// Print debugging info before updating link cable status
+		cout << "[SerialDebug] Byte: " << hex << (int)(byte) << endl;
+		string mode_text = (ismode) ? "Internal" : "External";
+		cout << "[SerialDebug] Clock mode: " << mode_text << " clock" << endl;
+		cout << endl;
+            	if (ismode)
+            	{
+            	    update();
+            	}
+            }
+            
+            void update()
+            {
+            	transfer();
+            }
+            
+            void transfer()
+            {
+            	if (debuglink)
+            	{
+		    // Return 0xFF to emulate a disconnected link cable
+            	    debuglink(0xFF);
+            	}
+            }
+            
+            void swipebarcode()
+            {
+            	return;
+            }
+            
+            bool swipedcard()
+            {
+                return false;
+            }
+            
+            int serialcycles()
+            {
+                return 0;
+            }
+
+	    bool loadfile(vector<uint8_t> data)
+	    {
+		return true;
+	    }
+
+	    string getsavefilename()
+	    {
+		return "";
+	    }
+
+	    vector<uint8_t> getsavefiledata()
+	    {
+		vector<uint8_t> empty;
+		return empty;
+	    }
+    };
+
+    // (Deprecated) netplay protocol client
+    // TODO: Get rid of this, because a better implementation's coming soon...
     class LIBMBGB_API KujoGBClient : public SerialDevice
     {
         public:
@@ -182,6 +285,22 @@ namespace gb
             {
                 return 0;
             }
+
+	    bool loadfile(vector<uint8_t> data)
+	    {
+		return true;
+	    }
+
+	    string getsavefilename()
+	    {
+		return "";
+	    }
+
+	    vector<uint8_t> getsavefiledata()
+	    {
+		vector<uint8_t> empty;
+		return empty;
+	    }
     };
 
     // Emulates the Game Boy Printer (may add seperate addon and/or code for the unreleased GB Printer Color)
@@ -211,6 +330,9 @@ namespace gb
 
 	    // Current command sent to the Game Boy Printer
 	    uint8_t print_cmd = 0x00;
+
+	    // Previous command sent to the Game Boy Printer
+	    uint8_t prev_cmd = 0x00;
 
 	    // Compression flag for Game Boy Printer
 	    bool compress_flag = false;
@@ -251,6 +373,10 @@ namespace gb
 
 	    // Printer exposure
 	    uint8_t printerexposure = 0;
+
+	    // Variables for decoding compressed data
+	    bool is_compressed_run = false;
+	    int run_length = 0;
 
 	    // Possible values for the current printer state
 	    enum PrinterState : int
@@ -333,95 +459,428 @@ namespace gb
             {
                 return 0;
             }
+
+	    bool loadfile(vector<uint8_t> data)
+	    {
+		return true;
+	    }
+
+	    string getsavefilename()
+	    {
+		return "";
+	    }
+
+	    vector<uint8_t> getsavefiledata()
+	    {
+		vector<uint8_t> empty;
+		return empty;
+	    }
     };
     
     // Emulates the Barcode Boy (manufactured by Namco, used by Battle Space and several other Japan-exclusive titles)
-    // TODO: refactor this to get rid of compiler warnings (should be accomplished in Phase 2 of Project Genie)
     class LIBMBGB_API BarcodeBoy : public SerialDevice
     {
-    	public:
-    	    BarcodeBoy();
-    	    ~BarcodeBoy();
-    	    
-    	    uint8_t recbyte = 0;
-    	    uint8_t linkbyte = 0;
-    	    
-    	    linkfunc powerlink;
-    	    
-    	    bool barcodeswiped = false;
+        public:
+            BarcodeBoy();
+            ~BarcodeBoy();
+            
+            linkfunc bcblink;
+
+	    // Byte sent from link cable
+	    uint8_t sentbyte = 0x00;
+
+	    // Byte sent to link cable
+	    uint8_t linkbyte = 0x00;
+
+	    bool barcode_swiped = false;
+
+	    // Possible values for the current add-on state
+	    enum BCBState : int
+	    {
+		Init = 0,
+		Active = 1,
+		SendBarcode = 2,
+		Finished = 3
+	    };
+
+	    BCBState bcbstate = BCBState::Init;
 
 	    string getaddonname()
 	    {
-		return "BarcodeBoy";
+		return "Barcode Boy";
 	    }
-    	    
-    	    void setlinkcallback(linkfunc cb)
-    	    {
-    	    	powerlink = cb;
-    	    }
+            
+            void setlinkcallback(linkfunc cb)
+            {
+                bcblink = cb;
+            }
 
 	    void setprintcallback(printfunc cb)
 	    {
 		return;
 	    }
-    	    
-    	    void swipebarcode()
-    	    {
-    	    	if (state == BCBState::Active)
-    	    	{
-    	    	    state = BCBState::SendBarcode;
-    	    	    barcodeswiped = true;
-    	    	}
-    	    }
-    	    
-    	    void update();
-    	    void processbyte();
-    	    
-    	    enum BCBState : int
-    	    {
-    	        Inactive = 0,
-    	        Active = 1,
-    	        SendBarcode = 2,
-    	        Finished = 3,
-    	    };
-    	    
-    	    BCBState state = BCBState::Inactive;
-    	    
-    	    array<uint8_t, 13> testcode = {0x34, 0x39, 0x30, 0x32, 0x37, 0x37, 0x36, 0x38, 0x30, 0x39, 0x33, 0x36, 0x37};
-    	    
-    	    int bcbcounter = 0;
-    	    
-    	    void transfer()
-    	    {
-    	        if (powerlink)
-    	        {
-    	            powerlink(linkbyte);
-    	        }
-    	    }
-    	    
-    	    void deviceready(uint8_t byte, bool ismode)
-    	    {
-    	        if (ismode)
-    	        {
-    	            recbyte = byte;
-    	            update();
-    	        }
-    	        else if (barcodeswiped)
-    	        {
-    	            update();
-    	        }
-    	    }
-    	    
-    	    bool swipedcard()
-    	    {
-    	    	return barcodeswiped;
-    	    }
-    	    
-    	    int serialcycles()
-    	    {
-    	        return 0;
-    	    }
+            
+	    // This add-on utilizes both internal and external clock transfers,
+	    // so we need to get creative here
+            void deviceready(uint8_t byte, bool ismode)
+            {
+		// Set current byte and current clock mode
+		sentbyte = byte;
+		isintclk = ismode;
+
+		// Process current byte and update transfer accordingly
+            	update();
+            }
+            
+            void update();
+	    void processbyte();
+
+	    bool isintclk = false;
+	    bool istransfer = false;
+
+	    int bcb_counter = 0;
+
+	    array<uint8_t, 13> testcode = {0x34, 0x39, 0x30, 0x32, 0x37, 0x37, 0x36, 0x38, 0x30, 0x39, 0x33, 0x36, 0x37};
+            
+            void transfer();
+            
+            void swipebarcode()
+            {
+		if (bcbstate == BCBState::Active)
+		{
+		    barcode_swiped = true;
+		    bcbstate = BCBState::SendBarcode;   
+		}
+            }
+            
+            bool swipedcard()
+            {
+                return barcode_swiped;
+            }
+            
+            int serialcycles()
+            {
+                return 0;
+            }
+
+	    bool loadfile(vector<uint8_t> data)
+	    {
+		return true;
+	    }
+
+	    string getsavefilename()
+	    {
+		return "";
+	    }
+
+	    vector<uint8_t> getsavefiledata()
+	    {
+		vector<uint8_t> empty;
+		return empty;
+	    }
     };
+
+    // Emulates the Mobile Adapter GB (Nintendo's first serious attempt at online connectivity for the Game Boy Color and Game Boy Advance)
+    // Note: Since this is a Game Boy / Game Boy Color emulator, and not a Game Boy Advance emulator,
+    // only compatible Game Boy Color titles will be supported
+
+    // Types of Japanese cell phones that were supported (or planned to be supported)
+    // by the Mobile Adapter GB (formatted in an enum for simplicity)
+    enum MobilePhoneType : int
+    {
+	PDC = 0, // PDC phones
+	cdmaOne = 1, // cdmaOne phones
+	PHS = 2, // PHS phones (unreleased)
+	DDI = 3, // DDI phones
+    };
+
+    // Actual class definition starts here
+    class LIBMBGB_API MobileAdapterGB : public SerialDevice
+    {
+	using htmlarr = array<string, 1>;
+
+        public:
+            MobileAdapterGB();
+            ~MobileAdapterGB();
+            
+            linkfunc madaptlink;
+
+	    uint8_t sent_byte = 0x00;
+	    uint8_t link_byte = 0x00;
+
+	    uint8_t adapter_cmd = 0x00;
+	    uint8_t packet_length = 0x00;
+
+	    vector<uint8_t> packet_data;
+	    vector<uint8_t> response_data;
+
+	    bool begun_session = false;
+
+	    bool begun_pop_session = false;
+	    bool begun_smtp_session = false;
+
+	    bool line_busy = false;
+
+	    uint16_t calc_checksum = 0;
+	    uint16_t compare_checksum = 0;
+
+	    uint8_t adapter_id = 0x88;
+
+	    uint16_t port_num = 0;
+
+	    array<uint8_t, 192> config_memory;
+
+	    enum MobileAdapterState : int
+	    {
+		MagicBytes = 0,
+		PacketHeader = 1,
+		PacketData = 2,
+		PacketChecksum = 3,
+		PacketAcknowledge = 4,
+		PacketReceive = 5,
+	    };
+
+	    MobileAdapterState madaptstate = MobileAdapterState::MagicBytes;
+
+	    int madapt_counter = 0;
+
+	    int transfer_state = 0;
+
+	    void set_phone_type(MobilePhoneType type)
+	    {
+		adapter_id = (0x88 | type);
+	    }
+
+	    string getaddonname()
+	    {
+		return "Mobile Adapter GB";
+	    }
+            
+            void setlinkcallback(linkfunc cb)
+            {
+                madaptlink = cb;
+            }
+
+	    void setprintcallback(printfunc cb)
+	    {
+		return;
+	    }
+            
+            void deviceready(uint8_t byte, bool ismode)
+            {
+            	if (ismode)
+            	{
+		    sent_byte = byte;
+            	    update();
+            	}
+            }
+
+	    string http_data = "";
+	    int http_data_index = 0;
+
+	    htmlarr serverin = 
+	    {
+		"/01/CGB-B9AJ/index.html",
+	    };
+
+	    htmlarr html_text = 
+	    {
+		"<title>Hello from Karen Kujo, your FAVORITE waifu!</title>",
+	    };
+            
+            void update();
+	    void processbyte();
+	    void processcmd();
+	    void processhttp();
+	    void processpop();
+	    void processsmtp();
+	    void prepareresponse(uint8_t cmd, vector<uint8_t> data);
+
+	    template<size_t size>
+	    void prepareresponse(uint8_t cmd, array<uint8_t, size> data)
+	    {
+		vector<uint8_t> arr_data;
+
+		for (int i = 0; i < static_cast<int>(size); i++)
+		{
+		    arr_data.push_back(data[i]);
+		}
+
+		prepareresponse(cmd, arr_data);
+	    }
+
+	    void prepareresponse(uint8_t failed_cmd, uint8_t error_status)
+	    {
+		vector<uint8_t> error_data;
+		error_data.push_back(failed_cmd);
+		error_data.push_back(error_status);
+
+		prepareresponse(0x6E, error_data);
+	    }
+
+	    void prepareresponse(uint8_t cmd)
+	    {
+		vector<uint8_t> empty;
+		prepareresponse(cmd, empty);
+	    }
+            
+            void transfer()
+            {
+            	if (madaptlink)
+            	{
+		    // Transfer response byte to Game Boy
+            	    madaptlink(link_byte);
+            	}
+            }
+            
+            void swipebarcode()
+            {
+            	return;
+            }
+            
+            bool swipedcard()
+            {
+                return false;
+            }
+            
+            int serialcycles()
+            {
+                return 0;
+            }
+
+	    bool loadfile(vector<uint8_t> data)
+	    {
+		if (data.empty())
+		{
+		    cout << "Unable to load config memory file." << endl;
+		    return false;
+		}
+
+		if (data.size() != 192)
+		{
+		    cout << "Invalid size of config memory file, should be 192 bytes" << endl;
+		    return false;
+		}
+
+		for (int i = 0; i < static_cast<int>(data.size()); i++)
+		{
+		    config_memory[i] = data[i];
+		}
+
+		cout << "Config memory file successfully loaded." << endl;
+		return true;
+	    }
+
+	    string getsavefilename()
+	    {
+		return "madapter.mbconf";
+	    }
+
+	    vector<uint8_t> getsavefiledata()
+	    {
+		vector<uint8_t> temp_data;
+		
+		for (int i = 0; i < 192; i++)
+		{
+		    temp_data.push_back(config_memory[i]);
+		}
+
+		return temp_data;
+	    }
+    };
+
+    // Emulates the Turbo File GB (developed by ASCII Corporation, first used in RPG Tsukuru GB)
+    class LIBMBGB_API TurboFileGB: public SerialDevice
+    {
+        public:
+            TurboFileGB();
+            ~TurboFileGB();
+            
+            linkfunc turbolink;
+
+	    uint8_t sentbyte = 0;
+	    uint8_t linkbyte = 0;
+
+	    uint8_t packet_cmd = 0;
+
+	    int turbo_file_counter = 0;
+
+	    enum TurboFileGBState : int
+	    {
+		SyncSignal1 = 0,
+		MagicByte = 1,
+		Command = 2,
+	    };
+
+	    TurboFileGBState turbfstate = TurboFileGBState::SyncSignal1;
+
+	    string getaddonname()
+	    {
+		return "TurboFileGB";
+	    }
+            
+            void setlinkcallback(linkfunc cb)
+            {
+                turbolink = cb;
+            }
+
+	    void setprintcallback(printfunc cb)
+	    {
+		return;
+	    }
+            
+            void deviceready(uint8_t byte, bool ismode)
+            {
+            	if (!ismode)
+            	{
+		    sentbyte = byte;
+            	    update();
+            	}
+            }
+            
+            void update();
+	    void processbyte();
+            
+            void transfer()
+            {
+            	if (turbolink)
+            	{
+            	    turbolink(linkbyte);
+            	}
+            }
+            
+            void swipebarcode()
+            {
+            	return;
+            }
+            
+            bool swipedcard()
+            {
+                return false;
+            }
+            
+            int serialcycles()
+            {
+                return 0;
+            }
+
+	    bool loadfile(vector<uint8_t> data)
+	    {
+		return true;
+	    }
+
+	    string getsavefilename()
+	    {
+		return "";
+	    }
+
+	    vector<uint8_t> getsavefiledata()
+	    {
+		vector<uint8_t> empty;
+		return empty;
+	    }
+    };
+    
 };
 
 #endif // LIBMBGB_ADDONS

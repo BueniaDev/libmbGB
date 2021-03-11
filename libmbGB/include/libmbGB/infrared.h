@@ -14,20 +14,49 @@
 // You should have received a copy of the GNU General Public License
 // along with libmbGB.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef LIBMBGB_ENUMS
-#define LIBMBGB_ENUMS
+#ifndef LIBMBGB_INFRARED
+#define LIBMBGB_INFRARED
 
+#include "mmu.h"
 #include "libmbgb_api.h"
+#include "irdevices.h"
+#include <iostream>
+#include <functional>
+#include <bitset>
+using namespace gb;
+using namespace std;
 
-enum class Console {Default, DMG, CGB, AGB};
-enum class Mode {Default, DMG, CGB};
-enum class MBCType {None, MBC1, MBC2, MBC3, MBC5, MBC6, MBC7, Camera, WisdomTree};
-enum CPUState : uint8_t
+namespace gb
 {
-    Running = 0, 
-    Stopped = 1, 
-    Halted = 2, 
-    HaltBug = 3,
+    class LIBMBGB_API Infrared
+    {
+	public:
+	    Infrared(MMU& memory);
+	    ~Infrared();
+
+	    InfraredDevice *dev;
+
+	    void setirdevice(InfraredDevice *cb)
+	    {
+		dev = cb;
+	    }
+	    
+
+	    MMU& mem;
+
+	    void init();
+	    void shutdown();
+
+	    uint8_t readinfrared(uint16_t addr);
+	    void writeinfrared(uint16_t addr, uint8_t val);
+
+	    void updateinfrared();
+
+	    uint8_t infrared_reg = 0xFF;
+	    bool ir_signal = false;
+	    bool ir_send = false;
+    };
 };
 
-#endif // LIBMBGB_ENUMS
+
+#endif // LIBMBGB_INFRARED

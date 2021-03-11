@@ -22,6 +22,7 @@
 #include "apu.h"
 #include "timers.h"
 #include "serial.h"
+#include "infrared.h"
 #include "libmbgb_api.h"
 #include <cstdint>
 #include <iostream>
@@ -77,7 +78,7 @@ namespace gb
     class LIBMBGB_API CPU
     {
 	public:
-	    CPU(MMU& memory, GPU& graphics, Timers& timers, Serial& serial, APU& audio);
+	    CPU(MMU& memory, GPU& graphics, Timers& timers, Serial& serial, APU& audio, Infrared& infrared);
 	    ~CPU();
 
 	    CPUState state = CPUState::Running;
@@ -87,40 +88,16 @@ namespace gb
 	    void initbios();
 	    void shutdown();
 
-	    bool loadcpu(string filename);
-	    bool savecpu(string filename);
-
 	    bool loaded = false;
 
 	    void dosavestate(mbGBSavestate &file);
-
-	    inline int cpusize()
-	    {
-		int size = 0;
-
-		size += sizeof(af.hi);
-		size += sizeof(af.lo);
-		size += sizeof(bc.hi);
-		size += sizeof(bc.lo);
-		size += sizeof(de.hi);
-		size += sizeof(de.lo);
-		size += sizeof(hl.hi);
-		size += sizeof(hl.lo);
-		size += sizeof(pc);
-		size += sizeof(sp);
-		size += sizeof(uint8_t);
-		size += sizeof(interruptmasterenable);
-		size += sizeof(enableinterruptsdelayed);
-		size += gpu.gpusize();
-
-		return size;
-	    }
 
 	    MMU& mem;
 	    GPU& gpu;
 	    Timers& timer;
 	    Serial& link;
 	    APU& apu;
+	    Infrared& ir;
 
 	    Register af;
 	    Register bc;

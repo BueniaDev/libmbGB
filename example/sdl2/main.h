@@ -2,9 +2,13 @@
 #define MBGB_SDL2_H
 
 #include <libmbGB/libmbgb.h>
-#include <GL/glew.h>
 #include <SDL2/SDL.h>
+#ifdef LIBMBGB_OPENGL
+#ifdef __WIN32__
+#include <GL/glew.h>
+#endif // __WIN32__
 #include <SDL2/SDL_opengl.h>
+#endif // LIBMBGB_OPENGL
 #include <iostream>
 #include <sstream>
 #include <functional>
@@ -95,6 +99,8 @@ class PixelRenderer
 	virtual void take_screenshot(string filename) = 0;
 };
 
+#ifdef LIBMBGB_OPENGL
+
 class OpenGLRenderer : public PixelRenderer
 {
     public:
@@ -116,6 +122,7 @@ class OpenGLRenderer : public PixelRenderer
 
 	    context = SDL_GL_CreateContext(window);
 
+	    #ifdef __WIN32__
 	    GLenum glew_err = glewInit();
 
 	    if (glew_err != GLEW_OK)
@@ -123,6 +130,7 @@ class OpenGLRenderer : public PixelRenderer
 		cout << "GLEW could not be initialized! glewError: " << glewGetErrorString(glew_err) << endl;
 		return false;
 	    }
+	    #endif // __WIN32__
 
 	    glDeleteVertexArrays(1, &vao);
 	    glDeleteBuffers(1, &vbo);
@@ -407,6 +415,8 @@ class OpenGLRenderer : public PixelRenderer
 	    return prog_id;
 	}
 };
+
+#endif // LIBMBGB_OPENGL
 
 class SoftwareRenderer : public PixelRenderer
 {

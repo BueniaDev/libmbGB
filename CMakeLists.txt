@@ -5,7 +5,7 @@ option(BUILD_EXAMPLE "Enables the example renderer (requires SDL2)." OFF)
 option(BUILD_HEADLESS "Enables the headless renderer." OFF)
 option(BUILD_LIBRETRO "Enables the Libretro core." OFF)
 option(BUILD_IMGUI "Enables the ImGUI renderer (requires SDL2, deprecated)." OFF)
-option(BUILD_QT5 "Enables the (WIP) Qt5 frontend (requires SDL2 and Qt5)." OFF)
+option(BUILD_QT "Enables the (WIP) Qt frontend (requires SDL2 and Qt)." OFF)
 
 if (WIN32)
 	message(STATUS "Operating system is Windows.")
@@ -35,12 +35,15 @@ set(LIBMBGB_API_HEADERS
 	libmbGB/include/libmbGB/timers.h
 	libmbGB/include/libmbGB/addons.h
 	libmbGB/include/libmbGB/serial.h
+	libmbGB/include/libmbGB/irdevices.h
+	libmbGB/include/libmbGB/infrared.h
 	libmbGB/include/libmbGB/input.h
 	libmbGB/include/libmbGB/libmbgb.h)
 
 set(LIBMBGB
 	libmbGB/src/core/utils.cpp
 	libmbGB/src/core/addons.cpp
+	libmbGB/src/core/irdevices.cpp
 	libmbGB/src/core/mmu.cpp
 	libmbGB/src/core/mbc.cpp
 	libmbGB/src/core/cpu.cpp
@@ -48,6 +51,7 @@ set(LIBMBGB
 	libmbGB/src/core/apu.cpp
 	libmbGB/src/core/timers.cpp
 	libmbGB/src/core/serial.cpp
+	libmbGB/src/core/infrared.cpp
 	libmbGB/src/core/input.cpp
 	libmbGB/src/core/ops.cpp
 	libmbGB/src/core/libmbgb.cpp)
@@ -74,10 +78,10 @@ if (BUILD_IMGUI STREQUAL "ON")
 	add_subdirectory(example/sdl2-imgui)
 endif()
 
-if (BUILD_QT5 STREQUAL "ON")
+if (BUILD_QT STREQUAL "ON")
 	message(WARNING "This frontend is still a huge WIP, so tread lightly here!")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
-	add_subdirectory(example/qt5)
+	add_subdirectory(example/qt)
 endif()
 
 if (WIN32)

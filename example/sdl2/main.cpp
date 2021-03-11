@@ -115,26 +115,19 @@ class SDL2Frontend : public mbGBFrontend
         
         bool init()
         {
+
 	    if (!init_config())
 	    {
 		cout << "Error parsing config file." << endl;
 		return false;
 	    }
 
-	    #ifdef __WIN32
-   	    putenv("SDL_AUDIODRIVER=DirectSound");
-	    #endif
-
-	    if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
-	    {
-		cout << "SDL could not be initialized! SDL_Error: " << SDL_GetError() << endl;
-		return false;
-	    }
-
+	    #ifdef LIBMBGB_OPENGL
 	    if (pixel_renderer == 1)
 	    {
 		window_flags |= SDL_WINDOW_OPENGL;
 	    }
+	    #endif // LIBMBGB_OPENGL
 
 	    window = SDL_CreateWindow("mbGB-SDL2", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, (core->screenwidth * scale), (core->screenheight * scale), window_flags);
 
@@ -147,7 +140,9 @@ class SDL2Frontend : public mbGBFrontend
 	    switch (pixel_renderer)
 	    {
 		case 0: pix_render = new SoftwareRenderer(core, window); break;
+		#ifdef LIBMBGB_OPENGL
 		case 1: pix_render = new OpenGLRenderer(core, window); break;
+		#endif // LIBMBGB_OPENGL
 		default: cout << "Unrecognized renderer option of " << dec << (int)(pixel_renderer) << endl; break;
 	    }
 
@@ -169,9 +164,13 @@ class SDL2Frontend : public mbGBFrontend
 	    audiospec.samples = 4096;
 	    audiospec.channels = 2;
 	    audiospec.callback = NULL;
-	
-	    SDL_AudioSpec obtainedspec;
-	    SDL_OpenAudio(&audiospec, &obtainedspec);
+
+	    if (SDL_OpenAudio(&audiospec, NULL) < 0)
+	    {
+		cout << "Could not open audio! SDL_Error: " << SDL_GetError() << endl;
+		return false;
+	    }
+
 	    SDL_PauseAudio(0);
 	
 	    if (SDL_NumJoysticks() > 0)
@@ -221,7 +220,6 @@ class SDL2Frontend : public mbGBFrontend
 	    pix_render->shutdown_renderer();
 	    pix_render = NULL;
 	    SDL_DestroyWindow(window);
-	    SDL_Quit();
 	}
 	
 	void runapp()
@@ -271,14 +269,14 @@ class SDL2Frontend : public mbGBFrontend
 	
 	void releaseallkeys()
 	{
-	    core->keyreleased(Button::A);
-	    core->keyreleased(Button::B);
-	    core->keyreleased(Button::Start);
-	    core->keyreleased(Button::Select);
-	    core->keyreleased(Button::Up);
-	    core->keyreleased(Button::Down);
-	    core->keyreleased(Button::Left);
-	    core->keyreleased(Button::Right);
+	    core->keyreleased(gbButton::A);
+	    core->keyreleased(gbButton::B);
+	    core->keyreleased(gbButton::Start);
+	    core->keyreleased(gbButton::Select);
+	    core->keyreleased(gbButton::Up);
+	    core->keyreleased(gbButton::Down);
+	    core->keyreleased(gbButton::Left);
+	    core->keyreleased(gbButton::Right);
 	}
 	
 	void limitframerate()
@@ -343,20 +341,20 @@ class SDL2Frontend : public mbGBFrontend
 	    {
 		switch (event.key.keysym.sym)
 		{
-		    case SDLK_UP: core->keypressed(Button::Up); break;
-		    case SDLK_DOWN: core->keypressed(Button::Down); break;
-		    case SDLK_LEFT: core->keypressed(Button::Left); break;
-		    case SDLK_RIGHT: core->keypressed(Button::Right); break;
-		    case SDLK_a: core->keypressed(Button::A); break;
-		    case SDLK_b: core->keypressed(Button::B); break;
-		    case SDLK_RETURN: core->keypressed(Button::Start); break;
-		    case SDLK_SPACE: core->keypressed(Button::Select); break;
+		    case SDLK_UP: core->keypressed(gbButton::Up); break;
+		    case SDLK_DOWN: core->keypressed(gbButton::Down); break;
+		    case SDLK_LEFT: core->keypressed(gbButton::Left); break;
+		    case SDLK_RIGHT: core->keypressed(gbButton::Right); break;
+		    case SDLK_a: core->keypressed(gbButton::A); break;
+		    case SDLK_b: core->keypressed(gbButton::B); break;
+		    case SDLK_RETURN: core->keypressed(gbButton::Start); break;
+		    case SDLK_SPACE: core->keypressed(gbButton::Select); break;
 		    case SDLK_p: core->paused = !core->paused; break;
 		    case SDLK_r: core->resetcore(); break;
 		    case SDLK_q: screenshot(); break;
-		    case SDLK_i: updatesensor(GYRO_UP, true); break;
-		    case SDLK_j: updatesensor(GYRO_LEFT, true); break;
-		    case SDLK_k: updatesensor(GYRO_DOWN, true); break;
+		    case SDLK_i: core->sensorpressed(gbGyro::gyUp); break;
+		    case SDLK_j: core->sensorpressed(gbGyro::gyLeft); break;
+		    case SDLK_k: core->sensorpressed(gbGyro::gyDown); break;
 		    case SDLK_l: 
                     {
 			if (isctrlshiftpressed(event))
@@ -365,7 +363,7 @@ class SDL2Frontend : public mbGBFrontend
                         }
                         else
                         {
-                            updatesensor(GYRO_RIGHT, true);
+                            core->sensorpressed(gbGyro::gyRight);
                         }
                     }
                     break;
@@ -387,32 +385,32 @@ class SDL2Frontend : public mbGBFrontend
 	    {
 	    	switch (event.key.keysym.sym)
 	    	{
-		    case SDLK_UP: core->keyreleased(Button::Up); break;
-		    case SDLK_DOWN: core->keyreleased(Button::Down); break;
-		    case SDLK_LEFT: core->keyreleased(Button::Left); break;
-		    case SDLK_RIGHT: core->keyreleased(Button::Right); break;
-		    case SDLK_a: core->keyreleased(Button::A); break;
-		    case SDLK_b: core->keyreleased(Button::B); break;
-		    case SDLK_RETURN: core->keyreleased(Button::Start); break;
-		    case SDLK_SPACE: core->keyreleased(Button::Select); break;
-		    case SDLK_i: updatesensor(GYRO_UP, false); break;
-		    case SDLK_j: updatesensor(GYRO_LEFT, false); break;
-		    case SDLK_k: updatesensor(GYRO_DOWN, false); break;
-		    case SDLK_l: updatesensor(GYRO_RIGHT, false); break;
+		    case SDLK_UP: core->keyreleased(gbButton::Up); break;
+		    case SDLK_DOWN: core->keyreleased(gbButton::Down); break;
+		    case SDLK_LEFT: core->keyreleased(gbButton::Left); break;
+		    case SDLK_RIGHT: core->keyreleased(gbButton::Right); break;
+		    case SDLK_a: core->keyreleased(gbButton::A); break;
+		    case SDLK_b: core->keyreleased(gbButton::B); break;
+		    case SDLK_RETURN: core->keyreleased(gbButton::Start); break;
+		    case SDLK_SPACE: core->keyreleased(gbButton::Select); break;
+		    case SDLK_i: core->sensorreleased(gbGyro::gyUp); break;
+		    case SDLK_j: core->sensorreleased(gbGyro::gyLeft); break;
+		    case SDLK_k: core->sensorreleased(gbGyro::gyDown); break;
+		    case SDLK_l: core->sensorreleased(gbGyro::gyRight); break;
 		}
     	    }	
 	    else if (event.type == SDL_CONTROLLERBUTTONDOWN)
     	    {
 		switch (event.cbutton.button)
 		{
-		    case SDL_CONTROLLER_BUTTON_START: core->keypressed(Button::Start); break;
-		    case SDL_CONTROLLER_BUTTON_BACK: core->keypressed(Button::Select); break;
-		    case SDL_CONTROLLER_BUTTON_A: core->keypressed(Button::A); break;
-		    case SDL_CONTROLLER_BUTTON_B: core->keypressed(Button::B); break;
-		    case SDL_CONTROLLER_BUTTON_DPAD_UP: core->keypressed(Button::Up); break;
-		    case SDL_CONTROLLER_BUTTON_DPAD_DOWN: core->keypressed(Button::Down); break;
-		    case SDL_CONTROLLER_BUTTON_DPAD_LEFT: core->keypressed(Button::Left); break;
-		    case SDL_CONTROLLER_BUTTON_DPAD_RIGHT: core->keypressed(Button::Right); break;
+		    case SDL_CONTROLLER_BUTTON_START: core->keypressed(gbButton::Start); break;
+		    case SDL_CONTROLLER_BUTTON_BACK: core->keypressed(gbButton::Select); break;
+		    case SDL_CONTROLLER_BUTTON_A: core->keypressed(gbButton::A); break;
+		    case SDL_CONTROLLER_BUTTON_B: core->keypressed(gbButton::B); break;
+		    case SDL_CONTROLLER_BUTTON_DPAD_UP: core->keypressed(gbButton::Up); break;
+		    case SDL_CONTROLLER_BUTTON_DPAD_DOWN: core->keypressed(gbButton::Down); break;
+		    case SDL_CONTROLLER_BUTTON_DPAD_LEFT: core->keypressed(gbButton::Left); break;
+		    case SDL_CONTROLLER_BUTTON_DPAD_RIGHT: core->keypressed(gbButton::Right); break;
 		    case SDL_CONTROLLER_BUTTON_LEFTSHOULDER: core->savestate(); break;
 		    case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER: core->loadstate(); break;
 		    case SDL_CONTROLLER_BUTTON_X: core->paused = !core->paused; break;
@@ -422,14 +420,14 @@ class SDL2Frontend : public mbGBFrontend
     	    {
 		switch (event.cbutton.button)
 		{
-		    case SDL_CONTROLLER_BUTTON_START: core->keyreleased(Button::Start); break;
-		    case SDL_CONTROLLER_BUTTON_BACK: core->keyreleased(Button::Select); break;
-		    case SDL_CONTROLLER_BUTTON_A: core->keyreleased(Button::A); break;
-		    case SDL_CONTROLLER_BUTTON_B: core->keyreleased(Button::B); break;
-		    case SDL_CONTROLLER_BUTTON_DPAD_UP: core->keyreleased(Button::Up); break;
-		    case SDL_CONTROLLER_BUTTON_DPAD_DOWN: core->keyreleased(Button::Down); break;
-		    case SDL_CONTROLLER_BUTTON_DPAD_LEFT: core->keyreleased(Button::Left); break;
-		    case SDL_CONTROLLER_BUTTON_DPAD_RIGHT: core->keyreleased(Button::Right); break;
+		    case SDL_CONTROLLER_BUTTON_START: core->keyreleased(gbButton::Start); break;
+		    case SDL_CONTROLLER_BUTTON_BACK: core->keyreleased(gbButton::Select); break;
+		    case SDL_CONTROLLER_BUTTON_A: core->keyreleased(gbButton::A); break;
+		    case SDL_CONTROLLER_BUTTON_B: core->keyreleased(gbButton::B); break;
+		    case SDL_CONTROLLER_BUTTON_DPAD_UP: core->keyreleased(gbButton::Up); break;
+		    case SDL_CONTROLLER_BUTTON_DPAD_DOWN: core->keyreleased(gbButton::Down); break;
+		    case SDL_CONTROLLER_BUTTON_DPAD_LEFT: core->keyreleased(gbButton::Left); break;
+		    case SDL_CONTROLLER_BUTTON_DPAD_RIGHT: core->keyreleased(gbButton::Right); break;
 		}
     	    }
     	    else if (event.type == SDL_CONTROLLERAXISMOTION)
@@ -455,7 +453,7 @@ class SDL2Frontend : public mbGBFrontend
 			    ydir = 0;
 			}
 	
-			handleaxis(ydir, Button::Up, Button::Down);
+			handleaxis(ydir, true);
 		    }
 		    break;
 		    case SDL_CONTROLLER_AXIS_RIGHTY:
@@ -499,7 +497,7 @@ class SDL2Frontend : public mbGBFrontend
 			    xdir = 0;
 			}
 	
-			handleaxis(xdir, Button::Left, Button::Right);
+			handleaxis(xdir, false);
 		    }
 		    break;
 		    case SDL_CONTROLLER_AXIS_RIGHTX:
@@ -535,6 +533,11 @@ class SDL2Frontend : public mbGBFrontend
 	
 	void audiocallback(audiotype left, audiotype right)
 	{
+	    if (SDL_GetQueuedAudioSize(1) > 48000)
+	    {
+		return;
+	    }
+
 	    if (!holds_alternative<int16_t>(left) || !holds_alternative<int16_t>(right))
     	    {
 	        return;
@@ -543,16 +546,8 @@ class SDL2Frontend : public mbGBFrontend
 	    buffer.push_back(get<int16_t>(left));
 	    buffer.push_back(get<int16_t>(right));
 
-	    if (buffer.size() >= 4096)
-	    {
-		buffer.clear();
-
-		while ((SDL_GetQueuedAudioSize(1)) > (4096 * sizeof(int16_t)))
-		{
-		    SDL_Delay(1);
-		}
-		SDL_QueueAudio(1, &buffer[0], (4096 * sizeof(int16_t)));
-    	    }
+	    SDL_QueueAudio(1, buffer.data(), (2 * sizeof(int16_t)));
+	    buffer.clear();
 	}
 	
 	void rumblecallback(bool isenabled)
@@ -584,15 +579,11 @@ class SDL2Frontend : public mbGBFrontend
     	    }
 	}
 	
-	void sensorcallback(uint16_t& sensorx, uint16_t& sensory)
+	void handleaxis(int direction, bool isvert)
 	{
-    	    updategyro();
-    	    sensorx = (0x81D0 + xsensor);
-    	    sensory = (0x81D0 + ysensor);
-	}
-	
-	void handleaxis(int direction, Button dir1, Button dir2)
-	{
+	    gbButton dir1 = (isvert) ? gbButton::Up : gbButton::Left;
+	    gbButton dir2 = (isvert) ? gbButton::Down : gbButton::Right;
+
 	    switch (direction)
 	    {
 		case -1: core->keypressed(dir1); core->keyreleased(dir2); break;
@@ -603,122 +594,14 @@ class SDL2Frontend : public mbGBFrontend
 
 	void handleaxisgyro(int direction, bool isvert)
 	{
-    	    uint8_t dir1 = 0;
-	    uint8_t dir2 = 0;
-
-	    if (isvert)
-	    {
-		dir1 = GYRO_UP;
-		dir2 = GYRO_DOWN;
-    	    }
-	    else
-	    {
-		dir1 = GYRO_LEFT;
-		dir2 = GYRO_RIGHT;
-    	    }
+    	    gbGyro dir1 = (isvert) ? gbGyro::gyUp : gbGyro::gyLeft;
+	    gbGyro dir2 = (isvert) ? gbGyro::gyDown : gbGyro::gyRight;
 
 	    switch (direction)
 	    {
-		case -1: updatesensor(dir1, true); updatesensor(dir2, false); break;
-		case 0: updatesensor(dir1, false); updatesensor(dir2, false); break;
-		case 1: updatesensor(dir1, false); updatesensor(dir2, true); break;
-	    }
-	}
-	
-	void updategyro()
-	{
-	    if (TestBit(gyroscopeval, 0))
-    	    {
-		xsensor += 3;
-
-		if (xsensor > 464)
-		{
-		    xsensor = 464;
-		}
-
-		if (xsensor < 0)
-		{
-		    xsensor = 10;
-		}
-	    }
-	    else if (TestBit(gyroscopeval, 1))
-	    {
-		xsensor -= 3;
-
-		if (xsensor < -464)
-		{
-		    xsensor = -464;
-		}
-
-		if (xsensor > 0)
-		{
-		    xsensor = -10;
-		}
-	    }
-	    else if (xsensor > 0)
-	    {
-		xsensor -= 2;
-
-		if (xsensor < 0)
-		{
-		    xsensor = 0;
-		}
-	    }
-	    else if (xsensor < 0)
-	    {
-		xsensor += 2;
-
-		if (xsensor > 0)
-		{
-		    xsensor = 0;
-		}
-	    }
-
-	    if (TestBit(gyroscopeval, 2))
-	    {
-		ysensor += 3;
-
-		if (ysensor > 464)
-		{
-		    ysensor = 464;
-		}
-
-		if (ysensor < 0)
-		{
-		    ysensor = 10;
-		}
-	    }
-	    else if (TestBit(gyroscopeval, 3))
-	    {
-		ysensor -= 3;
-
-		if (ysensor < -464)
-		{
-		    ysensor = -464;
-		}
-
-		if (ysensor > 0)
-		{
-		    ysensor = -10;
-		}
-	    }
-	    else if (ysensor > 0)
-	    {
-		ysensor -= 2;
-
-		if (ysensor < 0)
-		{
-		    ysensor = 0;
-		}
-    	    }
-	    else if (ysensor < 0)
-	    {
-		ysensor += 2;
-
-		if (ysensor > 0)
-		{
-		    ysensor = 0;
-		}
+		case -1: core->sensorpressed(dir1); core->sensorreleased(dir2); break;
+		case 0: core->sensorreleased(dir1); core->sensorreleased(dir2); break;
+		case 1: core->sensorreleased(dir1); core->sensorpressed(dir2); break;
 	    }
 	}
 	
@@ -930,10 +813,6 @@ class SDL2Frontend : public mbGBFrontend
 
 	void printerframe(vector<gbRGB> &temp, bool appending)
 	{
-	    cout << "Size of printer data: " << dec << (int)(temp.size()) << endl;
-	    string isappending = (appending) ? "Yes" : "No";
-	    cout << "Appending image? " << isappending << endl;
-
 	    if (appending)
 	    {
 		appendbmp(temp);
@@ -991,7 +870,7 @@ class SDL2Frontend : public mbGBFrontend
 
 		    gbRGB color = temp[(i + (j * new_width))];
 
-		    SDL_FillRect(printout, &pixel, SDL_MapRGB(printout->format, color.red, color.green, color.blue));
+		    SDL_FillRect(printout, &new_pixel, SDL_MapRGB(printout->format, color.red, color.green, color.blue));
 		}
 	    }
 

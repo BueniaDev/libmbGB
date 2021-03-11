@@ -53,53 +53,6 @@ namespace gb
 
 	    void dosavestate(mbGBSavestate &file);
 
-	    inline int gpusize()
-	    {
-		int size = 0;
-		size += sizeof(lcdc);
-		size += sizeof(stat);
-		size += sizeof(scrolly);
-		size += sizeof(scrollx);
-		size += sizeof(ly);
-		size += sizeof(lyc);
-		size += sizeof(windowy);
-		size += sizeof(windowx);
-		size += sizeof(bgpalette);
-		size += sizeof(objpalette0);
-		size += sizeof(objpalette1);
-		return size;
-	    }
-
-	    inline void loadgpu(ifstream& file)
-	    {
-		file.read((char*)&lcdc, sizeof(lcdc));
-		file.read((char*)&stat, sizeof(stat));
-		file.read((char*)&scrolly, sizeof(scrolly));
-		file.read((char*)&scrollx, sizeof(scrollx));
-		file.read((char*)&ly, sizeof(ly));
-		file.read((char*)&lyc, sizeof(lyc));
-		file.read((char*)&windowy, sizeof(windowy));
-		file.read((char*)&windowx, sizeof(windowx));
-		file.read((char*)&bgpalette, sizeof(bgpalette));
-		file.read((char*)&objpalette0, sizeof(objpalette0));
-		file.read((char*)&objpalette1, sizeof(objpalette1));
-	    }
-
-	    inline void savegpu(ofstream& file)
-	    {
-		file.write((char*)&lcdc, sizeof(lcdc));
-		file.write((char*)&stat, sizeof(stat));
-		file.write((char*)&scrolly, sizeof(scrolly));
-		file.write((char*)&scrollx, sizeof(scrollx));
-		file.write((char*)&ly, sizeof(ly));
-		file.write((char*)&lyc, sizeof(lyc));
-		file.write((char*)&windowy, sizeof(windowy));
-		file.write((char*)&windowx, sizeof(windowx));
-		file.write((char*)&bgpalette, sizeof(bgpalette));
-		file.write((char*)&objpalette0, sizeof(objpalette0));
-		file.write((char*)&objpalette1, sizeof(objpalette1));
-	    }
-
 	    inline void clearscreen()
 	    {
 		for (int i = 0; i < (160 * 144); i++)
@@ -415,6 +368,11 @@ namespace gb
 
 	    inline int line153cycles()
 	    {
+		// Note: In this implementation, the scanline counter is incremented
+		// by 2 cycles per update in double-speed mode, and 4 cycles per
+		// update in single-speed mode, so we need to convert the cycle
+		// counts into the appropriate scanline-counter ticks
+
 	        if (gpumem.isdmgconsole())
 		{
 		    return 4;
@@ -425,7 +383,8 @@ namespace gb
 		}
 		else if (gpumem.doublespeed)
 		{
-		    return 12;
+		    // 12 cycles for line 153 divided by 2 scanline counter incrementations in double-speed mode
+		    return 6;
 		}
 		else
 		{
@@ -435,7 +394,7 @@ namespace gb
 
 	    inline int mode3cycles()
 	    {
-	        int cycles = (256 << gpumem.doublespeed);
+	        int cycles = 256;
 
 	        int scxmod = (scrollx % 8);
 

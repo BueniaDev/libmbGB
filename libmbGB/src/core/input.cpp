@@ -57,17 +57,17 @@ namespace gb
 
 	if (buttonkeysselected())
 	{
-	    controlbits |= ((TestBit(buttonstates, Button::A) ? 1 : 0) << 0);
-	    controlbits |= ((TestBit(buttonstates, Button::B) ? 1 : 0) << 1);
-	    controlbits |= ((TestBit(buttonstates, Button::Select) ? 1 : 0) << 2);
-	    controlbits |= ((TestBit(buttonstates, Button::Start) ? 1 : 0) << 3);
+	    controlbits |= ((TestBit(buttonstates, gbButton::A) ? 1 : 0) << 0);
+	    controlbits |= ((TestBit(buttonstates, gbButton::B) ? 1 : 0) << 1);
+	    controlbits |= ((TestBit(buttonstates, gbButton::Select) ? 1 : 0) << 2);
+	    controlbits |= ((TestBit(buttonstates, gbButton::Start) ? 1 : 0) << 3);
 	}
 	else if (directionkeysselected())
 	{
-	    controlbits |= ((TestBit(buttonstates, Button::Right) ? 1 : 0) << 0);
-	    controlbits |= ((TestBit(buttonstates, Button::Left) ? 1 : 0) << 1);
-	    controlbits |= ((TestBit(buttonstates, Button::Up) ? 1 : 0) << 2);
-	    controlbits |= ((TestBit(buttonstates, Button::Down) ? 1 : 0) << 3);
+	    controlbits |= ((TestBit(buttonstates, gbButton::Right) ? 1 : 0) << 0);
+	    controlbits |= ((TestBit(buttonstates, gbButton::Left) ? 1 : 0) << 1);
+	    controlbits |= ((TestBit(buttonstates, gbButton::Up) ? 1 : 0) << 2);
+	    controlbits |= ((TestBit(buttonstates, gbButton::Down) ? 1 : 0) << 3);
 	}
 	else
 	{

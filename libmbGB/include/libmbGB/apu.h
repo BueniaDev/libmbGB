@@ -33,15 +33,26 @@ namespace gb
     // Bit 0 - 1=Float samples, 0=Integer samples
     // Bit 1 - 1=16-bit samples, 0=8/32-bit samples (defaults to 0 if bit 0 is set)
     // Bit 2 - 1=8-bit samples, 0=32-bit samples (defaults to 0 if bit 0 or bit 1 is set)
-    // Bit 3 - 1=Signed samples, 0=Unsigned samples
-    
-    #define MBGB_UNSIGNED32 0x0
-    #define MBGB_FLOAT32 0x1
-    #define MBGB_UNSIGNED16 0x2
-    #define MBGB_UNSIGNED8 0x4
-    #define MBGB_SIGNED32 0x8
-    #define MBGB_SIGNED16 0xA
-    #define MBGB_SIGNED8 0xC
+    // Bit 3 - 1=Signed samples, 0=Unsigned samples (defaults to 0 if bit 0 is set, or 1 if both bits 1 and 2 are clear)
+
+    #define MBGB_FLOAT (1 << 0)
+    #define MBGB_INTEGER (0 << 0)
+
+    #define MBGB_16BIT (1 << 1)
+    #define MBGB_8OR32BIT (1 << 0)
+
+    #define MBGB_8BIT (1 << 2)
+    #define MBGB_32BIT (0 << 2)
+
+    #define MBGB_SIGNED (1 << 3)
+    #define MBGB_UNSIGNED (0 << 3)
+
+    #define MBGB_FLOAT32 MBGB_FLOAT
+    #define MBGB_UNSIGNED16 MBGB_INTEGER | MBGB_16BIT | MBGB_UNSIGNED
+    #define MBGB_UNSIGNED8 MBGB_INTEGER | MBGB_8OR32BIT | MBGB_8BIT | MBGB_UNSIGNED
+    #define MBGB_SIGNED32 MBGB_INTEGER | MBGB_8OR32BIT | MBGB_32BIT | MBGB_SIGNED
+    #define MBGB_SIGNED16 MBGB_INTEGER | MBGB_16BIT | MBGB_SIGNED
+    #define MBGB_SIGNED8 MBGB_INTEGER | MBGB_8OR32BIT | MBGB_8BIT | MBGB_SIGNED
 
     class LIBMBGB_API APU
     {
@@ -58,18 +69,48 @@ namespace gb
 	    
 	    int audioflags = 0;
 	    
-	    float divisor = 0.f;
-	    bool fallback = false;
-	    
 	    void setaudioflags(int val)
 	    {
 	        audioflags = val;
 	        
 	        switch (audioflags)
 	        {
-	            case MBGB_SIGNED16: divisor = 15.f; break;
-	            case MBGB_FLOAT32: divisor = 100.f; break;
-	            default: cout << "Warning - unrecognized audio flag, falling back to signed 16-bit audio" << endl; divisor = 15.f; fallback = true; break;
+		    case MBGB_UNSIGNED8:
+		    {
+			cout << "Using unsigned 8-bit samples" << endl;
+		    }
+		    break;
+	            case MBGB_UNSIGNED16: 
+		    {
+			cout << "Using unsigned 16-bit integer samples" << endl;
+		    }
+		    break;
+		    case MBGB_SIGNED8:
+		    {
+			cout << "Using signed 8-bit samples" << endl;
+		    }
+		    break;
+	            case MBGB_SIGNED16: 
+		    {
+			cout << "Using signed 16-bit integer samples" << endl;
+		    }
+		    break;
+		    case MBGB_SIGNED32:
+		    {
+			cout << "Using signed 32-bit integer samples" << endl;
+		    }
+		    break;
+	            case MBGB_FLOAT32: 
+		    {
+			cout << "Using 32-bit float samples" << endl;
+		    }
+		    break;
+	            default:
+		    {
+			cout << "Warning - unrecognized audio flag, falling back to signed 16-bit audio" << endl; 
+			audioflags = MBGB_SIGNED16;
+		    }
+		    break;
 	        }
 	    }
 		
@@ -88,6 +129,7 @@ namespace gb
 	    uint8_t s1freqhi = 0;
 	    int s1periodtimer = 0;
 	    bool s1enabled = false;
+	    bool s1dacenabled = false;
 		
 	    int s2soundlength = 0;
 	    int s2lengthcounter = 0;
@@ -99,6 +141,7 @@ namespace gb
 	    uint8_t s2freqhi = 0;
 	    int s2periodtimer = 0;
 	    bool s2enabled = false;
+	    bool s2dacenabled = false;
 
 	    int wavesweep = 0;
 	    int wavesoundlength = 0;
@@ -127,6 +170,7 @@ namespace gb
 	    int noisevolume = 0;
 	    uint16_t noiselfsr = 1;
 	    bool noiseenabled = false;
+	    bool noisedacenabled = false;
 
 	    bool issoundon = true;
 		
@@ -157,25 +201,11 @@ namespace gb
 	    bool prevnoiselengthdec = false;
 	    bool prevnoiseenvelopeinc = false;
 
+	    bool prevs1dacenabled = false;
+
 	    void updateaudio();
 	    
-	    inline void mixaudio()
-	    {
-	    	if (fallback == true)
-	    	{
-	    	    mixs16audio();
-	    	    return;
-	    	}
-	    
-	    	switch (audioflags)
-	    	{
-	    	    case MBGB_SIGNED16: mixs16audio(); break;
-	    	    case MBGB_FLOAT32: mixf32audio(); break;
-	    	}
-	    }
-
-	    void mixs16audio();
-	    void mixf32audio();
+	    void mixaudio();
 
 	    apuoutputfunc audiocallback;
 
@@ -276,17 +306,16 @@ namespace gb
 		
 	    inline uint16_t s1sweepcalc()
 	    {
-		uint16_t freqdelta = (s1shadowfreq >> (s1sweep & 0x07));
+		int freqdelta = (s1shadowfreq >> (s1sweep & 0x07));
 
 		if (TestBit(s1sweep, 3))
 		{
 		    freqdelta *= -1;
-		    freqdelta &= 0x7FF;
 
 		    s1negative = true;
 		}
 
-		uint16_t newfreq = ((s1shadowfreq + freqdelta) & 0x7FF);
+		int newfreq = (s1shadowfreq + freqdelta);
 
 		if (newfreq > 2047)
 		{
@@ -294,7 +323,9 @@ namespace gb
 		    s1enabled = false;
 		}
 
-		return newfreq;
+		uint16_t finalfreq = (newfreq & 0x7FF);
+
+		return finalfreq;
 	    }
 
 	    inline void s1resetchannel()
@@ -305,15 +336,18 @@ namespace gb
 
 		s1shadowfreq = (s1freqlo | ((s1freqhi & 0x7) << 8));
 		s1sweepcounter = ((s1sweep & 0x70) >> 4);
-		s1sweepenabled = (s1sweepcounter != 0 && ((s1sweep & 0x07) != 0));
-		s1sweepcalc();
+		s1sweepenabled = (s1sweepcounter > 0 && ((s1sweep & 0x07) > 0));
+
+		if ((s1sweep & 0x07) > 0)
+		{
+		    s1sweepcalc();
+		}
 
 		s1negative = false;
 
 		s1volume = ((s1volumeenvelope & 0xF0) >> 4);
 		s1envelopecounter = (s1volumeenvelope & 0x07);
 		s1envelopeenabled = (s1envelopecounter != 0);
-
 
 		if ((!TestBit(s1volumeenvelope, 3) && s1volume == 0) || (TestBit(s1volumeenvelope, 3) && s1volume == 0x0F))
 		{
@@ -328,6 +362,11 @@ namespace gb
 		    {
 			s1lengthcounter -= 1;
 		    }
+		}
+
+		if (!s1dacenabled)
+		{
+		    s1enabled = false;
 		}
 	    }
 		
@@ -410,6 +449,11 @@ namespace gb
 		    {
 			s2lengthcounter -= 1;
 		    }
+		}
+
+		if (!s2dacenabled)
+		{
+		    s2enabled = false;
 		}
 	    }
 
@@ -499,16 +543,6 @@ namespace gb
 		noisesoundlength &= 0xC0;
 	    }
 
-	    inline void writenoiseenvelope(uint8_t value)
-	    {
-		noisevolumeenvelope = value;
-
-		if (((noisevolumeenvelope & 0xF0) >> 4) == 0)
-		{
-		    noiseenabled = false;
-		}
-	    }
-
 	    inline void noisewritereset(uint8_t value)
 	    {
 		bool lengthwasenable = TestBit(noisefreqhi, 6);
@@ -564,7 +598,7 @@ namespace gb
 	
 		noiselfsr = 0xFFFF;
 
-		if (noisevolume == 0)
+		if (!noisedacenabled)
 		{
 		    noiseenabled = false;
 		}

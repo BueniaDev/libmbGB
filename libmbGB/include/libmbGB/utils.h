@@ -37,7 +37,7 @@ using namespace std;
 namespace gb
 {
     // This type is used for creating the final waveform
-    using audiotype = variant<int16_t, float>;
+    using audiotype = variant<int8_t, int16_t, int32_t, uint8_t, uint16_t, uint32_t, float>;
 
     // Bit manipulation functions
 
@@ -97,7 +97,6 @@ namespace gb
     	    virtual void runapp() = 0;
     	    virtual void audiocallback(audiotype left, audiotype right) = 0;
     	    virtual void rumblecallback(bool enabled) = 0;
-    	    virtual void sensorcallback(uint16_t& sensorx, uint16_t& sensory) = 0;
     	    virtual void pixelcallback() = 0;
             virtual vector<uint8_t> loadfile(string filename) = 0;
 	    virtual bool savefile(string filename, vector<uint8_t> data) = 0;

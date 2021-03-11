@@ -63,6 +63,20 @@ Arch (not tested): `sudo pacman -S qt5`
 Fedora: `sudo dnf install qt5-qtmultimedia-devel`
 OpenSUSE (not tested): `sudo zypper in libQt5Multimedia5 libqt5-qtmultimedia-devel libQt5Concurrent-devel`
 
+For the (optional) Game Boy Camera support:
+
+Debian (not tested): `sudo apt-get install libopencv-dev`
+Arch (not tested): `sudo pacman -S opencv`
+Fedora (not tested): `sudo dnf install opencv opencv-devel`
+OpenSUSE (not tested): `sudo zypper in opencv opencv-devel`
+
+For the (also optional) OpenGL rendering backend:
+
+Debian (not tested): `sudo apt-get install libglu1-mesa-dev mesa-common-dev`
+Arch (not tested): `sudo apt-get install mesa-libgl`
+Fedora (not tested): `sudo dnf install mesa-libglapi` (if not already installed)
+OpenSUSE (not tested): `sudo zypper in mesa-libgl-devel`
+
 Step 2: Clone the repository:
 
 `git clone --recursive https://github.com/Buenia0/libmbGB.git`
@@ -131,6 +145,14 @@ For the (WIP) Qt5 frontend:
 
 `pacman -S mingw-w64-x86_64-qt5`
 
+For the (optional) Game Boy Camera support:
+
+`pacman -S mingw-w64-x86_64-opencv`
+
+For the (also optional) OpenGL rendering backend:
+
+`pacman -S mingw-w64-x86_64-glew`
+
 Step 2: Clone the repository:
 
 `git clone --recursive https://github.com/Buenia0/libmbGB.git`
@@ -141,7 +163,7 @@ Step 3: Compile:
 
 `mkdir build && cd build`
 
-`cmake .. -G "MSYS Makefiles" -DBUILD_HEADLESS="<ON/OFF>" -DBUILD_EXAMPLE="<ON/OFF>" -DBUILD_QT5="<ON/OFF>" -DCMAKE_BUILD_TYPE="<Debug/Release>""`
+`cmake .. -G "MSYS Makefiles" -DBUILD_HEADLESS="<ON/OFF>" -DBUILD_EXAMPLE="<ON/OFF>" -DBUILD_WEBCAM="<ON/OFF>" -DBUILD_QT5="<ON/OFF>" -DCMAKE_BUILD_TYPE="<Debug/Release>""`
 
 `(mingw32-)make -j$(nproc --all)`
 
