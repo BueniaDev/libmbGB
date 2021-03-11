@@ -12,8 +12,8 @@ linux-x86_64-gcc_task:
         - make -j$(nproc --all)
 
 macOS-x86_64-task:
-  osx_instance:
-    image: mojave-base
+  macos_instance:
+    image: big-sur-base
 
   setup_script:
     - brew install git cmake pkg-config sdl2
@@ -21,6 +21,6 @@ macOS-x86_64-task:
   matrix:
     - build_script:
         - mkdir build && cd build
-        - cmake .. -G "Unix Makefiles" -DBUILD_EXAMPLE="ON" -DCMAKE_BUILD_TYPE="Release"
+        - cmake .. -G "Unix Makefiles" -DCMAKE_BUILD_TYPE="Release"
         - make -j$(nproc-all)
   
