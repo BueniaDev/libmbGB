@@ -116,11 +116,13 @@ Step 2: Clone the repository:
 
 `cd libmbGB`
 
-Step 3: Tell CMake where your Qt5 is installed (add this line to ~/.profile if you want to make this permanent):
+Step 3 (optional): Tell CMake where your Qt5 is installed (add this line to ~/.profile if you want to make this permanent):
 
 `export Qt5_DIR=$(brew --prefix)/opt/qt5
 
-Step 3: Compile:
+If you choose not to build the Qt5 frontend, skip this step and proceed to step 4.
+
+Step 4: Compile:
 
 `mkdir build && cd build`
 
