@@ -8,7 +8,7 @@ linux-x86_64-gcc_task:
   matrix:
     - build_script:
         - mkdir build && cd build
-        - cmake .. -G "Unix Makefiles" -DCMAKE_BUILD_TYPE="Release"
+        - cmake .. -G "Unix Makefiles" -DBUILD_EXAMPLE="ON" -DCMAKE_BUILD_TYPE="Release"
         - make -j$(nproc --all)
 
 macOS-x86_64-task:
