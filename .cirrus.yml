@@ -13,7 +13,7 @@ linux-x86_64-gcc_task:
 
 macOS-x86_64-task:
   osx_instance:
-    image: big-sur-base
+    image: mojave-base
 
   setup_script:
     - brew install git cmake pkg-config sdl2
