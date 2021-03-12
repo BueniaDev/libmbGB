@@ -128,7 +128,7 @@ Step 4: Compile:
 
 `cmake .. -G "Unix Makefiles" -DBUILD_HEADLESS="<ON/OFF>" -DBUILD_EXAMPLE="<ON/OFF>" -DBUILD_QT5="<ON/OFF>" -DCMAKE_BUILD_TYPE="<Debug/Release>""`
 
-`make -j$(nproc --all)`
+`make -j$(sysctl -n hw.ncpu)`
 
 ## Windows:
 
