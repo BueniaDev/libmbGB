@@ -2,7 +2,12 @@
 #define MBGB_SDL2_H
 
 #include <libmbGB/libmbgb.h>
+
+#ifdef __APPLE__
+#include <SDL.h>
+#else
 #include <SDL2/SDL.h>
+#endif
 #ifdef LIBMBGB_OPENGL
 #ifdef __WIN32__
 #include <GL/glew.h>
