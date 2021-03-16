@@ -1,5 +1,5 @@
 // This file is part of libmbGB.
-// Copyright (C) 2020 Buenia.
+// Copyright (C) 2021 Buenia.
 //
 // libmbGB is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -525,7 +525,7 @@ namespace gb
 	// Some games (i.e. Pokemon Yellow) have a tendency to print an image in multiple runs.
 	bool appending = false;
 
-	if ((lastmargins != -1) && ((lastmargins & 0xF) == 0) && ((printermargins >> 4) == 0))
+	if ((lastmargins != static_cast<uint8_t>(-1)) && ((lastmargins & 0xF) == 0) && ((printermargins >> 4) == 0))
 	{
 	    appending = true;
 	}

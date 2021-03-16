@@ -18,7 +18,7 @@ And more to come!
 
 # Building Instructions
 
-The libmbGB library does not have any dependencies and can be compiled with MinGW on Windows, and both GCC and Clang on Linux and (presumably) OSX. The examples contained in this repo, however, do have additional dependencies that need to be installed. All dependencies should be findable by CMake.
+The libmbGB library does not have any dependencies and can be compiled with MinGW on Windows, and both GCC and Clang on Linux, as well as AppleClang on OSX. The examples contained in this repo, however, do have additional dependencies that need to be installed. All dependencies should be findable by CMake.
 
 ## Linux:
 
@@ -87,7 +87,7 @@ Step 3: Compile:
 
 `mkdir build && cd build`
 
-`cmake .. -G "Unix Makefiles" -DBUILD_HEADLESS="<ON/OFF>" -DBUILD_EXAMPLE="<ON/OFF>" -DBUILD_QT5="<ON/OFF>" -DCMAKE_BUILD_TYPE="<Debug/Release>""`
+`cmake .. -G "Unix Makefiles" -DBUILD_HEADLESS="<ON/OFF>" -DBUILD_EXAMPLE="<ON/OFF>" -DBUILD_QT5="<ON/OFF>" -DCMAKE_BUILD_TYPE="<Debug/Release>"`
 
 `make -j$(nproc --all)`
 
@@ -211,6 +211,6 @@ libmbGB is free software: you can redistribute it and/or modify it under the ter
 
 # Copyright
 
-(C) 2020 Buenia. This project is not affiliated in any way with Nintendo. Game Boy and Game Boy Color are registered trademarks of Nintendo Co., Ltd.
+(C) 2021 Buenia. This project is not affiliated in any way with Nintendo. Game Boy and Game Boy Color are registered trademarks of Nintendo Co., Ltd.
 
 For information regarding libmbGB's stance on copyright infringement, as well as proof of libmbGB's legality, see the LEGAL.md file in this repository.
