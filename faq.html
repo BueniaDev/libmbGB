@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <!--Official website of libmbGB.-->
+        <meta http-equiv="X-UA Compatible" content="IE=edge">
+        <meta name="description" content="libmbGB">
+        <meta name="keywords" content="gameboy emulator, retro gaming">
+        <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+        <meta name="og:description" content="libmbGB is an open-source Game Boy and Game Boy Color emulator, copyright &amp;copy; 2018&amp;ndash;2021 BueniaDev. This project is not affiliated in any way with Nintendo. Game Boy and Game Boy Color are registered trademarks of Nintendo Co., Ltd.">
+        <title>libmbGB</title>
+        <link rel="icon" href="favicon.ico" type="image/x-icon">
+        <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Open+Sans&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@1,900&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="styles.css">
+    </head>
+    <body>
+        <header id="site-header">
+        <nav class="site-nav">
+            <ul>
+                <li><a href="contact.html">Contact</a></li>
+                <li><a href="donate.html">Donate</a></li>
+                <li><a href="https://github.com/BueniaDev/libmbGB">Github</a></li>
+                <li><a class="active" href="faq.html">FAQ</a></li>
+                <li><a href="downloads.html">Downloads</a></li>
+                <li><a href="index.html">Home</a></li>
+            </ul>
+        </nav>
+        </header>
+        
+        <nav id="sub-nav">
+            <h2>Pages</h2>
+            <ul>
+                <li><a href="donate.html">Donate</a></li>
+                <li><a href="downloads.html">Downloads</a></li>
+                <li><a href="faq.html">FAQs</a></li>
+                <li><a href="contact.html">Contact</a></li>
+            </ul>
+            
+            <h2>Table of Contents</h2>
+            <ul class="section-nav">
+                <li class="entry-h2"><a href="#general">General</a>
+                    <ul>
+                        <li class="entry-h3"><a href="#what-is-libmbgb">What is libmbGB?</a></li>
+                        <li class="entry-h3"><a href="#system-requirements">What are the system requirements for libmbGB?</a></li>
+                        <li class="entry-h3"><a href="#the-mb-stands-for">What does the mb stand for?</a></li>
+                        <li class="entry-h3"><a href="#filing-bugs">How do I file a bug?</a></li>
+                        <li class="entry-h3"><a href="#license">What is the license for libmbGB?</a></li>
+                        <li class="entry-h3"><a href="#compiling-libmbgb">How do I compile libmbGB?</a></li>
+                    </ul>
+                </li>
+                <li class="entry-h2"><a href="#features">Features</a>
+                    <ul>
+                        <li class="entry-h3"><a href="#compatibility">How good is compatibility?</a></li>
+                        <li class="entry-h3"><a href="#addons-and-cartridge-types">What peripherals and cartridge types does libmbGB support?</a></li>
+                    </ul>
+                </li>
+                <li class="entry-h2"><a href="#troubleshooting">Troubleshooting</a>
+                    <ul>
+                        <li class="entry-h3"><a href="#multicart">On loading Mortal Kombat 1/2 or Bomberman Collection I have issues with the game booting/making it past the menus</a></li>
+                    </ul>
+                </li>
+            </ul>
+            
+            <h2>Links</h2>
+            <ul id="nav-social">
+                <li><a href="https://twitter.com/Libmbg">Twitter</a></li>
+                <li><a href="https://github.com/BueniaDev/libmbGB/issues">Issue Tracker</a></li>
+            </ul>
+        </nav>
+        
+        <div class="page-content">
+            <div class="post">
+                <header class="post-header">
+                    <h1>FAQs</h1>
+                </header>
+                
+                <article class="post-content">
+                    <h2 id="general">General</h2>
+                    <h3 id="what-is-libmbgb">What is libmbGB?</h3>
+                    <p>libmbGB is a next-gen Game Boy (and Game Boy Color) emulator. The project originally started in October 2018, when I was still a high-school student. However, noting the gross inaccuracy of this older version, the project was rewritten from the ground-up in Summer 2019, with a focus on cycle-accuracy.</p>
+                    
+                    <p>Further along in development, libmbGB gained support for the Game Boy Printer and a few other basic addons. Other goals include support for a vast array of Game Boy peripherals, both obscure and more well-known, as well as a good workflow for tool-assisted runners, and a modern feature set for emulators that older emulators may not support.</p>
+                    
+                    <h3 id="system-requirements">What are the system requirements for libmbGB?</h3>
+                    <p>The core libmbGB engine and its console frontend should run on mostly any computer from the last 5 years or so, including the following OSes:</p>
+                    <ul>
+                        <li>Windows (7 or newer)</li>
+                        <li>mac OS (not tested)</li>
+                        <li>Linux (only tested on Ubuntu)</li>
+                        <li>BSD (not tested)</li>
+                    </ul>
+                    
+                    <p>If you wish to run libmbGB on other systems that RetroArch runs on, please us the libretro core instead. Please note that the libretro core may not compile succesfully on every platform, especially those without support for C++17.</p>
+                    
+                    <h3 id="the-mb-stands-for">What does the mb stand for?</h3>
+                    <p>The mb stands for the name of my dad, Michael B., who, growing up, was also in the tech field, just like I am now. So, in order to honor him, I chose the phrase "mb" as a universal name for the family of emulators I planned to create, of which libmbGB is just one member.</p>
+                    
+                    <h3 id="filing-bugs">How do I file a bug?</h3>
+                    <p>The best way is to sign up for an account on GitHub and post on the <a href="https://github.com/BueniaDev/libmbGB/issues">issue tracker</a>. Please include the version you're using, what OS you're running on, and the names of games affected.</p>
+                    
+                    <h3 id="license">What is the license for libmbGB?</h3>
+                    <p>libmbGB is licensed under the GNU GPL v3.0, and the code can be found on <a href="https://github.com/BueniaDev/libmbGB">GitHub</a>.</p>
+                    
+                    <h3 id="compiling-libmbgb">How do I compile libmbGB?</h3>
+                    
+                    <p>Please see the <a href="https://github.com/BueniaDev/libmbGB/blob/master/README.md">README</a> for detailed information.</p>
+                    <h2 id="features">Features</h2>
+                    <h3 id="compatibility">How good is compatibility?</h3>
+                    <p>Overall, compatibility is good. Most games work but there are still plenty of bugs. Please file a bug if you find a game that suffers from issues and/or doesn't boot.</p>
+                    
+                    <p>Current bugs can be found on Github's issue tracker for this project.</p>
+                    <h3 id="addons-and-cartridge-types">What peripherals and cartridge types does libmbGB support?</h3>
+                    
+                    <p>The following Game Boy addons/special cartridge types are supported:</p>
+                    
+                    <ul>
+                        <li>Rumble</li>
+                        <li>Tilt (MBC7)</li>
+                        <li>Real-time clock</li>
+                        <li>Game Boy Printer (currently being rewritten)</li>
+                        <li>Mobile Adapter GB (currently being rewritten)</li>
+                        <li>Link Cable (currently being rewritten)</li>
+                        <li>Barcode Boy (currently being rewritten)</li>
+                    </ul>
+                    
+                    <p>The following are not supported at this time:</p>
+                    <ul>
+                        <li>MBC6</li>
+                        <li>MMM01</li>
+                        <li>TAMA5</li>
+                        <li>HuC-1</li>
+                        <li>HuC-3</li>
+                        <li>Turbo File GB</li>
+                        <li>GBC Infared</li>
+                        <li>Barcode Taisen Bardigun</li>
+                        <li>Pocket Sonar</li>
+                        <li>Sewing machines (such as Singer Izek 1500, etc.)</li>
+                        <li>Power Antenna/Bug Sensor</li>
+                        <li>DMG-07 (Four Player Adapter)</li>
+                        <li>Full Changer (for Zok Zok Heroes)</li>
+                    </ul>
+                    
+                    <h2 id="troubleshooting">Troubleshooting</h2>
+                    <h3 id="multicart">On loading Mortal Kombat 1/2 or Bomberman Collection I have issues with the game booting/making it past the menus!</h3>
+                    <p>This is a known issue with the libmbGB core. If playing these games is your utmost concern, you may want to enable MBC1 multicart emulation in libmbGB.</p>
+                    
+                    <p>Hint: This can be accomplished in the SDL2 frontend by passing the "--mbc1m" argument to the program.</p>
+                </article>
+            </div>
+        </div>
+        
+        <footer id="site-footer">
+            <div id="description">
+                <p class="text">libmbGB is an open-source Game Boy and Game Boy Color emulator, copyright &copy; 2018&ndash;2021 BueniaDev. This project is not affiliated in any way with Nintendo. Game Boy and Game Boy Color are registered trademarks of Nintendo Co., Ltd.</p>
+            </div>
+        </footer>
+    </body>
+</html>
+    

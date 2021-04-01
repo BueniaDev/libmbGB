@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <!--Ian Buer - WEBDEV-114 - Assignment 5 - 10/26/2020-->
+        <meta http-equiv="X-UA Compatible" content="IE=edge">
+        <meta name="description" content="Buer's Assignment 5">
+        <meta name="keywords" content="HTML, Blog">
+        <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+        <meta name="og:description" content="libmbbGB is an open-source Game Boy and Game Boy Color emulator, copyright &amp;copy; 2018&amp;ndash;2020 Ian Buer. This project is not affiliated in any way with Nintendo. Game Boy and Game Boy Color are registered trademarks of Nintendo Co., Ltd.">
+        <title>libmbGB</title>
+        <link rel="icon" href="favicon.ico" type="image/x-icon">
+        <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Open+Sans&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@1,900&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="styles.css">
+    </head>
+    <body>
+        <header id="site-header">
+        <nav class="site-nav">
+            <ul>
+                <li><a class="active" href="contact.html">Contact</a></li>
+                <li><a href="donate.html">Donate</a></li>
+                <li><a href="https://github.com/Buenia0/libmbGB">Github</a></li>
+                <li><a href="faq.html">FAQ</a></li>
+                <li><a href="downloads.html">Downloads</a></li>
+                <li><a href="index.html">Home</a></li>
+            </ul>
+        </nav>
+        </header>
+        
+        <nav id="sub-nav">
+            <h2>Pages</h2>
+            <ul>
+                <li><a href="donate.html">Donate</a></li>
+                <li><a href="downloads.html">Downloads</a></li>
+                <li><a href="faq.html">FAQs</a></li>
+                <li><a href="contact.html">Contact</a></li>
+            </ul>
+            
+            <h2>Links</h2>
+            <ul id="nav-social">
+                <li><a href="https://twitter.com/Libmbg">Twitter</a></li>
+                <li><a href="https://github.com/Buenia0/libmbGB/issues">Issue Tracker</a></li>
+            </ul>
+        </nav>
+        
+        <div class="page-content">
+            <div class="post">
+                <header class="post-header">
+                    <h1>Contact the Developer</h1>
+                </header>
+                
+                <article class="post-content">
+	               <form action="sendmail.php" method="POST" name="contact_form" id="contact_form">
+                       <fieldset>
+                           <legend>Contact Information</legend>
+                           <label for="first_name">First Name:</label>
+                           <input type="text" name="first_name" id="first_name" class="contact" required><br>
+                           <label for="last_name">Last Name:</label>
+                           <input type="text" name="last_name" id="last_name" class="contact" required><br>
+                           <label for="email">Email Address:</label>
+                           <input type="email" name="email" id="email" class="contact" required><br>
+                           <label for="verify">Verify Email:</label>
+                           <input type="email" name="verify" id="verify" class="contact" required autocomplete="off"><br>
+                           <label for="phone">Phone Number:</label>
+                           <input type="tel" name="phone" id="phone" class="contact" pattern="\d{3}[\-]\d{3}[\-]\d{4}" placeholder="999-999-9999" required><br>
+                       </fieldset>
+                       <fieldset>
+                           <legend>Message Information</legend>
+                           <label for="subject">Subject:</label>         
+                           <input type="text" name="subject" id="contact" required><br><br>
+                           <label for="message">Message:</label>
+                           <textarea id="contact" name="message" rows="12" required></textarea>
+                       </fieldset>
+                       <fieldset id="buttons">
+                           <legend>Submit Your Email Message</legend>
+                           <label>&nbsp;</label>
+                           <input type="submit" id="contact" value="Send Email">
+                           <input type="reset" id="contact" value="Reset"><br>
+                       </fieldset>
+                    </form>
+                </article>
+            </div>
+        </div>
+        
+        <footer id="site-footer">
+            <div id="description">
+                <p class="text">libmbGB is an open-source Game Boy and Game Boy Color emulator, copyright &copy; 2018&ndash;2020 Buenia. This project is not affiliated in any way with Nintendo. Game Boy and Game Boy Color are registered trademarks of Nintendo Co., Ltd.</p>
+            </div>
+        </footer>
+    </body>
+</html>
