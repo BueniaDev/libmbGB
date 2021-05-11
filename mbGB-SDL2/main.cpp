@@ -334,6 +334,11 @@ class SDL2Frontend : public mbGBFrontend
         {
             return (event.key.keysym.mod & (KMOD_CTRL | KMOD_SHIFT)) ? true : false;
         }
+
+	void reset()
+	{
+
+	}
 	
 	void handleinput(SDL_Event event)
 	{
@@ -630,17 +635,22 @@ class SDL2Frontend : public mbGBFrontend
 
 	bool savefile(string filename, vector<uint8_t> data)
 	{
+	    // If the data vector is empty, don't bother saving its contents
+	    if (data.empty())
+	    {
+		return true;
+	    }
+
 	    fstream file(filename.c_str(), ios::out | ios::binary);
 
 	    if (!file.is_open())
 	    {
-		cout << "mbGB::File could not be written." << endl;
+		cout << "mbGB::Savefile could not be written." << endl;
 		return false;
 	    }
 	    else
 	    {
 		file.write((char*)data.data(), data.size());
-		cout << "mbGB::File succesfully written." << endl;
 		file.close();
 		return true;
 	    }

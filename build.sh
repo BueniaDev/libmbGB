@@ -3,7 +3,7 @@
 if [[ ! -d "build/" ]]
 then
   mkdir build && cd build
-  cmake .. -G "Unix Makefiles" -DBUILD_EXAMPLE="ON" -DCMAKE_BUILD_TYPE="Release"
+  cmake .. -G "Unix Makefiles" -DBUILD_SDL2="ON" -DCMAKE_BUILD_TYPE="Release"
   make -j$(nproc --all)
   cd ../
 fi

@@ -1,17 +1,14 @@
 #ifndef MBGB_QT_H
 #define MBGB_QT_H
 
-#include <QMainWindow>
-#include <QThread>
-#include <QFileDialog>
-#include <QGraphicsView>
-#include <QGraphicsScene>
-#include <QGraphicsPixmapItem>
-#include <QKeyEvent>
+#include <QtCore>
+#include <QtGui>
+#include <QtWidgets>
 #include <iostream>
 #include <libmbGB/libmbgb.h>
 #include <SDL2/SDL.h>
 #include "displaywidget.h"
+#include "emusettingsdialog.h"
 using namespace std;
 using namespace gb;
 
@@ -31,6 +28,12 @@ class mbGBWindow : public QMainWindow, public mbGBFrontend
 	bool init();
 	void shutdown();
 	void runapp();
+
+	void initActions();
+	void initMenus();
+
+	void readSettings();
+	void writeSettings();
 
 	void audiocallback(audiotype left, audiotype right);
 	void rumblecallback(bool enabled);
@@ -65,10 +68,14 @@ class mbGBWindow : public QMainWindow, public mbGBFrontend
 	vector<int16_t> apubuffer;
 
 	DisplayWidget *disp_widget = NULL;
+	mbGBSettings *settings = NULL;
 
     public slots:
 	void openROM();
 	void closeROM();
+	void pauseCore();
+	void resetCore();
+	void openEmuSettings();
 	void drawframe();
 
     signals:
@@ -78,8 +85,6 @@ class mbGBWindow : public QMainWindow, public mbGBFrontend
 	void keyPressEvent(QKeyEvent *event) override;
 	void keyReleaseEvent(QKeyEvent *event) override;
 	void closeEvent(QCloseEvent *event) override;
-
-    private:
 	Ui::MainWindow *ui;
 };
 

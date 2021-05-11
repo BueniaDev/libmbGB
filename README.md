@@ -26,70 +26,97 @@ Step 1: Install dependencies:
 
 Core dependencies:
 
-Compiler: GCC or Clang. You only need one of those two:
+* Compiler: GCC or Clang. You only need one of those two:
 
-GCC 10.2.0+ (earlier versions not tested):
+    * GCC 10.3.0+ (earlier versions not tested):
 
-Debian: `sudo apt-get install build-essential`
-Arch (not tested): `sudo pacman -S base-devel`
-Fedora: `sudo dnf install gcc-c++`
-OpenSUSE (not tested): `sudo zypper in gcc-c++`
+        * Debian (not tested): `sudo apt-get install build-essential`
 
-Clang (not tested):
+        * Arch (not tested): `sudo pacman -S base-devel`
 
-Debian: `sudo apt-get install clang clang-format libc++-dev` (in some distros, clang-5.0)
-Arch: `pacman -S clang`, `libc++` is in the AUR. Use pacaur or yaourt to install it.
-Fedora: `dnf install clang libcxx-devel`
-OpenSUSE: `zypper in clang`
+        * Fedora (not tested): `sudo dnf install gcc-c++`
 
-Git (if not installed already) and CMake 3.5+:
+        * OpenSUSE (not tested): `sudo zypper in gcc-c++`
 
-Debian: `sudo apt-get install git cmake`
-Arch (not tested): `sudo pacman -S git`
-Fedora: `sudo dnf install git cmake`
-OpenSUSE (not tested): `sudo zypper in git cmake extra-cmake-modules`
+    * Clang (not tested):
 
-For the SDL2 renderer:
+        * Debian: `sudo apt-get install clang clang-format libc++-dev` (in some distros, clang-5.0)
 
-Debian: `sudo apt-get install libsdl2-dev`
-Arch (not tested): `sudo pacman -S sdl2`
-Fedora: `sudo dnf install SDL2-devel`
-OpenSUSE: (not tested): `sudo zypper in libSDL2-devel`
+        * Arch: `pacman -S clang`, `libc++` is in the AUR. Use pacaur or yaourt to install it.
 
-For the (WIP) Qt5 frontend:
+        * Fedora: `dnf install clang libcxx-devel`
 
-Debian: `sudo apt-get install qtbase5-dev qtmultimedia5-dev`
-Arch (not tested): `sudo pacman -S qt5`
-Fedora: `sudo dnf install qt5-qtmultimedia-devel`
-OpenSUSE (not tested): `sudo zypper in libQt5Multimedia5 libqt5-qtmultimedia-devel libQt5Concurrent-devel`
+        * OpenSUSE: `zypper in clang`
 
-For the (optional) Game Boy Camera support:
+* Git (if not installed already) and CMake 3.15+:
 
-Debian (not tested): `sudo apt-get install libopencv-dev`
-Arch (not tested): `sudo pacman -S opencv`
-Fedora (not tested): `sudo dnf install opencv opencv-devel`
-OpenSUSE (not tested): `sudo zypper in opencv opencv-devel`
+    * Debian (not tested): `sudo apt-get install git cmake`
 
-For the (also optional) OpenGL rendering backend:
+    * Arch (not tested): `sudo pacman -S git cmake`
 
-Debian (not tested): `sudo apt-get install libglu1-mesa-dev mesa-common-dev`
-Arch (not tested): `sudo apt-get install mesa-libgl`
-Fedora (not tested): `sudo dnf install mesa-libglapi` (if not already installed)
-OpenSUSE (not tested): `sudo zypper in mesa-libgl-devel`
+    * Fedora (not tested): `sudo dnf install git cmake`
+
+    * OpenSUSE (not tested): `sudo zypper in git cmake extra-cmake-modules`
+
+* Optional dependencies:
+
+    * SDL2 (for the command-line frontend (and audio in the (currently WIP) Qt frontend)):
+
+        * Debian (not tested): `sudo apt-get install libsdl2-dev`
+
+        * Arch (not tested): `sudo pacman -S sdl2`
+
+        * Fedora (not tested): `sudo dnf install SDL2-devel`
+
+        * OpenSUSE: (not tested): `sudo zypper in libSDL2-devel`
+
+    * Qt5 or Qt6 (for the (currently WIP) Qt frontend):
+        * Not throughly tested yet, so certain versions might or might not work. 
+
+	* In addition, the below commands will install packages for Qt5. Consult your distro to see which Qt6 packages, if any, are available.
+
+        * Debian (not tested): `sudo apt-get install qtbase5-dev qtmultimedia5-dev`
+
+        * Arch (not tested): `sudo pacman -S qt5`
+
+        * Fedora (not tested): `sudo dnf install qt5-qtmultimedia-devel`
+
+        * OpenSUSE (not tested): `sudo zypper in libQt5Multimedia5 libqt5-qtmultimedia-devel libQt5Concurrent-devel`
+
+    * OpenCV (for Game Boy Camera support in mbGB-SDL2):
+
+        * Debian (not tested): `sudo apt-get install libopencv-dev`
+
+        * Arch (not tested): `sudo pacman -S opencv`
+
+        * Fedora (not tested): `sudo dnf install opencv opencv-devel`
+
+        * OpenSUSE (not tested): `sudo zypper in opencv opencv-devel`
+
+    * OpenGL (for hardware-accelerated OpenGL rendering in mbGB-SDL2):
+
+        * Debian (not tested): `sudo apt-get install libglu1-mesa-dev mesa-common-dev`
+
+        * Arch (not tested): `sudo apt-get install mesa-libgl`
+
+        * Fedora (not tested): `sudo dnf install mesa-libglapi` (if not already installed)
+
+        * OpenSUSE (not tested): `sudo zypper in mesa-libgl-devel`
 
 Step 2: Clone the repository:
 
-`git clone --recursive https://github.com/Buenia0/libmbGB.git`
-
-`cd libmbGB`
+```
+git clone --recursive https://github.com/BueniaDev/libmbGB.git
+cd libmbGB
+```
 
 Step 3: Compile:
 
-`mkdir build && cd build`
-
-`cmake .. -G "Unix Makefiles" -DBUILD_HEADLESS="<ON/OFF>" -DBUILD_EXAMPLE="<ON/OFF>" -DBUILD_QT5="<ON/OFF>" -DCMAKE_BUILD_TYPE="<Debug/Release>"`
-
-`make -j$(nproc --all)`
+```
+mkdir build && cd build
+cmake .. -G "Unix Makefiles" -DBUILD_HEADLESS="<ON/OFF>" -DBUILD_EXAMPLES="<ON/OFF>" -DBUILD_SDL2="<ON/OFF>" -DBUILD_QT="<ON/OFF>" -DBUILD_QT6="<ON/OFF>" -DCMAKE_BUILD_TYPE="<Debug/Release>"
+make -j$(nproc --all)
+```
 
 ## Mac OS (not tested):
 
@@ -98,25 +125,21 @@ Please note that due to personal financial constraints, libmbGB has not been tes
 
 Step 1: Install dependencies:
 
-`brew install git cmake pkg-config`
+* pkg-config: `brew install pkgconfig`
 
-For the SDL2 renderer:
+* SDL2: `brew install sdl2`
 
-`brew install sdl2`
+* Qt5 (Qt6 not tested): `brew install qt5` (**Note**: If you have Qt4 installed, then you will need to remove it before building with `brew unlink qt4`.)
 
-For the (WIP) Qt5 frontend:
-
-`brew install qt5`
-
-Note: If you have Qt4 installed, then you will need to remove it before building with `brew unlink qt4`.
+* CMake: `brew install cmake`
 
 Step 2: Clone the repository:
+```
+git clone --recursive https://github.com/BueniaDev/libmbGB.git
+cd libmbGB
+```
 
-`git clone --recursive https://github.com/Buenia0/libmbGB.git`
-
-`cd libmbGB`
-
-Step 3 (optional): Tell CMake where your Qt5 is installed (add this line to ~/.profile if you want to make this permanent):
+Step 3: Tell CMake where your Qt5 is installed (add this line to ~/.profile if you want to make this permanent):
 
 `export Qt5_DIR=$(brew --prefix)/opt/qt5`
 
@@ -124,11 +147,11 @@ If you choose not to build the Qt5 frontend, skip this step and proceed to step 
 
 Step 4: Compile:
 
-`mkdir build && cd build`
-
-`cmake .. -G "Unix Makefiles" -DBUILD_HEADLESS="<ON/OFF>" -DBUILD_EXAMPLE="<ON/OFF>" -DBUILD_QT5="<ON/OFF>" -DCMAKE_BUILD_TYPE="<Debug/Release>""`
-
-`make -j$(sysctl -n hw.ncpu)`
+```
+mkdir build && cd build
+cmake .. -G "Unix Makefiles" -DBUILD_HEADLESS="<ON/OFF>" -DBUILD_EXAMPLES="<ON/OFF>" -DBUILD_SDL2="<ON/OFF>" -DBUILD_QT="<ON/OFF>" -DCMAKE_BUILD_TYPE="<Debug/Release>""
+make -j$(sysctl -n hw.ncpu)
+```
 
 ## Windows:
 
@@ -137,39 +160,23 @@ Make sure to run `pacman -Syu` as needed.
 
 Step 1: Install dependencies:
 
-`pacman -S base-devel mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake git`
-
-For the SDL2 renderer:
-
-`pacman -S mingw-w64-x86_64-SDL2`
-
-For the (WIP) Qt5 frontend:
-
-`pacman -S mingw-w64-x86_64-qt5`
-
-For the (optional) Game Boy Camera support:
-
-`pacman -S mingw-w64-x86_64-opencv`
-
-For the (also optional) OpenGL rendering backend:
-
-`pacman -S mingw-w64-x86_64-glew`
+`pacman -Sy --needed base-devel git ${MINGW_PACKAGE_PREFIX}-{cmake,glew,opencv,qt5,SDL2,toolchain}`
 
 Step 2: Clone the repository:
 
-`git clone --recursive https://github.com/Buenia0/libmbGB.git`
-
-`cd libmbGB`
+```
+git clone --recursive https://github.com/BueniaDev/libmbGB.git
+cd libmbGB
+```
 
 Step 3: Compile:
 
-`mkdir build && cd build`
-
-`cmake .. -G "MSYS Makefiles" -DBUILD_HEADLESS="<ON/OFF>" -DBUILD_EXAMPLE="<ON/OFF>" -DBUILD_WEBCAM="<ON/OFF>" -DBUILD_QT5="<ON/OFF>" -DCMAKE_BUILD_TYPE="<Debug/Release>""`
-
-`(mingw32-)make -j$(nproc --all)`
-
-`../msys-dist.sh`
+```
+mkdir build && cd build
+cmake .. -G "MSYS Makefiles" -DBUILD_EXAMPLES="<ON/OFF>" -DBUILD_SDL2="<ON/OFF>" -DBUILD_WEBCAM="<ON/OFF>" -DBUILD_QT="<ON/OFF>" -DCMAKE_BUILD_TYPE="<Debug/Release>"
+make -j$(nproc --all)
+../tools/msys-dist.sh
+```
 
 # Known issues
 
@@ -177,31 +184,28 @@ Step 3: Compile:
 
 MBC1 multicarts, such as Mortal Kombat 1/2 and Bomberman Collection, as well as a few others, require the command line argument of "--mbc1m" passed to libmbGB in order to run properly.
 
+However, a fix for this issue is currently in the works.
+
 # Plans
 
 ## Near-term
 
-Improving existing Game Boy (Color) support
-
-Patching up graphical debugger
-
-GB Printer and Mobile Adapter GB support
-
-Graphical frontend (mbGB-Qt)
+* Improving existing Game Boy (Color) support
+* Improve GB Printer and Mobile Adapter GB support
+* Finish up graphical frontend (mbGB-Qt)
 
 ## Medium-term
 
-Frontends for numerous systems (via mbGB-ports)
-
-Linux GUI (via mbGB-Gtk)
-
-Android frontend (via mbGB-droid)
-
-WebAssembly port (via mbGB-wasm)
+* Frontends for numerous systems (via mbGB-ports)
+* Add graphical debugger to Qt frontend
+* Android frontend (via mbGB-droid)
+* WebAssembly port (via mbGB-wasm)
 
 ## Long-term
 
-Support for various obscure Game Boy (Color) addons (Zok Zok Heroes Full Changer, Turbo File GB, etc.)
+* Add support for various obscure Game Boy (Color) addons (Zok Zok Heroes Full Changer, Turbo File GB, etc.)
+* Linux GUI (via mbGB-Gtk)
+* Any feature you can ask for that isn't ouright stupid
 
 # License
 
@@ -211,6 +215,6 @@ libmbGB is free software: you can redistribute it and/or modify it under the ter
 
 # Copyright
 
-(C) 2021 Buenia. This project is not affiliated in any way with Nintendo. Game Boy and Game Boy Color are registered trademarks of Nintendo Co., Ltd.
+(C) 2021 BueniaDev. This project is not affiliated in any way with Nintendo. Game Boy and Game Boy Color are registered trademarks of Nintendo Co., Ltd.
 
 For information regarding libmbGB's stance on copyright infringement, as well as proof of libmbGB's legality, see the LEGAL.md file in this repository.

@@ -1,18 +1,20 @@
-// This file is part of libmbGB.
-// Copyright (C) 2021 Buenia.
-//
-// libmbGB is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// libmbGB is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with libmbGB.  If not, see <https://www.gnu.org/licenses/>.
+/*
+    This file is part of libmbGB.
+    Copyright (C) 2021 BueniaDev.
+
+    libmbGB is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    libmbGB is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with libmbGB.  If not, see <https://www.gnu.org/licenses/>.
+*/
 
 #ifndef LIBMBGB_ADDONS
 #define LIBMBGB_ADDONS
@@ -51,6 +53,7 @@ namespace gb
             virtual bool swipedcard() = 0; // This is required for proper emulation of the BTB and the Barcode Boy
             virtual int serialcycles() = 0; // Possible returned values: 0=Use normal link cable timings, all other values=use returned value for custom link cable timings (i.e. for DMG-07)
 	    virtual bool loadfile(vector<uint8_t> data) = 0; // Used for loading config files (for example, the config memory of the Mobile Adapter GB)
+	    virtual void setsavefilename(string filename) = 0; // Used for setting the name of the config file to save
 	    virtual string getsavefilename() = 0; // Used for fetching the name of the config file to save
 	    virtual vector<uint8_t> getsavefiledata() = 0; // Used for fetching the data to save to the config file
     };
@@ -119,6 +122,11 @@ namespace gb
 	    bool loadfile(vector<uint8_t> data)
 	    {
 		return true;
+	    }
+
+	    void setsavefilename(string filename)
+	    {
+		return;
 	    }
 
 	    string getsavefilename()
@@ -204,91 +212,9 @@ namespace gb
 		return true;
 	    }
 
-	    string getsavefilename()
-	    {
-		return "";
-	    }
-
-	    vector<uint8_t> getsavefiledata()
-	    {
-		vector<uint8_t> empty;
-		return empty;
-	    }
-    };
-
-    // (Deprecated) netplay protocol client
-    // TODO: Get rid of this, because a better implementation's coming soon...
-    class LIBMBGB_API KujoGBClient : public SerialDevice
-    {
-        public:
-            KujoGBClient();
-            ~KujoGBClient();
-            
-            linkfunc dislink;
-	    bool linkiswaiting = false;
-
-	    uint8_t linkbyte = 0xFF;
-	    uint8_t sentbyte = 0;
-
-	    bool sentmode = false;
-	    bool linkmode = false;
-
-	    string getaddonname()
-	    {
-		return "KujoGBClient";
-	    }
-            
-            void setlinkcallback(linkfunc cb)
-            {
-                dislink = cb;
-            }
-            
-	    void setprintcallback(printfunc cb)
+	    void setsavefilename(string filename)
 	    {
 		return;
-	    }
-
-            void deviceready(uint8_t byte, bool ismode)
-            {
-            	sentbyte = byte;
-		sentmode = ismode;
-		update();
-            }
-            
-            void update()
-            {
-		if (sentmode)
-		{
-		    transfer();
-		}
-            }
-            
-            void transfer()
-            {
-            	if (dislink)
-            	{
-            	    dislink(0xFF);
-            	}
-            }
-            
-            void swipebarcode()
-            {
-            	return;
-            }
-            
-            bool swipedcard()
-            {
-                return false;
-            }
-            
-            int serialcycles()
-            {
-                return 0;
-            }
-
-	    bool loadfile(vector<uint8_t> data)
-	    {
-		return true;
 	    }
 
 	    string getsavefilename()
@@ -465,6 +391,11 @@ namespace gb
 		return true;
 	    }
 
+	    void setsavefilename(string filename)
+	    {
+		return;
+	    }
+
 	    string getsavefilename()
 	    {
 		return "";
@@ -568,6 +499,11 @@ namespace gb
 		return true;
 	    }
 
+	    void setsavefilename(string filename)
+	    {
+		return;
+	    }
+
 	    string getsavefilename()
 	    {
 		return "";
@@ -604,6 +540,7 @@ namespace gb
             ~MobileAdapterGB();
             
             linkfunc madaptlink;
+	    string config_filename = "";
 
 	    uint8_t sent_byte = 0x00;
 	    uint8_t link_byte = 0x00;
@@ -771,9 +708,19 @@ namespace gb
 		return true;
 	    }
 
+	    void setsavefilename(string filename)
+	    {
+		config_filename = filename;
+	    }
+
 	    string getsavefilename()
 	    {
-		return "madapter.mbconf";
+		if (config_filename == "")
+		{
+		    return "madapter.mbconf";
+		}
+
+		return config_filename;
 	    }
 
 	    vector<uint8_t> getsavefiledata()
@@ -867,6 +814,11 @@ namespace gb
 	    bool loadfile(vector<uint8_t> data)
 	    {
 		return true;
+	    }
+
+	    void setsavefilename(string filename)
+	    {
+		return;
 	    }
 
 	    string getsavefilename()

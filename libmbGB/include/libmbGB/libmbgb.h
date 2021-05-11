@@ -1,18 +1,20 @@
-// This file is part of libmbGB.
-// Copyright (C) 2021 Buenia.
-//
-// libmbGB is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// libmbGB is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with libmbGB.  If not, see <https://www.gnu.org/licenses/>.
+/*
+    This file is part of libmbGB.
+    Copyright (C) 2021 BueniaDev.
+
+    libmbGB is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    libmbGB is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with libmbGB.  If not, see <https://www.gnu.org/licenses/>.
+*/
 
 #ifndef LIBMBGB_CORE
 #define LIBMBGB_CORE
@@ -48,6 +50,7 @@ using namespace std::placeholders;
 
 namespace gb
 {
+
     class LIBMBGB_API GBCore
     {
 	public:
@@ -69,8 +72,7 @@ namespace gb
 
 	    void preinit();
 	    void init();
-	    void shutdown();
-	    void shutdown(bool frontend);
+	    void shutdown(bool isreset = false);
 
 	    void addcore(string romfile);
 
@@ -101,6 +103,8 @@ namespace gb
 
 	    bool loadconfigaddon();
 	    bool saveconfigaddon();
+
+	    bool isrunning();
 	    
 	    bool paused = false;
 
@@ -112,7 +116,6 @@ namespace gb
 	    bool islinkactive();
 	    bool initcore();
 	    void resetcore();
-	    void resetcoreretro();
 	    void setsamplerate(int val);
 	    void setaudiocallback(apuoutputfunc cb);
 	    void setrumblecallback(rumblefunc cb);
@@ -160,8 +163,14 @@ namespace gb
 	    SerialDevice *dev = NULL;
 	    InfraredDevice *devir = NULL;
 	    
+	    void setsystemtype(int index);
+
+	    void connectserialdevice(int index);
+
 	    void connectserialdevice(SerialDevice *cb);
 	    void connectirdevice(InfraredDevice *cb);
+	private:
+	    bool iscorerunning = false;
     };
 };
 

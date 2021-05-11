@@ -1,20 +1,22 @@
-// This file is part of libmbGB.
-// Copyright (C) 2021 Buenia.
-//
-// libmbGB is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// libmbGB is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with libmbGB.  If not, see <https://www.gnu.org/licenses/>.
+/*
+    This file is part of libmbGB.
+    Copyright (C) 2021 BueniaDev.
 
-#include "../../include/libmbGB/mmu.h"
+    libmbGB is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    libmbGB is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with libmbGB.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
+#include "mmu.h"
 using namespace gb;
 using namespace std::placeholders;
 
@@ -54,9 +56,6 @@ namespace gb
 	fill(hram.begin(), hram.end(), 0);
 
 	cout << "MMU::Initialized" << endl;
-
-	gbmode = Mode::Default; // DO NOT DISABLE THIS! Doing so breaks the emulator on reset!
-	gameboy = Console::Default; // DO NOT DISABLE THIS! Doing so breaks the emulator on reset!
     }
 
     void MMU::initvram()
@@ -118,7 +117,6 @@ namespace gb
 	{
 	    initio();
 	}
-	gbmode = Mode::Default; // DO NOT DISABLE THIS! Doing so breaks the emulator on reset!
     }
 
     void MMU::shutdown()
@@ -203,7 +201,7 @@ namespace gb
 	    if ((gbmbc != MBCType::None) && (gbmbc != MBCType::MBC7))
 	    {
 		int rambanksize = (mbcramsize << 10);
-		cout << "RAM size: " << dec << (int)(rambanksize >> 10) << " KB" << endl;
+		cout << "RAM size: " << dec << (int)(mbcramsize) << " KB" << endl;
 		save = vector<uint8_t>(rambanks.begin(), (rambanks.begin() + rambanksize));
 
 		if (isrtcpres)
@@ -344,7 +342,7 @@ namespace gb
     
 	if (addr < 0x4000)
 	{
-	    temp = readDirectly(addr); // Pocket Music and Disney's Aladdin (GBC ver.) rely on this in order to perform OAM DMA transfers properly
+	    temp = readDirectly(addr);
 	}
 	else if (addr < 0x8000)
 	{
@@ -898,7 +896,7 @@ namespace gb
 		}
 	    }
 	    
-	    if (gameboy == Console::CGB && cgbflag && gbmode == Mode::Default)
+	    if (gameboy == Console::CGB && cgbflag)
 	    {
 		gbmode = Mode::CGB;
 	    }

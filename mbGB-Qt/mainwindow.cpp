@@ -22,21 +22,54 @@ mbGBWindow::mbGBWindow(QWidget *parent) : ui(new Ui::MainWindow)
     core.setfrontend(this);
 
     ui->setupUi(this);
+    resize((160 * 2), ((144 * 2) + menuBar()->height()));
     setWindowTitle("mbGB-Qt");
-
     disp_widget = new DisplayWidget(&core, this);
     setCentralWidget(disp_widget);
 
-    connect(ui->openromaction, SIGNAL(triggered()), this, SLOT(openROM()));
+    settings = new mbGBSettings(&core, this);
+
+    ui->actionCloseROM->setEnabled(false);
+
+    connect(ui->actionOpenROM, SIGNAL(triggered()), this, SLOT(openROM()));
+    connect(ui->actionCloseROM, SIGNAL(triggered()), this, SLOT(closeROM()));
+    connect(ui->actionQuit, SIGNAL(triggered()), QApplication::instance(), SLOT(quit()));
+
+    connect(ui->actionPause, SIGNAL(triggered()), this, SLOT(pauseCore()));
+    connect(ui->actionReset, SIGNAL(triggered()), this, SLOT(resetCore()));
+
+    connect(ui->actionGeneral, SIGNAL(triggered()), this, SLOT(openEmuSettings()));
+
+    connect(ui->actionAboutQt, SIGNAL(triggered()), QApplication::instance(), SLOT(aboutQt()));
+
     connect(this, SIGNAL(signalframeready()), this, SLOT(drawframe()));
+
+    stopped = true;
+
+    readSettings();
 }
 
 mbGBWindow::~mbGBWindow()
 {
     closeROM();
+    writeSettings();
     SDL_CloseAudio();
     SDL_Quit();
     exit(0);
+}
+
+void mbGBWindow::readSettings()
+{
+    QSettings emusettings("mbGB-Qt", "mbGB-Qt");
+    settings->readSettings(emusettings);
+    lastdir = emusettings.value("lastDir", ".").toString();
+}
+
+void mbGBWindow::writeSettings()
+{
+    QSettings emusettings("mbGB-Qt", "mbGB-Qt");
+    settings->writeSettings(emusettings);
+    emusettings.setValue("lastDir", lastdir);
 }
 
 void mbGBWindow::runthread()
@@ -68,10 +101,13 @@ void mbGBWindow::openROM()
 
 	    if (!core.initcore())
 	    {
-		cout << "Unable to start mbGB-Qt." << endl;
+		QMessageBox::critical(this, "Error", "Could not load ROM.");
 		thread = NULL;
 		return;
 	    }
+
+	    ui->actionOpenROM->setEnabled(false);
+	    ui->actionCloseROM->setEnabled(true);
 
 	    stopped = false;
 	    disp_widget->init();
@@ -92,7 +128,26 @@ void mbGBWindow::closeROM()
 	thread->quit();
 	thread->wait();
 	thread = NULL;
+	ui->actionOpenROM->setEnabled(true);
+	ui->actionCloseROM->setEnabled(false);
     }
+}
+
+void mbGBWindow::pauseCore()
+{
+    core.paused = ui->actionPause->isChecked();
+    SDL_PauseAudio(core.paused);
+}
+
+void mbGBWindow::resetCore()
+{
+    core.resetcore();
+}
+
+void mbGBWindow::openEmuSettings()
+{
+    core.paused = true;
+    settings->show();
 }
 
 void mbGBWindow::drawframe()
@@ -103,6 +158,7 @@ void mbGBWindow::drawframe()
 void mbGBWindow::closeEvent(QCloseEvent *event)
 {
     closeROM();
+    writeSettings();
     QMainWindow::closeEvent(event);
 }
 
@@ -171,36 +227,39 @@ vector<uint8_t> mbGBWindow::loadfile(string filename)
 {
     vector<uint8_t> result;
 
-    fstream file(filename.c_str(), ios::in | ios::binary | ios::ate);
+    QFile file(QString::fromStdString(filename));
 
-    if (file.is_open())
+    if (!file.open(QIODevice::ReadOnly))
     {
-	streampos size = file.tellg();
-	result.resize(size, 0);
-	file.seekg(0, ios::beg);
-	file.read((char*)result.data(), size);
-	file.close();
+	return result;
     }
 
+    QByteArray filearr = file.readAll();
+    result = vector<uint8_t>(filearr.constData(), filearr.constData() + filearr.size());
+    file.close();
     return result;
 }
 
 bool mbGBWindow::savefile(string filename, vector<uint8_t> data)
 {
-    fstream file(filename.c_str(), ios::out | ios::binary);
+    // If the data vector is empty, don't bother saving its contents
+    if (data.empty())
+    {
+	return true;
+    }
 
-    if (!file.is_open())
+    QFile file(QString::fromStdString(filename));
+
+    if (!file.open(QIODevice::WriteOnly))
     {
 	cout << "mbGB::File could not be written." << endl;
 	return false;
     }
-    else
-    {
-	file.write((char*)data.data(), data.size());
-	cout << "mbGB::File succesfully written." << endl;
-	file.close();
-	return true;
-    }
+
+    QByteArray savedata(reinterpret_cast<const char*>(data.data()), data.size());
+    file.write(savedata);
+    file.close();
+    return true;
 }
 
 void mbGBWindow::keyPressEvent(QKeyEvent *event)

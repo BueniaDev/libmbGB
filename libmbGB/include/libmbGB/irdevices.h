@@ -1,18 +1,20 @@
-// This file is part of libmbGB.
-// Copyright (C) 2021 Buenia.
-//
-// libmbGB is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// libmbGB is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with libmbGB.  If not, see <https://www.gnu.org/licenses/>.
+/*
+    This file is part of libmbGB.
+    Copyright (C) 2021 BueniaDev.
+
+    libmbGB is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    libmbGB is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with libmbGB.  If not, see <https://www.gnu.org/licenses/>.
+*/
 
 #ifndef LIBMBGB_IRDEVICES
 #define LIBMBGB_IRDEVICES
@@ -71,7 +73,9 @@ namespace gb
 
 	    bool prev_rp_val = false;
 	    bool is_sending_signal = false;
+	    bool is_receiving_signal = false;
 	    int rp_counter = 0;
+	    int rp_rx_counter = 0;
 
 	    string getdevicename()
 	    {
@@ -80,6 +84,23 @@ namespace gb
 
 	    bool getirstatus()
 	    {
+		if (!is_receiving_signal)
+		{
+		    cout << "[InfraredDebug] Fetching IR signal..." << endl;
+		    is_receiving_signal = true;
+		}
+		else
+		{
+		    rp_rx_counter += 1;
+
+		    if (rp_rx_counter == (100000 * 5))
+		    {
+			cout << "[InfraredDebug] IR signal read timed out due to inactivity..." << endl;
+			is_receiving_signal = false;
+			rp_rx_counter = 0;
+		    }
+		}
+
 		return false;
 	    }
 
@@ -88,6 +109,8 @@ namespace gb
 		if (rp_val && !prev_rp_val)
 		{
 		    cout << "[InfraredDebug] Turning on IR..." << endl;
+		    is_receiving_signal = false;
+		    rp_rx_counter = 0;
 		    is_sending_signal = true;
 		}
 		else if (!rp_val && prev_rp_val)
@@ -96,12 +119,13 @@ namespace gb
 		    cout << "[InfraredDebug] IR signal lasted for " << dec << (int)(rp_counter) << " cycles" << endl;
 		    cout << endl;
 		    rp_counter = 0;
+		    is_sending_signal = false;
 		}
 		else if (rp_val && is_sending_signal)
 		{
 		    rp_counter += 4;
 
-		    if (rp_counter == (4194304 * 10))
+		    if (rp_counter == (4194304 * 5))
 		    {
 			cout << "[InfraredDebug] IR signal timed out due to inactivity..." << endl;
 			is_sending_signal = false;
@@ -110,7 +134,6 @@ namespace gb
 		}
 
 		prev_rp_val = rp_val;
-		return;
 	    }
     };
 

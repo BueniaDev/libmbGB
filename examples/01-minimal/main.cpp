@@ -18,17 +18,16 @@ int main(int argc, char* argv[])
     // Set audio type (we set it to signed 16-bit integers)
     core.setaudioflags(MBGB_SIGNED16);
     
-    
     // Set the audio callback (we set it below)
     core.setaudiocallback([](audiotype left, audiotype right){
     	if (holds_alternative<int16_t>(left))
     	{
-    	    cout << "Left: " << dec << (int)(get<int16_t>(left)) << endl;
+    	    cout << "Left: " << dec << get<int16_t>(left) << endl;
     	}
     	
     	if (holds_alternative<int16_t>(right))
     	{
-    	    cout << "Right: " << dec << (int)(get<int16_t>(right)) << endl;
+    	    cout << "Right: " << dec << get<int16_t>(right) << endl;
     	}
     });
     

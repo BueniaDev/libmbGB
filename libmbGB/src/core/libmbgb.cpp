@@ -1,20 +1,22 @@
-// This file is part of libmbGB.
-// Copyright (C) 2021 Buenia.
-//
-// libmbGB is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// libmbGB is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with libmbGB.  If not, see <https://www.gnu.org/licenses/>.
+/*
+    This file is part of libmbGB.
+    Copyright (C) 2021 BueniaDev.
 
-#include "../../include/libmbGB/libmbgb.h"
+    libmbGB is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    libmbGB is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with libmbGB.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
+#include "libmbgb.h"
 using namespace gb;
 using namespace std;
 
@@ -76,14 +78,10 @@ namespace gb
 
 	cout << "mbGB::Initialized" << endl;
     }
-    
-    void GBCore::shutdown()
-    {
-        shutdown(true);
-    }
 
-    void GBCore::shutdown(bool frontend)
+    void GBCore::shutdown(bool isreset)
     {
+	paused = true;
 	if (!gbcores.empty())
 	{
 	    for (auto &core : gbcores)
@@ -100,7 +98,10 @@ namespace gb
 	    saveconfigaddon();
 	}
 
-	dev = NULL;
+	if (!isreset)
+	{
+	    dev = NULL;
+	}
 
 	coreserial->shutdown();
 	coreinput->shutdown();
@@ -112,7 +113,7 @@ namespace gb
 	
 	coremmu->shutdown();
 	
-	if (frontend && front != NULL)
+	if (front != NULL)
 	{
 	    if (coremmu->isgbcamera())
 	    {
@@ -122,6 +123,7 @@ namespace gb
 	    front->shutdown();
 	}
 	
+	iscorerunning = false;
 	cout << "mbGB::Shutting down..." << endl;
     }
 
@@ -131,10 +133,10 @@ namespace gb
 	cout << endl;
 	cout << "Options:" << endl;
 	cout << "-b [FILE], --bios [FILE] \t\t Loads and uses a BIOS file." << endl;
-	cout << "--sys-dmg \t\t Plays ROMs in DMG mode (GB/GBC ROMs only)." << endl;
-	cout << "--sys-gbc \t\t Plays ROMs in GBC mode (GB/GBC ROMs only)." << endl;
-	cout << "--sys-gba \t\t Plays ROMs in GBA mode. (GB/GBC ROMs only, WIP)." << endl;
-	cout << "--sys-hybrid \t\t Plays ROMs in hybrid DMG/GBC mode. (GB/GBC ROMs only)." << endl;
+	cout << "--sys-dmg \t\t Plays ROMs in DMG mode." << endl;
+	cout << "--sys-gbc \t\t Plays ROMs in GBC mode." << endl;
+	cout << "--sys-gba \t\t Plays ROMs in GBA's GBC mode (currently WIP)." << endl;
+	cout << "--sys-hybrid \t\t Plays ROMs in hybrid DMG/GBC mode." << endl;
 	cout << "--dotrender \t\t Enables the more accurate dot-based renderer." << endl;
 	cout << "--accurate-colors \t\t Improves the accuracy of the displayed colors (GBC only)." << endl;
 	cout << "--mbc1m \t\t Enables the MBC1 multicart mode, if applicable." << endl;
@@ -315,6 +317,31 @@ namespace gb
 
 	return true;
     }
+
+    void GBCore::setsystemtype(int index)
+    {
+	switch (index)
+	{
+	    case 0: coremmu->gameboy = Console::Default; break;
+	    case 1: coremmu->gameboy = Console::DMG; break;
+	    case 2: coremmu->gameboy = Console::CGB; break;
+	    case 3: coremmu->gameboy = Console::AGB; break;
+	    default: coremmu->gameboy = Console::Default; break;
+	}
+    }
+
+    void GBCore::connectserialdevice(int index)
+    {
+	switch (index)
+	{
+	    case 0: connectserialdevice(new Disconnected()); break;
+	    case 1: connectserialdevice(new GBPrinter()); break;
+	    case 2: connectserialdevice(new MobileAdapterGB()); break;
+	    case 3: connectserialdevice(new BarcodeBoy()); break;
+	    case 4: connectserialdevice(new TurboFileGB()); break;
+	    default: connectserialdevice(new Disconnected()); break;
+	}
+    }
     
     void GBCore::connectserialdevice(SerialDevice *cb)
     {
@@ -325,6 +352,7 @@ namespace gb
 	    cb = new Disconnected();
 	}
 
+	saveconfigaddon();
     	dev = NULL;
 	cout << "Connecting addon of " << cb->getaddonname() << endl;
 	auto serialcb = bind(&Serial::recieve, &*coreserial, _1);
@@ -391,6 +419,11 @@ namespace gb
 
     bool GBCore::loadconfigaddon()
     {
+	if (dev == NULL)
+	{
+	    return true;
+	}
+
 	if (dev->getsavefilename() != "")
 	{
 	    return dev->loadfile(front->loadfile(dev->getsavefilename()));
@@ -401,6 +434,11 @@ namespace gb
 
     bool GBCore::saveconfigaddon()
     {
+	if (dev == NULL)
+	{
+	    return true;
+	}
+
 	if (dev->getsavefilename() != "")
 	{
 	    return front->savefile(dev->getsavefilename(), dev->getsavefiledata());
@@ -708,7 +746,14 @@ namespace gb
 	    }
 	}
 	
+	iscorerunning = true;
+	paused = false;
 	return true;
+    }
+
+    bool GBCore::isrunning()
+    {
+	return iscorerunning;
     }
 
     void GBCore::setsamplerate(int val)
@@ -757,14 +802,11 @@ namespace gb
 
     void GBCore::resetcore()
     {
-	shutdown();
-	initcore();
-    }
+	cout << "Resetting GBCore..." << endl;
 
-    void GBCore::resetcoreretro()
-    {
-	shutdown();
-	preinit();
-	init();
+	// Shut down core components without
+	// resetting frontend or attached devices
+	shutdown(true);
+	initcore();
     }
 };

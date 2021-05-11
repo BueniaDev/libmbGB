@@ -7,66 +7,86 @@
     <x>0</x>
     <y>0</y>
     <width>320</width>
-    <height>318</height>
+    <height>240</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>mbGB-Qt</string>
   </property>
-  <widget class="QWidget" name="centralwidget"/>
+  <widget class="QWidget" name="centralWidget"/>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
      <width>320</width>
-     <height>30</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
     <property name="title">
      <string>File</string>
     </property>
-    <addaction name="openromaction"/>
-    <addaction name="closeromaction"/>
-    <addaction name="quitaction"/>
+    <addaction name="actionOpenROM"/>
+    <addaction name="actionCloseROM"/>
+    <addaction name="actionQuit"/>
    </widget>
    <widget class="QMenu" name="menuEmulation">
     <property name="title">
      <string>Emulation</string>
     </property>
-    <addaction name="pauseaction"/>
-    <addaction name="resetaction"/>
-    <addaction name="separator"/>
-    <addaction name="actionSettings_2"/>
+    <addaction name="actionPause"/>
+    <addaction name="actionReset"/>
+   </widget>
+   <widget class="QMenu" name="menuSettings">
+    <property name="title">
+     <string>Settings</string>
+    </property>
+    <addaction name="actionGeneral"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
      <string>Help</string>
     </property>
-    <addaction name="aboutaction"/>
-    <addaction name="aboutqtaction"/>
+    <addaction name="actionAbout"/>
+    <addaction name="actionAboutQt"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEmulation"/>
+   <addaction name="menuSettings"/>
    <addaction name="menuHelp"/>
   </widget>
-  <action name="openromaction">
+  <action name="actionOpenROM">
    <property name="text">
     <string>Open ROM...</string>
    </property>
   </action>
-  <action name="closeromaction">
+  <action name="actionCloseROM">
    <property name="text">
     <string>Close ROM...</string>
    </property>
   </action>
-  <action name="quitaction">
+  <action name="actionQuit">
    <property name="text">
     <string>Quit</string>
    </property>
   </action>
-  <action name="pauseaction">
+  <action name="actionAbout">
+   <property name="text">
+    <string>About...</string>
+   </property>
+  </action>
+  <action name="actionAboutQt">
+   <property name="text">
+    <string>About Qt...</string>
+   </property>
+  </action>
+  <action name="actionGeneral">
+   <property name="text">
+    <string>General</string>
+   </property>
+  </action>
+  <action name="actionPause">
    <property name="checkable">
     <bool>true</bool>
    </property>
@@ -74,24 +94,9 @@
     <string>Pause</string>
    </property>
   </action>
-  <action name="resetaction">
+  <action name="actionReset">
    <property name="text">
     <string>Reset</string>
-   </property>
-  </action>
-  <action name="aboutaction">
-   <property name="text">
-    <string>About...</string>
-   </property>
-  </action>
-  <action name="aboutqtaction">
-   <property name="text">
-    <string>About Qt...</string>
-   </property>
-  </action>
-  <action name="actionSettings_2">
-   <property name="text">
-    <string>Settings...</string>
    </property>
   </action>
  </widget>

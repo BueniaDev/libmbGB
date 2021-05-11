@@ -7,18 +7,18 @@ fi
 
 mkdir -p dist
 
-if [ -d "example/sdl2" ]; then
-	for lib in $(ldd example/sdl2/example.exe | grep mingw | sed "s/.*=> //" | sed "s/(.*)//"); do
+if [ -d "mbGB-SDL2" ]; then
+	for lib in $(ldd mbGB-SDL2/mbGB-SDL2.exe | grep mingw | sed "s/.*=> //" | sed "s/(.*)//"); do
 		cp "${lib}" dist
 	done
-	cp example/sdl2/example.exe dist
+	cp mbGB-SDL2/mbGB-SDL2.exe dist
 fi
 
-if [ -d "example/qt" ]; then
-	for lib in $(ldd example/qt/mbGB-Qt.exe | grep mingw | sed "s/.*=> //" | sed "s/(.*)//"); do
+if [ -d "mbGB-Qt" ]; then
+	for lib in $(ldd mbGB-Qt/mbGB-Qt.exe | grep mingw | sed "s/.*=> //" | sed "s/(.*)//"); do
 		cp "${lib}" dist
 	done
-	cp example/qt/mbGB-Qt.exe dist
+	cp mbGB-Qt/mbGB-Qt.exe dist
 fi
 
 cp ../res/bootroms/bin/dmg_bios.bin dist
@@ -26,6 +26,6 @@ cp ../res/bootroms/bin/cgb_bios.bin dist
 cp ../res/bootroms/bin/agb_bios.bin dist
 cp -r ../res/shaders dist
 cp ../res/libmbgb.toml dist
-if [ -d "example/qt" ]; then
+if [ -d "mbGB-Qt" ]; then
     windeployqt dist/mbGB-Qt.exe
 fi

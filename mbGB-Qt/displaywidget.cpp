@@ -14,11 +14,13 @@ DisplayWidget::~DisplayWidget()
 void DisplayWidget::init()
 {
     is_cleared = false;
+    repaint();
 }
 
 void DisplayWidget::shutdown()
 {
     is_cleared = true;
+    repaint();
 }
 
 void DisplayWidget::paintEvent(QPaintEvent *event)

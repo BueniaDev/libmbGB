@@ -1,12 +1,3 @@
-[submodule "example/sdl2-imgui/external/imgui"]
-	path = example/sdl2-imgui/external/imgui
-	url = https://github.com/ocornut/imgui.git
-[submodule "example/sdl2-imgui/external/imgui_sdl"]
-	path = example/sdl2-imgui/external/imgui_sdl
-	url = https://github.com/Tyyppi77/imgui_sdl.git
-[submodule "example/sdl2-imgui/external/tinyfiledialogs"]
-	path = example/sdl2-imgui/external/tinyfiledialogs
-	url = https://github.com/native-toolkit/tinyfiledialogs.git
-[submodule "example/libretro/external/libretro-common"]
-	path = example/libretro/external/libretro-common
+[submodule "mbGB-retro/external/libretro-common"]
+	path = mbGB-retro/external/libretro-common
 	url = https://github.com/libretro/libretro-common.git

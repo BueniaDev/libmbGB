@@ -1,5 +1,3 @@
-project(headless)
-
 set(EXAMPLE_SOURCES 
 	main.cpp)
 

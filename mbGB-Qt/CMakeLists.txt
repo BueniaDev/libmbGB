@@ -1,30 +1,28 @@
 project(mbGB-Qt)
 
-option(BUILD_QT5 "Build mbGB-Qt with Qt5." ON)
-if (UNIX AND NOT APPLE)
-    option(BUILD_QT6 "Build mbGB-Qt with Qt6 (highly experimental)." OFF)
-endif()
+option(BUILD_QT6 "Build mbGB-Qt with Qt6 (highly experimental)." OFF)
 
-if (BUILD_QT5 STREQUAL "ON")
-    message(STATUS "Building mbGB-Qt with Qt5.")
-    find_package(Qt5 COMPONENTS Core Gui Widgets REQUIRED)
-    set(QT_LINK_LIBS Qt5::Core Qt5::Gui Qt5::Widgets)
-elseif(BUILD_QT6 STREQUAL "ON")
+if (BUILD_QT6 STREQUAL "ON")
     message(STATUS "Building mbGB-Qt with Qt6.")
-    message(WARNING "This configuration is highly experimental, and may not build correctly on all supported (Unix) platforms, so be EXTREMELY careful here!")
+    message(WARNING "This configuration is highly experimental, and may not build correctly on all supported platforms, so be EXTREMELY careful here!")
     find_package(Qt6 COMPONENTS Core Gui Widgets OpenGL OpenGLWidgets REQUIRED)
     set(QT_LINK_LIBS Qt6::Core Qt6::Gui Qt6::Widgets Qt6::OpenGL Qt6::OpenGLWidgets)
 else()
-    message(SEND_ERROR "Invalid Qt framework configuration. Please select at least one and only one Qt framework to link against mbGB-Qt.")
+    message(STATUS "Building mbGB-Qt with Qt5.")
+    find_package(Qt5 COMPONENTS Core Gui Widgets REQUIRED)
+    set(QT_LINK_LIBS Qt5::Core Qt5::Gui Qt5::Widgets)
 endif()
 
 
 set(EXAMPLE_SOURCES
 	displaywidget.h
 	displaywidget.cpp
+	emusettingsdialog.h
+	emusettingsdialog.cpp
+	emusettingsdialog.ui
 	mainwindow.h
 	mainwindow.cpp
-	mainwindow.ui 
+	mainwindow.ui
 	main.cpp)
 
 set(CMAKE_AUTOMOC ON)

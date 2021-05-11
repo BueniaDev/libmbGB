@@ -4,17 +4,17 @@
 using namespace gb;
 using namespace std;
 
-static array<pair<size_t, Button>, 8> keymap = 
+static array<pair<size_t, gbButton>, 8> keymap = 
 {
     {
-	{ RETRO_DEVICE_ID_JOYPAD_UP, Button::Up },
-	{ RETRO_DEVICE_ID_JOYPAD_DOWN, Button::Down },
-	{ RETRO_DEVICE_ID_JOYPAD_LEFT, Button::Left },
-	{ RETRO_DEVICE_ID_JOYPAD_RIGHT, Button::Right },
-	{ RETRO_DEVICE_ID_JOYPAD_A, Button::A },
-	{ RETRO_DEVICE_ID_JOYPAD_B, Button::B },
-	{ RETRO_DEVICE_ID_JOYPAD_START, Button::Start },
-	{ RETRO_DEVICE_ID_JOYPAD_SELECT, Button::Select },
+	{ RETRO_DEVICE_ID_JOYPAD_UP, gbButton::Up },
+	{ RETRO_DEVICE_ID_JOYPAD_DOWN, gbButton::Down },
+	{ RETRO_DEVICE_ID_JOYPAD_LEFT, gbButton::Left },
+	{ RETRO_DEVICE_ID_JOYPAD_RIGHT, gbButton::Right },
+	{ RETRO_DEVICE_ID_JOYPAD_A, gbButton::A },
+	{ RETRO_DEVICE_ID_JOYPAD_B, gbButton::B },
+	{ RETRO_DEVICE_ID_JOYPAD_START, gbButton::Start },
+	{ RETRO_DEVICE_ID_JOYPAD_SELECT, gbButton::Select },
     }
 };
 
@@ -105,20 +105,15 @@ class LibretroFrontend : public mbGBFrontend
     	    {
     	    	if (enabled && !isrumbling)
     	    	{
-    	    	    rumble.set_rumble_state(1, RETRO_RUMBLE_STRONG, 0xFFFF); 
+    	    	    // rumble.set_rumble_state(1, RETRO_RUMBLE_STRONG, 0xFFFF); 
     	    	    isrumbling = true;
     	    	}
     	    	else if (!enabled && isrumbling)
     	    	{
-    	    	    rumble.set_rumble_state(1, RETRO_RUMBLE_STRONG, 0); 
+    	    	    // rumble.set_rumble_state(1, RETRO_RUMBLE_STRONG, 0); 
     	    	    isrumbling = false;
     	    	}
     	    }
-    	}
-    
-    	void sensorcallback(uint16_t& sensorx, uint16_t& sensory)
-    	{
-    	    
     	}
     
     	void pixelcallback()
@@ -129,7 +124,7 @@ class LibretroFrontend : public mbGBFrontend
     	    {
     	    	for (int j = 0; j < 144; j++)
     	    	{
-    	    	    RGB framecolor = core->getpixel(i, j);
+    	    	    gbRGB framecolor = core->getpixel(i, j);
     	    	    
     	    	    auto red = rgb24torgb15(framecolor.red);
     	    	    auto green = rgb24torgb15(framecolor.green);
@@ -170,6 +165,12 @@ class LibretroFrontend : public mbGBFrontend
 
 	bool savefile(string filename, vector<uint8_t> data)
 	{
+	    // If the data vector is empty, don't bother saving its contents
+	    if (data.empty())
+	    {
+		return true;
+	    }
+
 	    FILE *ret = fopen(filename.c_str(), "wb");
 	    
 	    if (ret == NULL)
@@ -215,6 +216,12 @@ class LibretroFrontend : public mbGBFrontend
 	{
 	    gen_noise(arr);
 	    return true;
+	}
+
+	// Not sure if Libretro has any printer APIs, either, so we're gonna stub this function as well...
+	void printerframe(vector<gbRGB> &temp, bool appending)
+	{
+	    return;
 	}
     
     	void setenvironment(retro_environment_t cb)
