@@ -53,6 +53,7 @@ namespace gb
 
     void GPU::shutdown()
     {
+	framebuffer.clear();
 	cout << "GPU::Shutting down..." << endl;
     }
 
@@ -118,11 +119,11 @@ namespace gb
     {
 	if (!islcdenabled()) // Checks if LCD is disabled
 	{
-	    scanlinecounter = 0; // Disabling this breaks The Powerpuff Girls: Battle Him (obscure title, I know)
+	    scanlinecounter = 0;
 	    currentscanline = 0;
 	    windowlinecounter = 0;
-	    ly = 0; // Disabling this...
-	    setstatmode(0); // or this breaks Dr. Mario
+	    ly = 0;
+	    setstatmode(0);
 	    return;
 	}
 
@@ -158,6 +159,7 @@ namespace gb
 		if (!isdotrender())
 		{
 		    renderscanline();
+		    updateframebuffer();
 		}
 	    }
 	    else if (scanlinecounter == mode3cycles()) // According to The Cycle-Accurate Gameboy Docs, the number of cycles in mode 3 varies slightly.
@@ -216,6 +218,8 @@ namespace gb
 
 		renderpixel(); // Renders current pixel
 	    }
+
+	    updateframebuffer();
 	}
     }
 
@@ -282,7 +286,7 @@ namespace gb
 	}
 	else if (wasenabled && !islcdenabled())
 	{
-	    scanlinecounter = 0; // Disabling this breaks The Powerpuff Girls: Battle Him (obscure title, I know)
+	    scanlinecounter = 0;
 	    windowlinecounter = 0;
 	    ly = 0;
 	    setstatmode(0);
@@ -320,6 +324,64 @@ namespace gb
 	    {
 	        currentscanline = ++ly; // Otherwise, increment scanline
 	    }
+	}
+    }
+
+    void GPU::setpixel(int x, int y, gbRGB color)
+    {
+	render_scanline = y;
+	scanlinebuffer[x] = color;
+    }
+
+    void GPU::updateframebuffer()
+    {
+	if (gpumem.isagbconsole())
+	{
+	    if (is_gba_stretched)
+	    {
+		int offset = 1920 + (render_scanline * 240);
+		int stretched_pos = 0;
+		int old_pos = 0;
+
+		for (int x = 0; x < 160; x++)
+		{
+		    old_pos = x;
+		    stretchedbuffer[stretched_pos++] = scanlinebuffer[x++];
+		    stretchedbuffer[stretched_pos++] = rgbBlend(scanlinebuffer[old_pos], scanlinebuffer[x]);
+		    stretchedbuffer[stretched_pos++] = scanlinebuffer[x];
+		}
+
+		for (int x = 0; x < 240; x++)
+		{
+		    int index = (offset + x);
+		    framebuffer[index] = stretchedbuffer[x];
+		}
+
+		stretchedbuffer.fill({0, 0, 0});
+		scanlinebuffer.fill({0, 0, 0});
+	    }
+	    else
+	    {
+		int offset = 1960 + (render_scanline * 240);
+
+		for (int x = 0; x < 160; x++)
+		{
+		    int index = (offset + x);
+		    framebuffer[index] = scanlinebuffer[x];
+		}
+
+		scanlinebuffer.fill({0, 0, 0});
+	    }
+	}
+	else
+	{
+	    for (int x = 0; x < 160; x++)
+	    {
+		int index = (x + (render_scanline * screenwidth));
+		framebuffer[index] = scanlinebuffer[x];
+	    }
+
+	    scanlinebuffer.fill({0, 0, 0});
 	}
     }
 
@@ -544,14 +606,14 @@ namespace gb
 	    color = bgcolor;
 	}
 
-	int gbcolor = 0;
+	uint8_t dmgcolor = 0;
 
 	switch (color)
 	{
-	    case 0: gbcolor = 0xFF; break;
-	    case 1: gbcolor = 0xCC; break;
-	    case 2: gbcolor = 0x77; break;
-	    case 3: gbcolor = 0x00; break;
+	    case 0: dmgcolor = 0xFF; break;
+	    case 1: dmgcolor = 0xCC; break;
+	    case 2: dmgcolor = 0x77; break;
+	    case 3: dmgcolor = 0x00; break;
 	}
 
 	if ((pixelx < 0) || (pixelx >= 160))
@@ -559,10 +621,8 @@ namespace gb
 	    return;
 	}
 
-	int index = (pixelx + (ly * 160));
-	framebuffer[index].red = gbcolor;
-	framebuffer[index].green = gbcolor;
-	framebuffer[index].blue = gbcolor;
+	gbRGB gbcolor = {dmgcolor, dmgcolor, dmgcolor};
+	setpixel(pixelx, ly, gbcolor);
     }
 
     void GPU::rendercgbpixel()
@@ -629,9 +689,9 @@ namespace gb
 	    isobjcolor = false;
 	}
 
-	int red = 0;
-	int green = 0;
-	int blue = 0;
+	uint8_t red = 0;
+	uint8_t green = 0;
+	uint8_t blue = 0;
 
 	if (gpumem.isdmgmode() && !gpumem.biosload)
 	{
@@ -669,10 +729,8 @@ namespace gb
 	    return;
 	}
 
-	int index = (pixelx + (ly * 160));
-	framebuffer[index].red = red;
-	framebuffer[index].green = green;
-	framebuffer[index].blue = blue;
+	gbRGB gbcolor = {red, green, blue};
+	setpixel(pixelx, ly, gbcolor);
     }
 
     void GPU::renderdmgbgpixel()
@@ -834,9 +892,6 @@ namespace gb
 
 	    uint8_t palette = (obj.palette) ? objpalette1 : objpalette0;
 	    objcolor = getdmgcolor(objpal, palette);
-	    
-	    cout << dec << (int)(objcolor) << endl;
-	    
 	    objprior = obj.priority;
 	}
     }
@@ -1018,9 +1073,9 @@ namespace gb
 	    colornum <<= 1;
 	    colornum |= BitGetVal(data1, colorbit);
 
-	    int red = 0;
-	    int green = 0;
-	    int blue = 0;
+	    uint8_t red = 0;
+	    uint8_t green = 0;
+	    uint8_t blue = 0;
 
 
 	    if (gpumem.isdmgconsole())
@@ -1061,10 +1116,8 @@ namespace gb
 
 	    bgscanline[pixel] = colornum;
 
-	    int index = (pixel + (scanline * 160));
-	    framebuffer[index].red = red;
-	    framebuffer[index].green = green;
-	    framebuffer[index].blue = blue;
+	    gbRGB gbcolor = {red, green, blue};
+	    setpixel(pixel, scanline, gbcolor);
 	}
     }
 
@@ -1164,9 +1217,9 @@ namespace gb
 	        colornum <<= 1;
 	        colornum |= BitGetVal(data1, colorbit);
 
-	        int red = 0;
-	        int green = 0;
-	        int blue = 0;
+	        uint8_t red = 0;
+	        uint8_t green = 0;
+	        uint8_t blue = 0;
 
 		if (gpumem.isdmgconsole())
 		{
@@ -1207,10 +1260,9 @@ namespace gb
 
 	        bgscanline[pixel] = colornum;
 
-	        int index = (pixel + (scanline * 160));
-		framebuffer[index].red = red;
-		framebuffer[index].green = green;
-		framebuffer[index].blue = blue;
+
+		gbRGB gbcolor = {red, green, blue};
+		setpixel(pixel, scanline, gbcolor);
 	    }
 	}
     }
@@ -1279,9 +1331,9 @@ namespace gb
 		    colornum |= BitGetVal(data1, spritepixel);
 		    uint8_t coloraddr = TestBit(flags, 4) ? objpalette1 : objpalette0;
 
-		    int red = 0;
-		    int green = 0;
-		    int blue = 0;
+		    uint8_t red = 0;
+		    uint8_t green = 0;
+		    uint8_t blue = 0;
 
 		   
 		    if (gpumem.isdmgconsole())
@@ -1341,11 +1393,9 @@ namespace gb
 			continue;
 		    }
 		    
-		    int index = (xpixel + (scanline * 160));
-		    
-		    framebuffer[index].red = red;
-		    framebuffer[index].green = green;
-		    framebuffer[index].blue = blue;
+
+		    gbRGB gbcolor = {red, green, blue};
+		    setpixel(xpixel, scanline, gbcolor);
 		}
 	    }
 	}

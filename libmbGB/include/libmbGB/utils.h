@@ -79,6 +79,21 @@ namespace gb
 	uint8_t red;
 	uint8_t green;
 	uint8_t blue;
+
+	bool operator ==(const gbRGB &b) const
+	{
+	    const gbRGB a = *this;
+	    bool result = (a.red == b.red);
+	    result &= (a.green == b.green);
+	    result &= (a.blue == b.blue);
+	    return result;
+	}
+
+	bool operator !=(const gbRGB &b) const
+	{
+	    const gbRGB a = *this;
+	    return !(a == b);
+	}
     };
 
     class LIBMBGB_API mbGBFrontend

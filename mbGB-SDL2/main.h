@@ -8,22 +8,21 @@
 #else
 #include <SDL2/SDL.h>
 #endif
-#ifdef LIBMBGB_OPENGL
+#ifdef USE_OPENGL
 #ifdef __WIN32__
 #include <GL/glew.h>
 #endif // __WIN32__
 #include <SDL2/SDL_opengl.h>
-#endif // LIBMBGB_OPENGL
+#endif // USE_OPENGL
 #include <iostream>
 #include <sstream>
 #include <functional>
 #include <ctime>
-#include <filesystem>
 #include "toml.h"
-#ifdef LIBMBGB_CAMERA
+#ifdef USE_WEBCAM
 #include <opencv2/opencv.hpp>
 using namespace cv;
-#endif // LIBMBGB_CAMERA
+#endif // USE_WEBCAM
 using namespace gb;
 using namespace std;
 using namespace toml;
@@ -100,11 +99,11 @@ class PixelRenderer
 
 	virtual bool init_renderer(string vert, string frag) = 0;
 	virtual void shutdown_renderer() = 0;
-	virtual void draw_pixels(array<gbRGB, (160 * 144)> arr, int scale) = 0;
+	virtual void draw_pixels(vector<gbRGB> arr, int scale) = 0;
 	virtual void take_screenshot(string filename) = 0;
 };
 
-#ifdef LIBMBGB_OPENGL
+#ifdef USE_OPENGL
 
 class OpenGLRenderer : public PixelRenderer
 {
@@ -195,7 +194,7 @@ class OpenGLRenderer : public PixelRenderer
 	    SDL_GL_DeleteContext(context);
 	}
 
-	void draw_pixels(array<gbRGB, (160 * 144)> arr, int scale)
+	void draw_pixels(vector<gbRGB> arr, int scale)
 	{
 	    if (render_scale != scale)
 	    {
@@ -203,7 +202,7 @@ class OpenGLRenderer : public PixelRenderer
 	    }
 
 	    glBindTexture(GL_TEXTURE_2D, lcd_texture);
-	    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 160, 144, 0, GL_RGB, GL_UNSIGNED_BYTE, arr.data());
+	    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, core->screenwidth, core->screenheight, 0, GL_RGB, GL_UNSIGNED_BYTE, arr.data());
 	    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
@@ -235,11 +234,11 @@ class OpenGLRenderer : public PixelRenderer
 	    int height = 0;
 	    SDL_GetWindowSize(window, &width, &height);
 
-	    pixels.resize((3 * width * height), 0);
+	    pixels.resize((4 * width * height), 0);
 
-	    glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
+	    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
 
-	    SDL_Surface *surf = SDL_CreateRGBSurfaceWithFormatFrom(pixels.data(), width, height, 24, (3 * width), SDL_PIXELFORMAT_RGB24);
+	    SDL_Surface *surf = SDL_CreateRGBSurfaceWithFormatFrom(pixels.data(), width, height, 32, (3 * width), SDL_PIXELFORMAT_RGBA32);
 
 	    SDL_InvertSurfaceVert(surf);
 	    SDL_SaveBMP(surf, filename.c_str());
@@ -270,7 +269,7 @@ class OpenGLRenderer : public PixelRenderer
 
 	    if (SDL_LockIfMust(surface) < 0)
 	    {
-		return -2;
+		return -1;
 	    }
 
 	    if (surface->h < 2)
@@ -285,7 +284,7 @@ class OpenGLRenderer : public PixelRenderer
 	    if (t == NULL)
 	    {
 		SDL_UnlockIfMust(surface);
-		return -2;
+		return -1;
 	    }
 
 	    memcpy(t, surface->pixels, pitch);
@@ -421,7 +420,7 @@ class OpenGLRenderer : public PixelRenderer
 	}
 };
 
-#endif // LIBMBGB_OPENGL
+#endif // USE_OPENGL
 
 class SoftwareRenderer : public PixelRenderer
 {
@@ -438,66 +437,50 @@ class SoftwareRenderer : public PixelRenderer
 
 	bool init_renderer(string vert, string frag)
 	{
-	    pix_surface = SDL_GetWindowSurface(window);
+	    render = SDL_CreateRenderer(window, -1, 0);
+	    texture = SDL_CreateTexture(render, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STREAMING, core->screenwidth, core->screenheight);
+	    SDL_SetRenderDrawColor(render, 0, 0, 0, 255);
 	    return true;
 	}
 
 	void shutdown_renderer()
 	{
-
+	    SDL_DestroyTexture(texture);
+	    SDL_DestroyRenderer(render);
 	}
 
-	void draw_pixels(array<gbRGB, (160 * 144)> arr, int scale)
+	void draw_pixels(vector<gbRGB> arr, int scale)
 	{
-	    SDL_Rect pixel = {0, 0, scale, scale};
-
-	    if (!core->isagbmode())
-	    {
-		for (int i = 0; i < core->screenwidth; i++)
-    		{
-		    pixel.x = (i * scale);
-		    for (int j = 0; j < core->screenheight; j++)
-		    {
-	    		pixel.y = (j * scale);
-	    		uint8_t red = core->getpixel(i, j).red;
-	    		uint8_t green = core->getpixel(i, j).green;
-	    		uint8_t blue = core->getpixel(i, j).blue;
-
-	    		SDL_FillRect(pix_surface, &pixel, SDL_MapRGB(pix_surface->format, red, green, blue));
-		    }
-		}
-	    }
-	    else
-    	    {
-		for (int i = 40; i < 200; i++)
-		{
-		    pixel.x = (i * scale);
-		    for (int j = 8; j < 152; j++)
-		    {
-	    		pixel.y = (j * scale);
-	    		int xpos = (i - 40);
-	    		int ypos = (j - 8);
-	    		uint8_t red = core->getpixel(xpos, ypos).red;
-	    		uint8_t green = core->getpixel(xpos, ypos).green;
-	    		uint8_t blue = core->getpixel(xpos, ypos).blue;
-
-	    		SDL_FillRect(pix_surface, &pixel, SDL_MapRGB(pix_surface->format, red, green, blue));
-		    }
-    		}
-    
-    	    }
-
-	    SDL_UpdateWindowSurface(window);
+	    assert(render && texture);
+	    SDL_UpdateTexture(texture, NULL, arr.data(), (core->screenwidth * sizeof(gbRGB)));
+	    SDL_RenderClear(render);
+	    SDL_RenderCopy(render, texture, NULL, NULL);
+	    SDL_RenderPresent(render);
 	}
 
 	void take_screenshot(string filename)
 	{
+	    int width, height;
+	    SDL_GetRendererOutputSize(render, &width, &height);
+	    SDL_Surface *pix_surface = SDL_CreateRGBSurface(0, width, height, 32, 0xFF0000, 0xFF00, 0xFF, 0xFF000000);
+
+	    if (pix_surface == NULL)
+	    {
+		cout << "Could not create surface! SDL_Error: " << SDL_GetError() << endl;
+		return;
+	    }
+
+	    SDL_RenderReadPixels(render, NULL, SDL_PIXELFORMAT_ARGB8888, pix_surface->pixels, pix_surface->pitch);
 	    SDL_SaveBMP(pix_surface, filename.c_str());
+	    SDL_FreeSurface(pix_surface);
 	}
 
 	SDL_Window *window = NULL;
-	SDL_Surface *pix_surface = NULL;
+	SDL_Renderer *render = NULL;
+	SDL_Texture *texture = NULL;
 	GBCore *core = NULL;
+
+	int render_scale = 0;
 };
 
 #endif // MBGB_SDL2_H

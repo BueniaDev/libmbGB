@@ -227,16 +227,17 @@ vector<uint8_t> mbGBWindow::loadfile(string filename)
 {
     vector<uint8_t> result;
 
-    QFile file(QString::fromStdString(filename));
+    fstream file(filename.c_str(), ios::in | ios::binary | ios::ate);
 
-    if (!file.open(QIODevice::ReadOnly))
+    if (file.is_open())
     {
-	return result;
+	streampos size = file.tellg();
+	result.resize(size, 0);
+	file.seekg(0, ios::beg);
+	file.read((char*)result.data(), size);
+	file.close();
     }
 
-    QByteArray filearr = file.readAll();
-    result = vector<uint8_t>(filearr.constData(), filearr.constData() + filearr.size());
-    file.close();
     return result;
 }
 
@@ -248,16 +249,15 @@ bool mbGBWindow::savefile(string filename, vector<uint8_t> data)
 	return true;
     }
 
-    QFile file(QString::fromStdString(filename));
+    fstream file(filename.c_str(), ios::out | ios::binary);
 
-    if (!file.open(QIODevice::WriteOnly))
+    if (!file.is_open())
     {
-	cout << "mbGB::File could not be written." << endl;
+	cout << "mbGB::Savefile could not be written." << endl;
 	return false;
     }
 
-    QByteArray savedata(reinterpret_cast<const char*>(data.data()), data.size());
-    file.write(savedata);
+    file.write((char*)data.data(), data.size());
     file.close();
     return true;
 }

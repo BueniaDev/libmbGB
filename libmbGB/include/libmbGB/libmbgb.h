@@ -84,9 +84,7 @@ namespace gb
 	    bool savestate();
 	    void dosavestate(mbGBSavestate &file);
 	    gbRGB getpixel(int x, int y);
-	    uint32_t getpixel_u32(int x, int y);
-	    array<gbRGB, (160 * 144)> getframebuffer();
-	    array<uint32_t, (160 * 144)> getframebuffer_u32();
+	    vector<gbRGB> getframebuffer();
 	    void printusage(char *argv);
 	    void keypressed(gbButton button);
 	    void keyreleased(gbButton button);
@@ -141,16 +139,12 @@ namespace gb
 	    string biosname;
 
 	    bool biosload();
+	    bool isagbmode();
 
 	    int screenwidth = 0;
 	    int screenheight = 0;
 
 	    int totalcycles = 0;
-
-	    inline bool isagbmode()
-	    {
-		return (coremmu->agbmode);
-	    }
 	    
 	    void swipebarcode()
 	    {

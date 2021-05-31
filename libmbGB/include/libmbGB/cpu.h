@@ -31,12 +31,6 @@
 using namespace gb;
 using namespace std;
 
-#if defined(MSB_FIRST) || defined(__BIG_ENDIAN__) || (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
-#define IS_BIG_ENDIAN
-#else
-#define IS_LITTLE_ENDIAN
-#endif
-
 namespace gb
 {
 

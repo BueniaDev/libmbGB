@@ -68,7 +68,6 @@ namespace gb
 	    MMU();
 	    ~MMU();
 
-	    bool agbmode = false;
 	    Console gameboy = Console::Default;
 	    Mode gbmode = Mode::Default;
 	    MBCType gbmbc;
@@ -78,18 +77,18 @@ namespace gb
 	    void initnot();
 	    void shutdown();
 		
-		array<memoryreadfunc, 0x80> memoryreadhandlers;
-		array<memorywritefunc, 0x80> memorywritehandlers;
+	    array<memoryreadfunc, 0x80> memoryreadhandlers;
+	    array<memorywritefunc, 0x80> memorywritehandlers;
 		
-		void addmemoryreadhandler(uint16_t addr, memoryreadfunc cb)
-		{
-			memoryreadhandlers.at((addr - 0xFF00)) = cb;
-		}
+	    void addmemoryreadhandler(uint16_t addr, memoryreadfunc cb)
+	    {
+		memoryreadhandlers.at((addr - 0xFF00)) = cb;
+	    }
 		
-		void addmemorywritehandler(uint16_t addr, memorywritefunc cb)
-		{
-			memorywritehandlers.at((addr - 0xFF00)) = cb;
-		}
+	    void addmemorywritehandler(uint16_t addr, memorywritefunc cb)
+	    {
+		memorywritehandlers.at((addr - 0xFF00)) = cb;
+	    }
 
 	    inline void initio()
 	    {
@@ -581,11 +580,8 @@ namespace gb
 	    string romsize;
 	    string ramsize;
 
-	    bool loadBIOS(string filename);
 	    bool loadBIOS(vector<uint8_t> data);
             bool loadROM(vector<uint8_t> data);
-	    bool loadROM(string filename);
-	    bool loadROM(const char *filename, const uint8_t* buffer, int size);
 
 	    uint8_t readByte(uint16_t addr);
 	    void writeByte(uint16_t addr, uint8_t value);

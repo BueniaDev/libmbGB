@@ -138,7 +138,6 @@ namespace gb
 	cout << "--sys-gba \t\t Plays ROMs in GBA's GBC mode (currently WIP)." << endl;
 	cout << "--sys-hybrid \t\t Plays ROMs in hybrid DMG/GBC mode." << endl;
 	cout << "--dotrender \t\t Enables the more accurate dot-based renderer." << endl;
-	cout << "--accurate-colors \t\t Improves the accuracy of the displayed colors (GBC only)." << endl;
 	cout << "--mbc1m \t\t Enables the MBC1 multicart mode, if applicable." << endl;
 	cout << "--serialdebug \t\t Emulates the custom SerialDebug device (useful for reverse-engineering of Link Cable-based addons)." << endl;
 	cout << "--printer \t\t Emulates the Game Boy Printer." << endl;
@@ -158,6 +157,11 @@ namespace gb
     bool GBCore::biosload()
     {
 	return coremmu->biosload;
+    }
+
+    bool GBCore::isagbmode()
+    {
+	return coremmu->isagbconsole();
     }
 
     bool GBCore::getoptions(int argc, char* argv[])
@@ -237,7 +241,6 @@ namespace gb
 
 	    if ((strcmp(argv[i], "--sys-gba") == 0))
 	    {
-		coremmu->agbmode = true;
 		coremmu->gameboy = Console::AGB;
 	    }
 
@@ -253,15 +256,6 @@ namespace gb
 	    else
 	    {
 		setdotrender(false);
-	    }
-
-	    if ((strcmp(argv[i], "--accurate-colors") == 0))
-	    {
-		coregpu->accuratecolors = true;
-	    }
-	    else
-	    {
-		coregpu->accuratecolors = false;
 	    }
 
 	    if ((strcmp(argv[i], "--mbc1m") == 0))
@@ -302,17 +296,6 @@ namespace gb
 	    {
 		connectserialdevice(new BarcodeBoy());
 	    }
-	}
-
-	if (!isagbmode())
-	{
-	    screenwidth = 160;
-	    screenheight = 144;
-	}
-	else
-	{
-	    screenwidth = 240;
-	    screenheight = 160;
 	}
 
 	return true;
@@ -550,54 +533,18 @@ namespace gb
 
     gbRGB GBCore::getpixel(int x, int y)
     {
-	return coregpu->framebuffer[x + (y * 160)];
-    }
-
-    // Fetch pixel from framebuffer (formatted as an ARGB32 pixel)
-    uint32_t GBCore::getpixel_u32(int x, int y)
-    {
-	// Fetch pixel from framebuffer (as internal RGB type)
-	gbRGB pixel = getpixel(x, y);
-
-	// Alpha component (set to 255)
-	uint32_t pixel_u32 = (0xFF << 24);
-	
-	// Red component
-	pixel_u32 |= (pixel.red << 16);
-
-	// Green component
-	pixel_u32 |= (pixel.green << 8);
-
-	// Blue component
-	pixel_u32 |= pixel.blue;
-
-	// Return final pixel value
-	return pixel_u32;
-    }
-
-    array<gbRGB, (160 * 144)> GBCore::getframebuffer()
-    {
-	return coregpu->framebuffer;
-    }
-
-    // Fetch framebuffer (formatted as an array of ARGB32 pixels)
-    array<uint32_t, (160 * 144)> GBCore::getframebuffer_u32()
-    {
-	// Initialize final array
-	array<uint32_t, (160 * 144)> temp;
-	temp.fill(0);
-
-	// Populate array with ARGB-32 formatted pixels from framebuffer
-	for (int x = 0; x < 160; x++)
+	// Sanity check to avoid seg-fault from out-of-bounds vector accesses
+	if (((x < 0) || (x >= screenwidth)) || ((y < 0) || (y >= screenheight)))
 	{
-	    for (int y = 0; y < 144; y++)
-	    {
-		temp[(x + (y * 160))] = getpixel_u32(x, y);
-	    }
+	    return {0, 0, 0};
 	}
 
-	// Return populated array here
-	return temp;
+	return coregpu->framebuffer.at(x + (y * screenwidth));
+    }
+
+    vector<gbRGB> GBCore::getframebuffer()
+    {
+	return coregpu->framebuffer;
     }
 
     void GBCore::keypressed(gbButton button)
@@ -734,6 +681,18 @@ namespace gb
 	    return false;
 	}
 
+
+	if (!isagbmode())
+	{
+	    screenwidth = 160;
+	    screenheight = 144;
+	}
+	else
+	{
+	    screenwidth = 240;
+	    screenheight = 160;
+	}
+
 	init();
 	
 	if (front != NULL)
@@ -742,7 +701,7 @@ namespace gb
 
 	    if (coremmu->isgbcamera())
 	    {
-		return front->camerainit();
+		front->camerainit();
 	    }
 	}
 	

@@ -675,7 +675,7 @@ namespace gb
 		break;
 		case 0x68:
 		{
-		    if (isdmgconsole())
+		    if (!isgbcmode())
 		    {
 		    	return;
 		    }	
@@ -686,7 +686,7 @@ namespace gb
 	        break;
 	        case 0x69:
 	        {
-		    if (!isgbcconsole())
+		    if (!isgbcmode())
 		    {
 		    	return;
 		    }		
@@ -701,7 +701,7 @@ namespace gb
 	    	break;
 	    	case 0x6A:
 	    	{
-		    if (!isgbcconsole())
+		    if (!isgbcmode())
 		    {
 		    	return;
 		    }	
@@ -712,14 +712,14 @@ namespace gb
 	    	break;
 	    	case 0x6B:
 	    	{
-		    if (!isgbcconsole())
+		    if (!isgbcmode())
 		    {
 		    	return;
 		    }		
 
 		    gbcobjpalette[gbcobjpaletteindex] = value;
 
-		    if (gbcbgpalinc)
+		    if (gbcobjpalinc)
 		    {
 		    	gbcobjpaletteindex = ((gbcobjpaletteindex + 1) & 0x3F);
 		    }
@@ -727,7 +727,7 @@ namespace gb
 	    	break;
 	    	case 0x70: 
 	    	{
-		    if (!isgbcconsole())
+		    if (!isgbcmode())
 		    {
 		    	return;
 		    }		
@@ -737,142 +737,6 @@ namespace gb
 	    	break;
 	    	default: break;
 	    }
-	}
-    }
-
-    bool MMU::loadROM(string filename)
-    {
-	cout << "MMU::Loading ROM " << filename << "..." << endl;
-	ifstream file(filename.c_str(), ios::in | ios::binary | ios::ate);
-
-	if (file.is_open())
-	{
-	    streampos size = file.tellg();
-
-	    cartmem.resize(size, 0);
-
-	    file.seekg(0, ios::beg);
-	    file.read((char*)&cartmem[0], size);
-	    file.close();
-
-	    bool cgbflag = ((cartmem[0x0143] == 0xC0) || (cartmem[0x0143] == 0x80));
-
-	    if (gameboy == Console::Default)
-	    {
-		if (cgbflag)
-		{
-		    gameboy = (agbmode) ? Console::AGB : Console::CGB;
-		}
-		else
-		{
-		    gameboy = Console::DMG;
-		}
-	    }
-	    
-
-	    if (isgbcconsole() && cgbflag && gbmode == Mode::Default)
-	    {
-		gbmode = Mode::CGB;
-	    }
-	    else
-	    {
-		gbmode = Mode::DMG;
-	    }
-
-	    // initvram();
-
-	    cout << "Title: " << determinegametitle(cartmem) << endl;
-	    determinembctype(cartmem);
-	    numrombanks = getrombanks(cartmem);
-	    numrambanks = getrambanks(cartmem);
-	    isromonly(cartmem);
-	    cout << "MBC type: " << mbctype << endl;
-	    cout << "ROM size: " << romsize << endl;
-	    cout << "RAM size: " << ramsize << endl;
-
-	    if (gbmbc != MBCType::None && numrombanks != 0 && size != (numrombanks * 0x4000))
-	    {
-		cout << "MMU::Warning - Size of ROM does not match size in cartridge header." << endl;
-	    }
-
-	    if (gbmbc == MBCType::MBC7)
-	    {
-		rambanks.clear();
-		rambanks.resize(0x200, 0);
-	    }
-
-	    memcpy(&rom[0], &cartmem[0], 0x8000);
-	    cout << "MMU::" << filename << " succesfully loaded." << endl;
-	    return true;
-	}
-	else
-	{
-	    cout << "MMU::Error - " << filename << " could not be opened." << endl;
-	    return false;
-	}
-    }
-
-    bool MMU::loadROM(const char *filename, const uint8_t* buffer, int size)
-    {
-	cout << "MMU::Loading ROM " << filename << "..." << endl;
-
-	if ((buffer) != NULL)
-	{
-	    cartmem.resize(size, 0);
-
-	    memcpy(&cartmem[0], &buffer[0], size);
-
-	    bool cgbflag = ((cartmem[0x0143] == 0xC0) || (cartmem[0x0143] == 0x80));
-
-	    if (gameboy == Console::Default)
-	    {
-		if (cgbflag)
-		{
-		    gameboy = (agbmode) ? Console::AGB : Console::CGB;
-		}
-		else
-		{
-		    gameboy = Console::DMG;
-		}
-	    }
-	    
-
-	    if (gameboy == Console::CGB && cgbflag && gbmode == Mode::Default)
-	    {
-		gbmode = Mode::CGB;
-	    }
-	    else
-	    {
-		gbmode = Mode::DMG;
-	    }
-
-	    cout << "Title: " << determinegametitle(cartmem) << endl;
-	    determinembctype(cartmem);
-	    cout << "MBC type: " << mbctype << endl;
-	    numrombanks = getrombanks(cartmem);
-	    cout << "ROM size: " << romsize << endl;
-	    numrambanks = getrambanks(cartmem);
-	    cout << "RAM size: " << ramsize << endl;
-
-	    if (gbmbc != MBCType::None && size != (numrombanks * 0x4000))
-	    {
-		cout << "MMU::Warning - Size of ROM does not match size in cartridge header." << endl;
-	    }
-
-	    if (gbmbc == MBCType::MBC7)
-	    {
-		rambanks.clear();
-		rambanks.resize(256, 0);
-	    }
-
-	    memcpy(&rom[0], &cartmem[0], 0x8000);
-	    cout << "MMU::" << filename << " succesfully loaded." << endl;
-	    return true;
-	}
-	else
-	{
-	    cout << "MMU::Error - " << filename << " could not be opened." << endl;
-	    return false;
 	}
     }
 
@@ -888,7 +752,7 @@ namespace gb
 	    {
 		if (cgbflag)
 		{
-		    gameboy = (agbmode) ? Console::AGB : Console::CGB;
+		    gameboy = Console::CGB;
 		}
 		else
 		{
@@ -896,7 +760,7 @@ namespace gb
 		}
 	    }
 	    
-	    if (gameboy == Console::CGB && cgbflag)
+	    if (isgbcconsole() && cgbflag)
 	    {
 		gbmode = Mode::CGB;
 	    }
@@ -935,47 +799,6 @@ namespace gb
 	else
 	{
 	    cout << "MMU::Error - ROM could not be opened." << endl;
-	    return false;
-	}
-    }
-
-    bool MMU::loadBIOS(string filename)
-    {
-	cout << "MMU::Loading BIOS..." << endl;
-
-	ifstream file(filename.c_str(), ios::in | ios::binary | ios::ate);
-
-	if (file.is_open())
-	{
-	    streampos size = file.tellg();
-
-	    if (size == 0x100)
-	    {
-		gameboy = Console::DMG;
-		bios.resize(0x100, 0);
-	    }
-	    else if (size == 0x900)
-	    {
-		gameboy = Console::CGB;
-		bios.resize(0x900, 0);
-	    }
-	    else
-	    {
-		cout << "MMU::Error - BIOS size does not match sizes of the official BIOS." << endl;
-		return false;
-	    }
-
-	    biossize = size;
-
-	    file.seekg(0, ios::beg);
-	    file.read((char*)&bios[0], size);
-	    cout << "MMU::BIOS succesfully loaded." << endl;
-	    file.close();
-	    return true;
-	}
-	else
-	{
-	    cout << "MMU::Error - BIOS could not be opened." << endl;
 	    return false;
 	}
     }

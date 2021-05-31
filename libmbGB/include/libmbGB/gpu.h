@@ -55,13 +55,21 @@ namespace gb
 
 	    void dosavestate(mbGBSavestate &file);
 
+	    bool is_gba_stretched = false;
+
 	    inline void clearscreen()
 	    {
-		for (int i = 0; i < (160 * 144); i++)
+		gbRGB black = {0, 0, 0};
+
+		if (gpumem.isagbconsole())
 		{
-		    framebuffer[i].red = 0xFF;
-		    framebuffer[i].green = 0xFF;
-		    framebuffer[i].blue = 0xFF;
+		    screenwidth = 240;
+		    framebuffer.resize((240 * 160), black);
+		}
+		else
+		{
+		    screenwidth = 160;
+		    framebuffer.resize((160 * 144), black);
 		}
 	    }
 
@@ -71,6 +79,7 @@ namespace gb
 	    bool isly0 = false;
 
 	    bool dotrender = false;
+	    int screenwidth = 0;
 		
 	    uint8_t lcdc = 0x91;
 	    uint8_t stat = 0x01;
@@ -237,11 +246,35 @@ namespace gb
 
 	    void updatepoweronstate(bool wasenabled);
 
-	    array<gbRGB, (160 * 144)> framebuffer;
+	    vector<gbRGB> framebuffer;
+	    array<gbRGB, 160> scanlinebuffer;
+	    array<gbRGB, 240> stretchedbuffer;
 	    uint8_t screenbuffer[144][160];
 	    bool bgpriorline[160] = {false};
 
-	    bool accuratecolors = false;
+	    void setpixel(int x, int y, gbRGB color);
+	    void updateframebuffer();
+	    
+	    int render_scanline = 0;
+
+	    inline gbRGB rgbBlend(gbRGB oldColor, gbRGB newColor)
+	    {
+		if (oldColor == newColor)
+		{
+		    return oldColor;
+		}
+
+		gbRGB temp;
+
+		uint16_t red = ((oldColor.red + newColor.red) >> 1);
+		uint16_t green = ((oldColor.green + newColor.green) >> 1);
+		uint16_t blue = ((oldColor.blue + newColor.blue) >> 1);
+
+		temp.red = red;
+		temp.green = green;
+		temp.blue = blue;
+		return temp;
+	    }
 
 	    inline gbRGB getcolors(int color)
 	    {
@@ -251,30 +284,9 @@ namespace gb
 		int tempgreen = ((color >> 5) & 0x1F);
 		int tempblue = ((color >> 10) & 0x1F);
 
-		int red = 0;
-		int green = 0;
-		int blue = 0;
-
-		if (accuratecolors)
-		{
-		    int acctempr = (tempred * 26 + tempgreen * 4 + tempblue * 2);
-		    int acctempg = (tempgreen * 24 + tempblue * 8);
-		    int acctempb = (tempred * 6 + tempgreen * 4 + tempblue * 22);
-
-		    red = (min(960, acctempr) >> 2);
-		    green = (min(960, acctempg) >> 2);
-		    blue = (min(960, acctempb) >> 2);
-		}
-		else
-		{
-		    red = ((tempred << 3) | (tempred >> 2));
-		    green = ((tempgreen << 3) | (tempgreen >> 2));
-		    blue = ((tempblue << 3) | (tempblue >> 2));
-		}
-
-		temp.red = red;
-		temp.green = green;
-		temp.blue = blue;
+		temp.red = ((tempred << 3) | (tempred >> 2));
+		temp.green = ((tempgreen << 3) | (tempgreen >> 2));
+		temp.blue = ((tempblue << 3) | (tempblue >> 2));
 
 		return temp;
 	    }

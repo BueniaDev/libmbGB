@@ -1723,7 +1723,8 @@ namespace gb
     // Function definitions for Turbo File GB "serial device"
     TurboFileGB::TurboFileGB()
     {
-
+	turbo_file_data[0].fill(0);
+	turbo_file_data[1].fill(0);
     }
 
     TurboFileGB::~TurboFileGB()
@@ -1747,6 +1748,7 @@ namespace gb
 		{
 		    linkbyte = 0xC6;
 		    turbfstate =  TurboFileGBState::MagicByte;
+		    turbo_file_counter = 0;
 		}
 	    }
 	    break;
@@ -1767,14 +1769,186 @@ namespace gb
 	    break;
 	    case TurboFileGBState::Command:
 	    {
+		linkbyte = 0x00;
 		if (turbo_file_counter == 0)
 		{
 		    packet_cmd = sentbyte;
 		}
 		else if (turbo_file_counter >= 1)
 		{
+		    turbo_file_input.push_back(sentbyte);
 		    switch (packet_cmd)
 		    {
+			case 0x10:
+			{
+			    if (turbo_file_counter == 1)
+			    {
+				turbo_file_packet.push_back(0x10);
+				turbo_file_packet.push_back(0x00);
+				turbo_file_packet.push_back(device_status);
+				turbo_file_packet.push_back(0x01);
+				turbo_file_packet.push_back(static_cast<uint8_t>(ismemorycard));
+				turbo_file_packet.push_back(current_bank);
+				turbo_file_packet.push_back(0x00);
+				turbo_file_packet.push_back(0x00);
+
+				calculatechecksum();
+
+				turbo_file_packet_length = static_cast<int>(turbo_file_packet.size() + 1);
+
+				turbfstate = TurboFileGBState::SyncSignal2;
+				turbo_file_input.clear();
+			    }
+			}
+			break;
+			case 0x20:
+			{
+			    if (turbo_file_counter == 2)
+			    {
+				turbo_file_packet.push_back(0x20);
+				turbo_file_packet.push_back(0x00);
+				turbo_file_packet.push_back(device_status);
+
+				calculatechecksum();
+
+				turbo_file_packet_length = static_cast<int>(turbo_file_packet.size() + 1);
+
+				turbfstate = TurboFileGBState::SyncSignal2;
+				turbo_file_input.clear();
+			    }
+			}
+			break;
+			case 0x22:
+			{
+			    if (turbo_file_counter == 2)
+			    {
+				if (turbo_file_input[0] == 0x01)
+				{
+				    cout << "Using memory card..." << endl;
+				    ismemorycard = true;
+				}
+
+				current_bank = (turbo_file_input[1] & 0x7F);
+				device_status = BitSet(device_status, 3);
+
+				turbo_file_packet.push_back(0x22);
+				turbo_file_packet.push_back(0x00);
+				turbo_file_packet.push_back(device_status);
+
+				calculatechecksum();
+
+				turbo_file_packet_length = static_cast<int>(turbo_file_packet.size() + 1);
+
+				turbfstate = TurboFileGBState::SyncSignal2;
+				turbo_file_input.clear();
+			    }
+			}
+			break;
+			case 0x23:
+			{
+			    if (turbo_file_counter == 2)
+			    {
+				if (turbo_file_input[0] == 0x01)
+				{
+				    cout << "Using memory card..." << endl;
+				    ismemorycard = true;
+				}
+
+				current_bank = (turbo_file_input[1] & 0x7F);
+				device_status = BitSet(device_status, 3);
+
+				turbo_file_packet.push_back(0x23);
+				turbo_file_packet.push_back(0x00);
+				turbo_file_packet.push_back(device_status);
+
+				calculatechecksum();
+
+				turbo_file_packet_length = static_cast<int>(turbo_file_packet.size() + 1);
+
+				turbfstate = TurboFileGBState::SyncSignal2;
+				turbo_file_input.clear();
+			    }
+			}
+			break;
+			case 0x24:
+			{
+			    if (turbo_file_counter == 2)
+			    {
+				turbo_file_packet.push_back(0x24);
+				turbo_file_packet.push_back(0x00);
+				turbo_file_packet.push_back(device_status);
+
+				calculatechecksum();
+
+				turbo_file_packet_length = static_cast<int>(turbo_file_packet.size() + 1);
+
+				turbfstate = TurboFileGBState::SyncSignal2;
+				turbo_file_input.clear();
+			    }
+			}
+			break;
+			case 0x30:
+			{
+			    if (turbo_file_counter == 67)
+			    {
+				uint8_t upperbits = (turbo_file_input[0] & 0x1F);
+				uint8_t lowerbits = turbo_file_input[1];
+
+				uint16_t offset = ((upperbits << 8) | lowerbits);
+
+				int membank = ismemorycard ? 1 : 0;
+
+				uint32_t dataoffs = ((current_bank << 13) + offset);
+
+				for (int writeindex = 0; writeindex < 64; writeindex++)
+				{
+				    turbo_file_data[membank][(dataoffs + writeindex)] = turbo_file_input[(2 + writeindex)];
+				}
+
+				turbo_file_packet.push_back(0x30);
+				turbo_file_packet.push_back(0x00);
+				turbo_file_packet.push_back(device_status);
+
+				calculatechecksum();
+
+				turbo_file_packet_length = static_cast<int>(turbo_file_packet.size() + 1);
+
+				turbfstate = TurboFileGBState::SyncSignal2;
+				turbo_file_input.clear();
+			    }
+			}
+			break;
+			case 0x40:
+			{
+			    if (turbo_file_counter == 3)
+			    {
+				uint8_t upperbits = (turbo_file_input[0] & 0x1F);
+				uint8_t lowerbits = turbo_file_input[1];
+
+				uint16_t offset = ((upperbits << 8) | lowerbits);
+
+				int membank = ismemorycard ? 1 : 0;
+
+				uint32_t dataoffs = ((current_bank << 13) + offset);
+
+				turbo_file_packet.push_back(0x40);
+				turbo_file_packet.push_back(0x00);
+				turbo_file_packet.push_back(device_status);
+
+				for (int readindex = 0; readindex < 64; readindex++)
+				{
+				    turbo_file_packet.push_back(turbo_file_data[membank][(dataoffs + readindex)]);
+				}
+
+				calculatechecksum();
+
+				turbo_file_packet_length = static_cast<int>(turbo_file_packet.size() + 1);
+
+				turbfstate = TurboFileGBState::SyncSignal2;
+				turbo_file_input.clear();
+			    }
+			}
+			break;
 			default:
 			{
 			    cout << "Unrecognized Turbo File command of " << hex << (int)(packet_cmd) << endl;
@@ -1787,6 +1961,60 @@ namespace gb
 		turbo_file_counter += 1;
 	    }
 	    break;
+	    case TurboFileGBState::SyncSignal2:
+	    {
+		switch (sentbyte)
+		{
+		    case 0x7E:
+		    {
+			linkbyte = 0xA5;
+
+			if (is_sync_1)
+			{
+			    is_sync_2 = true;
+			}
+		    }
+		    break;
+		    case 0xF1:
+		    {
+			linkbyte = 0xE7;
+			is_sync_1 = true;
+		    }
+		    break;
+		}
+
+		if (is_sync_1 && is_sync_2)
+		{
+		    turbfstate = TurboFileGBState::PacketData;
+		    turbo_file_counter = 0;
+		    is_sync_1 = is_sync_2 = false;
+		}
+	    }
+	    break;
+	    case TurboFileGBState::PacketData:
+	    {
+		linkbyte = turbo_file_packet[turbo_file_counter++];
+
+		if (turbo_file_counter == turbo_file_packet_length)
+		{
+		    turbo_file_counter = 0;
+		    turbo_file_packet.clear();
+		    turbfstate = TurboFileGBState::SyncSignal1;
+		}
+	    }
+	    break;
 	}
+    }
+
+    void TurboFileGB::calculatechecksum()
+    {
+	uint8_t checksum = 0x5B;
+
+	for (size_t index = 0; index < turbo_file_packet.size(); index++)
+	{
+	    checksum -= turbo_file_packet[index];
+	}
+
+	turbo_file_packet.push_back(checksum);
     }
 }

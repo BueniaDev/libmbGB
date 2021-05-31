@@ -751,12 +751,28 @@ namespace gb
 	    uint8_t packet_cmd = 0;
 
 	    int turbo_file_counter = 0;
+	    bool ismemorycard = false;
+	    uint8_t current_bank = 0;
+
+	    array<array<uint8_t, 0x100000>, 2> turbo_file_data;
+
+	    vector<uint8_t> turbo_file_input;
+
+	    vector<uint8_t> turbo_file_packet;
+	    int turbo_file_packet_length = 0;
+
+	    bool is_sync_1 = false;
+	    bool is_sync_2 = false;
+
+	    uint8_t device_status = 0x03;
 
 	    enum TurboFileGBState : int
 	    {
 		SyncSignal1 = 0,
 		MagicByte = 1,
 		Command = 2,
+		SyncSignal2 = 3,
+		PacketData = 4,
 	    };
 
 	    TurboFileGBState turbfstate = TurboFileGBState::SyncSignal1;
@@ -787,6 +803,7 @@ namespace gb
             
             void update();
 	    void processbyte();
+	    void calculatechecksum();
             
             void transfer()
             {

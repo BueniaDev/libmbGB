@@ -1,5 +1,13 @@
 [general]
+
+# Selects the rendering backend used by mbGB-SDL2
+# Possible values:
+# 0 = Use software backend (default)
+# 1 = Use OpenGL backend (if available)
 pixel_renderer = 0
 
 [shaders]
-frag_shader = "default.fs"
+
+# Name of the fragment shader to use with the OpenGL backend, if it's available
+# (Note: fragment shader name must be encased in quotation marks)
+frag_shader = "default"

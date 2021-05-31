@@ -114,7 +114,7 @@ Step 3: Compile:
 
 ```
 mkdir build && cd build
-cmake .. -G "Unix Makefiles" -DBUILD_HEADLESS="<ON/OFF>" -DBUILD_EXAMPLES="<ON/OFF>" -DBUILD_SDL2="<ON/OFF>" -DBUILD_QT="<ON/OFF>" -DBUILD_QT6="<ON/OFF>" -DCMAKE_BUILD_TYPE="<Debug/Release>"
+cmake .. -G "Unix Makefiles" -DBUILD_EXAMPLES="<ON/OFF>" -DBUILD_SDL2="<ON/OFF>" -DBUILD_QT="<ON/OFF>" -DBUILD_QT6="<ON/OFF>" -DCMAKE_BUILD_TYPE="<Debug/Release>"
 make -j$(nproc --all)
 ```
 
@@ -149,7 +149,7 @@ Step 4: Compile:
 
 ```
 mkdir build && cd build
-cmake .. -G "Unix Makefiles" -DBUILD_HEADLESS="<ON/OFF>" -DBUILD_EXAMPLES="<ON/OFF>" -DBUILD_SDL2="<ON/OFF>" -DBUILD_QT="<ON/OFF>" -DCMAKE_BUILD_TYPE="<Debug/Release>""
+cmake .. -G "Unix Makefiles" -DBUILD_EXAMPLES="<ON/OFF>" -DBUILD_SDL2="<ON/OFF>" -DBUILD_QT="<ON/OFF>" -DCMAKE_BUILD_TYPE="<Debug/Release>""
 make -j$(sysctl -n hw.ncpu)
 ```
 
@@ -173,14 +173,14 @@ Step 3: Compile:
 
 ```
 mkdir build && cd build
-cmake .. -G "MSYS Makefiles" -DBUILD_EXAMPLES="<ON/OFF>" -DBUILD_SDL2="<ON/OFF>" -DBUILD_WEBCAM="<ON/OFF>" -DBUILD_QT="<ON/OFF>" -DCMAKE_BUILD_TYPE="<Debug/Release>"
+cmake .. -G "MSYS Makefiles" -DBUILD_EXAMPLES="<ON/OFF>" -DBUILD_SDL2="<ON/OFF>" -DBUILD_WEBCAM="<ON/OFF>" -DBUILD_OPENGL="<ON/OFF>" -DBUILD_QT="<ON/OFF>" -DCMAKE_BUILD_TYPE="<Debug/Release>"
 make -j$(nproc --all)
 ../tools/msys-dist.sh
 ```
 
 # Known issues
 
-# MBC1-based multicart games
+## MBC1-based multicart games
 
 MBC1 multicarts, such as Mortal Kombat 1/2 and Bomberman Collection, as well as a few others, require the command line argument of "--mbc1m" passed to libmbGB in order to run properly.
 

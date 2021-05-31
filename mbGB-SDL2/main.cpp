@@ -4,12 +4,6 @@ using namespace std;
 using namespace toml;
 using namespace std::placeholders;
 
-#ifdef __cpp_lib_filesystem
-using namespace std::filesystem;
-#else
-using namespace std::experimental::filesystem;
-#endif
-
 GBCore core;
 
 struct Controller
@@ -85,12 +79,18 @@ class SDL2Frontend : public mbGBFrontend
 	int pixel_renderer = -1;
 	string vert_shader = "";
 	string frag_shader = "";
-	path shader_path;
 
 	bool init_config()
 	{
-	    auto file_path = u8path(appname).parent_path();
-	    auto stream = ifstream(file_path / "libmbgb.toml");
+	    #ifdef __WIN32__
+	    const char seperator = '\\';
+	    #else
+	    const char seperator = '/';
+	    #endif // __WIN32__
+	    string filepath = SDL_GetBasePath();
+	    stringstream configpath;
+	    configpath << filepath << "libmbgb.toml";
+	    auto stream = ifstream(configpath.str().c_str());
 	    ParseResult pr = parse(stream);
 
 	    if (!pr.valid())
@@ -103,31 +103,42 @@ class SDL2Frontend : public mbGBFrontend
 
 	    pixel_renderer = toml.get<int>("general.pixel_renderer");
 
-	    shader_path = file_path / "shaders";
+	    // Filepath of vertex shader
+	    stringstream vertshader_str;
+	    vertshader_str << filepath << "shaders" << seperator << "vertex.vs";
 
+	    // Filepath of fragment shader
 	    string shader = toml.get<string>("shaders.frag_shader");
 
-	    vert_shader = (shader_path / "vertex.vs").string();
-	    frag_shader = (shader_path / shader).string();
+	    stringstream fragshader_str;
+	    fragshader_str << filepath << "shaders" << seperator << shader << ".fs";
+
+	    vert_shader = vertshader_str.str();
+	    frag_shader = fragshader_str.str();
 
 	    return true;
 	}
         
         bool init()
         {
-
 	    if (!init_config())
 	    {
 		cout << "Error parsing config file." << endl;
 		return false;
 	    }
 
-	    #ifdef LIBMBGB_OPENGL
+	    if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
+	    {
+		cout << "SDL2 could not be initialized! SDL_Error: " << SDL_GetError() << endl;
+		return false;
+	    }
+
+	    #ifdef USE_OPENGL
 	    if (pixel_renderer == 1)
 	    {
 		window_flags |= SDL_WINDOW_OPENGL;
 	    }
-	    #endif // LIBMBGB_OPENGL
+	    #endif // USE_OPENGL
 
 	    window = SDL_CreateWindow("mbGB-SDL2", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, (core->screenwidth * scale), (core->screenheight * scale), window_flags);
 
@@ -140,10 +151,10 @@ class SDL2Frontend : public mbGBFrontend
 	    switch (pixel_renderer)
 	    {
 		case 0: pix_render = new SoftwareRenderer(core, window); break;
-		#ifdef LIBMBGB_OPENGL
+		#ifdef USE_OPENGL
 		case 1: pix_render = new OpenGLRenderer(core, window); break;
-		#endif // LIBMBGB_OPENGL
-		default: cout << "Unrecognized renderer option of " << dec << (int)(pixel_renderer) << endl; break;
+		#endif // USE_OPENGL
+		default: cout << "Unrecognized backend option of " << dec << (int)(pixel_renderer) << endl; break;
 	    }
 
 	    if (pix_render == NULL)
@@ -220,6 +231,7 @@ class SDL2Frontend : public mbGBFrontend
 	    pix_render->shutdown_renderer();
 	    pix_render = NULL;
 	    SDL_DestroyWindow(window);
+	    SDL_Quit();
 	}
 	
 	void runapp()
@@ -251,7 +263,7 @@ class SDL2Frontend : public mbGBFrontend
 	    if (!core->paused)
 	    {
 	    	core->runcore();
-	    	drawpixels();
+		drawpixels();
 	    }
 	}
 	
@@ -612,7 +624,7 @@ class SDL2Frontend : public mbGBFrontend
 	
 	void pixelcallback()
 	{
-	    drawpixels();
+	    // drawpixels();
 	}
 
 	vector<uint8_t> loadfile(string filename)
@@ -648,17 +660,15 @@ class SDL2Frontend : public mbGBFrontend
 		cout << "mbGB::Savefile could not be written." << endl;
 		return false;
 	    }
-	    else
-	    {
-		file.write((char*)data.data(), data.size());
-		file.close();
-		return true;
-	    }
+	    
+	    file.write((char*)data.data(), data.size());
+	    file.close();
+	    return true;
 	}
 
 	bool camerainit()
 	{
-	    #ifdef LIBMBGB_CAMERA
+	    #ifdef USE_WEBCAM
 	    if (camera_enabled == true)
 	    {
 		return true;
@@ -726,16 +736,16 @@ class SDL2Frontend : public mbGBFrontend
 
 	    camera_zoomfactor = (xfactor > yfactor) ? yfactor : xfactor;
 
-	    #elif defined LIBMBGB_DEBUG
-	    cout << "This build of libmbGB was compiled without webcam support." << endl;
-	    #endif // LIBMBGB_CAMERA
+	    #else
+	    cout << "Notice: This build of libmbGB was compiled without webcam support." << endl;
+	    #endif // USE_WEBCAM
 
 	    return true;
 	}
 
 	void camerashutdown()
 	{
-	    #ifdef LIBMBGB_CAMERA
+	    #ifdef USE_WEBCAM
 
 	    if (!camera_enabled)
 	    {
@@ -747,7 +757,7 @@ class SDL2Frontend : public mbGBFrontend
 
 	    #else
 	    return;
-	    #endif // LIBMBGB_CAMERA
+	    #endif // USE_WEBCAM
 	}
 
 	void gen_noise(array<int, (128 * 120)> &arr)
@@ -764,8 +774,7 @@ class SDL2Frontend : public mbGBFrontend
 
 	bool cameraframe(array<int, (128 * 120)> &arr)
 	{
-	    #ifdef LIBMBGB_CAMERA
-
+	    #ifdef USE_WEBCAM
 	    if (!camera_enabled)
 	    {
 		gen_noise(arr);
@@ -818,7 +827,7 @@ class SDL2Frontend : public mbGBFrontend
 	    #else
 	    gen_noise(arr);
 	    return true;
-	    #endif // LIBMBGB_CAMERA
+	    #endif // USE_WEBCAM
 	}
 
 	void printerframe(vector<gbRGB> &temp, bool appending)
@@ -971,7 +980,7 @@ class SDL2Frontend : public mbGBFrontend
 
 	Uint32 window_flags = SDL_WINDOW_SHOWN;
 
-	#ifdef LIBMBGB_CAMERA
+	#ifdef USE_WEBCAM
 	VideoCapture cap;
 	bool camera_enabled = false;
 	int camera_zoomfactor = 1;
@@ -992,7 +1001,7 @@ int main(int argc, char* argv[])
     {
 	return 1;
     }
- 
+
     if (!core.initcore())
     {
 	return 1;
@@ -1000,6 +1009,5 @@ int main(int argc, char* argv[])
     
     core.runapp();
     core.shutdown();
-    
     return 0;
 }
