@@ -61,6 +61,8 @@ namespace gb
 	    connectirdevice(new DisconnectedIR());
 	}
 
+	loadconfigaddon();
+
 	coremmu->resetio();
 
 	if (!coremmu->biosload)
@@ -92,11 +94,7 @@ namespace gb
 	}
 
 	gbcores.clear();
-
-	if (dev != NULL)
-	{
-	    saveconfigaddon();
-	}
+	saveconfigaddon();
 
 	if (!isreset)
 	{
@@ -325,6 +323,14 @@ namespace gb
 	    default: connectserialdevice(new Disconnected()); break;
 	}
     }
+
+    void GBCore::setaddonfilename(string filename)
+    {
+	if (dev != NULL)
+	{
+	    dev->setsavefilename(filename);
+	}
+    }
     
     void GBCore::connectserialdevice(SerialDevice *cb)
     {
@@ -335,14 +341,12 @@ namespace gb
 	    cb = new Disconnected();
 	}
 
-	saveconfigaddon();
     	dev = NULL;
 	cout << "Connecting addon of " << cb->getaddonname() << endl;
 	auto serialcb = bind(&Serial::recieve, &*coreserial, _1);
 	cb->setlinkcallback(serialcb);
 	dev = cb;
 	setprintercallback();
-	loadconfigaddon();
 	coreserial->setserialdevice(dev);
     }
 
@@ -364,8 +368,7 @@ namespace gb
     void GBCore::setfrontend(mbGBFrontend *cb)
     {
         front = cb;
-        
-	cout << "Setting frontend..." << endl;
+
         if (front != NULL)
         {
             setaudiocallback(bind(&mbGBFrontend::audiocallback, cb, _1, _2));
@@ -460,7 +463,6 @@ namespace gb
 
     size_t GBCore::getstatesize()
     {
-	cout << "Fetching savestate size..." << endl;
 	void *data = malloc((16 * 1024 * 1024));
 	VecFile file = vfopen(data, (16 * 1024 * 1024));
 
@@ -468,7 +470,6 @@ namespace gb
 	dosavestate(savestate);
 
 	size_t size = savestate.state_file.loc_pos;
-
 	free(data);
 	return size;
     }
@@ -533,7 +534,7 @@ namespace gb
 
     gbRGB GBCore::getpixel(int x, int y)
     {
-	// Sanity check to avoid seg-fault from out-of-bounds vector accesses
+	// Sanity check to avoid crash caused by out-of-bounds vector accesses
 	if (((x < 0) || (x >= screenwidth)) || ((y < 0) || (y >= screenheight)))
 	{
 	    return {0, 0, 0};
@@ -577,49 +578,9 @@ namespace gb
 	coremmu->sensorreleased(pos);
     }
 
-    bool GBCore::dumpvram(string filename)
+    vector<uint8_t> GBCore::dumpvram()
     {
-	fstream file(filename.c_str(), ios::out | ios::binary);
-
-	if (file.is_open())
-	{
-	    file.seekp(0, ios::beg);
-	    file.write((char*)&coremmu->vram[0], 0x4000);
-	    file.close();
-	    cout << "mbGB::VRAM dumped" << endl;
-	    return true;
-	}
-	else
-	{
-	    cout << "mbGB::Error - VRAM could not be dumped" << endl;
-	    return false;
-	}
-    }
-
-    bool GBCore::dumpmemory(string filename)
-    {
-	fstream file(filename.c_str(), ios::out | ios::binary);
-
-	uint8_t memorymap[0x10000];
-
-	for (int i = 0; i < 0x10000; i++)
-	{
-	    memorymap[i] = coremmu->readByte(i);
-	}
-
-	if (file.is_open())
-	{
-	    file.seekp(0, ios::beg);
-	    file.write((char*)&memorymap[0], 0x10000);
-	    file.close();
-	    cout << "mbGB::Memory dumped" << endl;
-	    return true;
-	}
-	else
-	{
-	    cout << "mbGB::Error - Memory could not be dumped" << endl;
-	    return false;
-	}
+	return coremmu->vram;
     }
 
     bool GBCore::islinkactive()
@@ -674,13 +635,11 @@ namespace gb
 		return false;
 	    }
 	}
-	
 
 	if (!loadROM(romname))
 	{
 	    return false;
 	}
-
 
 	if (!isagbmode())
 	{
@@ -752,11 +711,6 @@ namespace gb
 	{
 	    dev->setprintcallback(cb);
 	}
-    }
-    
-    void GBCore::setaudioflags(int val)
-    {
-        coreapu->setaudioflags(val);
     }
 
     void GBCore::resetcore()

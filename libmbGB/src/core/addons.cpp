@@ -126,7 +126,7 @@ namespace gb
 		    else
 		    {
 			// Set "packet error" bit (bit 4) if the second "magic byte" is incorrect
-			status_byte = BitSet(status_byte, 4);
+			status_byte = setbit(status_byte, 4);
 		    }
 
 		    // This is to ensure that the magic bytes are properly received on subsequent packet transfers
@@ -164,7 +164,7 @@ namespace gb
 			// If the command is invalid, raise a "packet error"
 			// TODO: Confirm this behavior via hardware tests
 			cout << "Printer error: Unrecognized printer command of " << hex << (int)(sentbyte) << endl;
-			status_byte = BitSet(status_byte, 4);
+			status_byte = setbit(status_byte, 4);
 			state = PrinterState::MagicBytes;
 		    }
 		    break;
@@ -259,7 +259,7 @@ namespace gb
 		    else
 		    {
 			cout << "Printer error: Invalid data length of " << dec << (int)(data_length) << ", should be between 0 and 640" << endl;
-			status_byte = BitSet(status_byte, 4);
+			status_byte = setbit(status_byte, 4);
 			state = PrinterState::MagicBytes;
 		    }
 
@@ -281,7 +281,7 @@ namespace gb
 		    {
 			// Bit 7 determines whether the run is compressed,
 			// while bits 6-0 contain the length of the run
-			is_compressed_run = TestBit(sentbyte, 7);
+			is_compressed_run = testbit(sentbyte, 7);
 			run_length = ((sentbyte & 0x7F) + 1 + ((is_compressed_run) ? 1 : 0));
 		    }
 		    else if (is_compressed_run)
@@ -350,11 +350,11 @@ namespace gb
 		    if (calc_checksum != compare_checksum)
 		    {
 			cout << "Printer error: Checksums don't match!" << endl;
-			status_byte = BitSet(status_byte, 0);
+			status_byte = setbit(status_byte, 0);
 		    }
 		    else
 		    {
-			status_byte = BitReset(status_byte, 0);
+			status_byte = resetbit(status_byte, 0);
 		    }
 
 		    state = PrinterState::AliveIndicator;
@@ -409,7 +409,7 @@ namespace gb
 		    cout << "Printer error: Invalid PRINT command length of " << dec << (int)(printer_data.size()) << ", should be 4" << endl;
 		    printer_data.clear();
 		    image_data.clear();
-		    status_byte = BitSet(status_byte, 4);
+		    status_byte = setbit(status_byte, 4);
 		    state = PrinterState::MagicBytes;
 		    return;
 		}
@@ -460,7 +460,7 @@ namespace gb
 
 		    if (prev_cmd == 0x04)
 		    {
-			status_byte = BitSet(status_byte, 3);
+			status_byte = setbit(status_byte, 3);
 		    }
 		}
 		else
@@ -468,7 +468,7 @@ namespace gb
 		    cout << "Printer error: Misaligned image data" << endl;
 		    printer_data.clear();
 		    image_data.clear();
-		    status_byte = BitSet(status_byte, 4);
+		    status_byte = setbit(status_byte, 4);
 		    state = PrinterState::MagicBytes;
 		}
 	    }
@@ -490,18 +490,18 @@ namespace gb
 		if (prev_cmd == 0x02)
 		{
 		    // Update status byte
-		    status_byte = BitReset(status_byte, 3);
-		    status_byte = BitSet(status_byte, 2);
-		    status_byte = BitSet(status_byte, 1);
+		    status_byte = resetbit(status_byte, 3);
+		    status_byte = setbit(status_byte, 2);
+		    status_byte = setbit(status_byte, 1);
 		}
 		else if (prev_cmd == 0x0F)
 		{
 		    // Printing is done instantly, but we leave the "busy" bit set for one iteration,
 		    // just for the sake of compatibility
 
-		    if (TestBit(status_byte, 2) && TestBit(status_byte, 1) && !TestBit(status_byte, 4))
+		    if (testbit(status_byte, 2) && testbit(status_byte, 1) && !testbit(status_byte, 4))
 		    {
-			status_byte = BitReset(status_byte, 1);
+			status_byte = resetbit(status_byte, 1);
 		    }
 		}
 	    }
@@ -1829,7 +1829,7 @@ namespace gb
 				}
 
 				current_bank = (turbo_file_input[1] & 0x7F);
-				device_status = BitSet(device_status, 3);
+				device_status = setbit(device_status, 3);
 
 				turbo_file_packet.push_back(0x22);
 				turbo_file_packet.push_back(0x00);
@@ -1855,7 +1855,7 @@ namespace gb
 				}
 
 				current_bank = (turbo_file_input[1] & 0x7F);
-				device_status = BitSet(device_status, 3);
+				device_status = setbit(device_status, 3);
 
 				turbo_file_packet.push_back(0x23);
 				turbo_file_packet.push_back(0x00);

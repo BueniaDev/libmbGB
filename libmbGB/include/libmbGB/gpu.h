@@ -108,22 +108,22 @@ namespace gb
 		
 	    inline bool islcdenabled()
 	    {
-		return TestBit(lcdc, 7);
+		return testbit(lcdc, 7);
 	    }
 
 	    inline bool iswinenabled()
 	    {
-		return TestBit(lcdc, 5);
+		return testbit(lcdc, 5);
 	    }
 
 	    inline bool isobjenabled()
 	    {
-		return TestBit(lcdc, 1);
+		return testbit(lcdc, 1);
 	    }
 
 	    inline bool isbgenabled()
 	    {
-		return TestBit(lcdc, 0);
+		return testbit(lcdc, 0);
 	    }
 
 	    inline void setstatmode(int mode)
@@ -133,7 +133,7 @@ namespace gb
 		
 	    inline void writelcdc(uint8_t value)
 	    {
-		bool wasenabled = TestBit(value, 7);
+		bool wasenabled = testbit(value, 7);
 		lcdc = value;
 		updatepoweronstate(wasenabled);
 	    }
@@ -141,7 +141,7 @@ namespace gb
 	    inline void writestat(uint8_t value)
 	    {
 		stat = ((value & 0x78) | (stat & 0x07));
-		if ((gpumem.isdmgconsole() || gpumem.ishybridconsole()) && TestBit(lcdc, 7) && !TestBit(stat, 1))
+		if ((gpumem.isdmgconsole() || gpumem.ishybridconsole()) && testbit(lcdc, 7) && !testbit(stat, 1))
 		{
 		    statinterruptsignal = true;
 		}
@@ -166,10 +166,10 @@ namespace gb
 
 	    inline void checkstatinterrupt()
 	    {
-		statinterruptsignal |= (TestBit(stat, 3) && getstatmode() == 0);
-		statinterruptsignal |= (TestBit(stat, 4) && getstatmode() == 1);
-		statinterruptsignal |= (TestBit(stat, 5) && getstatmode() == 2);
-		statinterruptsignal |= (TestBit(stat, 6) && TestBit(stat, 2));
+		statinterruptsignal |= (testbit(stat, 3) && getstatmode() == 0);
+		statinterruptsignal |= (testbit(stat, 4) && getstatmode() == 1);
+		statinterruptsignal |= (testbit(stat, 5) && getstatmode() == 2);
+		statinterruptsignal |= (testbit(stat, 6) && testbit(stat, 2));
 
 		if (statinterruptsignal && !previnterruptsignal)
 		{
@@ -426,17 +426,17 @@ namespace gb
 
 	    inline bool mode2check()
 	    {
-		return TestBit(stat, 5);
+		return testbit(stat, 5);
 	    }
 
 	    inline bool mode1check()
 	    {
-		return TestBit(stat, 4);
+		return testbit(stat, 4);
 	    }
 
 	    inline bool mode0check()
 	    {
-		return TestBit(stat, 3);
+		return testbit(stat, 3);
 	    }
 
 	    inline int statmode()
@@ -446,12 +446,12 @@ namespace gb
 
 	    inline bool lycompcheck()
 	    {
-		return TestBit(stat, 6);
+		return testbit(stat, 6);
 	    }
 
 	    inline bool lycompequal()
 	    {
-		return TestBit(stat, 2);
+		return testbit(stat, 2);
 	    }
     };
 };

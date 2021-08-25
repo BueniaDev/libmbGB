@@ -64,7 +64,7 @@ namespace gb
 
 	    inline int tacenable()
 	    {
-		return TestBit(tac, 2);
+		return testbit(tac, 2);
 	    }
 
 	    inline bool timaincwentlow(bool timainc)

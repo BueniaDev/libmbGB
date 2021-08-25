@@ -187,7 +187,7 @@ namespace gb
 	}
 	else if (addr < 0x8000)
 	{
-	    rommode = TestBit(value, 0);
+	    rommode = testbit(value, 0);
 	}
 	else if ((addr >= 0xA000) && (addr < 0xC000))
 	{
@@ -230,7 +230,7 @@ namespace gb
 	if (addr < 0x2000)
 	{
 	    uint8_t upperbyte = (addr >> 8);
-	    if (!TestBit(upperbyte, 0))
+	    if (!testbit(upperbyte, 0))
 	    {
 		ramenabled = !ramenabled;
 	    }
@@ -238,7 +238,7 @@ namespace gb
 	else if (addr < 0x4000)
 	{
 	    uint8_t upperbyte = (addr >> 8);
-	    if (TestBit(upperbyte, 0))
+	    if (testbit(upperbyte, 0))
 	    {
 		currentrombank = (value & 0x0F);
 	    }
@@ -370,8 +370,8 @@ namespace gb
 		    case 0xC:
 		    {
 			realdays = ((BitGetVal(value, 0) << 8) | (realdays & 0xFF));
-			rtchalt = TestBit(value, 6);
-			realdayscarry = TestBit(value, 7);
+			rtchalt = testbit(value, 6);
+			realdayscarry = testbit(value, 7);
 		    }
 		    break;
 		}
@@ -561,7 +561,7 @@ namespace gb
 	    {
 		if (setrumble)
 		{
-		    setrumble(TestBit(value, 3));
+		    setrumble(testbit(value, 3));
 		}
 	    }
 	}
@@ -669,7 +669,7 @@ namespace gb
 	{
 	    if (mbc6flashwriteenable)
 	    {
-		mbc6flashenable = TestBit(val, 0);
+		mbc6flashenable = testbit(val, 0);
 	    }
 	    else
 	    {
@@ -678,7 +678,7 @@ namespace gb
 	}
 	else if (addr < 0x2000)
 	{
-	    mbc6flashwriteenable = TestBit(val, 0);
+	    mbc6flashwriteenable = testbit(val, 0);
 	}
 	else if (addr < 0x2800)
 	{
@@ -881,7 +881,7 @@ namespace gb
 
     void MMU::updategyro()
     {
-	if (TestBit(mbc7gyroval, gbGyro::gyLeft))
+	if (testbit(mbc7gyroval, gbGyro::gyLeft))
 	{
 	    xsensor += 2;
 
@@ -895,7 +895,7 @@ namespace gb
 		xsensor = 10;
 	    }
 	}
-	else if (TestBit(mbc7gyroval, gbGyro::gyRight))
+	else if (testbit(mbc7gyroval, gbGyro::gyRight))
 	{
 	    xsensor -= 2;
 
@@ -928,7 +928,7 @@ namespace gb
 	    }
 	}
 
-	if (TestBit(mbc7gyroval, gbGyro::gyUp))
+	if (testbit(mbc7gyroval, gbGyro::gyUp))
 	{
 	    ysensor += 2;
 
@@ -942,7 +942,7 @@ namespace gb
 		ysensor = 10;
 	    }
 	}
-	else if (TestBit(mbc7gyroval, gbGyro::gyDown))
+	else if (testbit(mbc7gyroval, gbGyro::gyDown))
 	{
 	    ysensor -= 2;
 
@@ -987,8 +987,8 @@ namespace gb
     {
 	bool oldchipsel = mbc7chipsel;
 	bool oldchipclk = mbc7chipclk;
-	mbc7chipsel = TestBit(val, 7);
-	mbc7chipclk = TestBit(val, 6);
+	mbc7chipsel = testbit(val, 7);
+	mbc7chipclk = testbit(val, 6);
 
 	if (!oldchipsel && mbc7chipsel)
 	{
@@ -1013,7 +1013,7 @@ namespace gb
 
 	if (!oldchipclk && mbc7chipclk)
 	{
-	    if (mbc7idle && TestBit(val, 1))
+	    if (mbc7idle && testbit(val, 1))
 	    {
 		mbc7idle = false;
 		mbc7intstate = 1;
@@ -1025,7 +1025,7 @@ namespace gb
 		    case 1:
 		    {
 			mbc7chipbuf <<= 1;
-			mbc7chipbuf |= TestBit(val, 1);
+			mbc7chipbuf |= testbit(val, 1);
 			mbc7chipsize += 1;
 
 			if (mbc7chipsize == 2)
@@ -1039,7 +1039,7 @@ namespace gb
 		    case 2:
 		    {
 			mbc7chipbuf <<= 1;
-			mbc7chipbuf |= TestBit(val, 1);
+			mbc7chipbuf |= testbit(val, 1);
 			mbc7chipsize += 1;
 
 			if (mbc7chipsize == 8)
@@ -1067,7 +1067,7 @@ namespace gb
 		    case 3:
 		    {
 			mbc7chipbuf <<= 1;
-			mbc7chipbuf |= TestBit(val, 1);
+			mbc7chipbuf |= testbit(val, 1);
 			mbc7chipsize += 1;
 
 			switch (mbc7chipcmd)
@@ -1168,7 +1168,7 @@ namespace gb
 	{
 	    if (mbc7intstate == 4)
 	    {
-		mbc7intvalue = (int)(TestBit(mbc7chipbuf, 15));
+		mbc7intvalue = (int)(testbit(mbc7chipbuf, 15));
 		mbc7chipbuf <<= 1;
 		mbc7chipsize += 1;
 
@@ -1224,7 +1224,7 @@ namespace gb
 	}
 	else if (addr < 0x5000)
 	{
-	    cameramode = TestBit(value, 4);
+	    cameramode = testbit(value, 4);
 	    camera_bank = (value & 0xF);
 
 	    if (!cameramode)
@@ -1283,7 +1283,7 @@ namespace gb
 	    case 0x00:
 	    {
 		camera_trigger = (val & 0x6);
-		if (TestBit(val, 0) && camframe)
+		if (testbit(val, 0) && camframe)
 		{
 		    camera_trigger = BitSet(camera_trigger, 0);
 		    take_camera_pic();
@@ -1374,7 +1374,7 @@ namespace gb
 	int pbits = static_cast<int>(cam_pm > 0);
 	int mbits = (cam_pm >= 2) ? 2 : (1 - pbits);
 
-	bool nbit = TestBit(camera_outputedge, 7);
+	bool nbit = testbit(camera_outputedge, 7);
 	int vhbits = ((camera_outputedge >> 5) & 0x3);
 
 	uint16_t exposure = camera_exposure;
@@ -1382,8 +1382,8 @@ namespace gb
 	const float edge_ratio_lut[8] = { 0.5, 0.75, 1.00, 1.25, 2.00, 3.00, 4.00, 5.00 };
 	float edge_alpha = edge_ratio_lut[((camera_edge & 0x70) >> 4)];
 
-	bool e3bit = TestBit(camera_edge, 7);
-	bool ibit = TestBit(camera_edge, 3);
+	bool e3bit = testbit(camera_edge, 7);
+	bool ibit = testbit(camera_edge, 3);
 
 	camera_clock = (32446 + (nbit ? 0 : 512) + 16 * exposure);
 
@@ -1433,22 +1433,22 @@ namespace gb
 
 			int value = 0;
 
-			if (TestBit(pbits, 0))
+			if (testbit(pbits, 0))
 			{
 			    value += px;
 			}
 
-			if (TestBit(pbits, 1))
+			if (testbit(pbits, 1))
 			{
 			    value += ms;
 			}
 
-			if (TestBit(mbits, 0))
+			if (testbit(mbits, 0))
 			{
 			    value -= px;
 			}
 
-			if (TestBit(mbits, 1))
+			if (testbit(mbits, 1))
 			{
 			    value -= ms;
 			}
@@ -1491,22 +1491,22 @@ namespace gb
 
 			int value = 0;
 
-			if (TestBit(pbits, 0))
+			if (testbit(pbits, 0))
 			{
 			    value += px;
 			}
 
-			if (TestBit(pbits, 1))
+			if (testbit(pbits, 1))
 			{
 			    value += ms;
 			}
 
-			if (TestBit(mbits, 0))
+			if (testbit(mbits, 0))
 			{
 			    value -= px;
 			}
 
-			if (TestBit(mbits, 1))
+			if (testbit(mbits, 1))
 			{
 			    value -= ms;
 			}

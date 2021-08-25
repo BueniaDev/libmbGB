@@ -64,7 +64,7 @@ namespace gb
 	    {
 	        if (dev != NULL)
 	        {
-	            dev->deviceready(bytetotransfer, TestBit(serialcontrol, 0));
+	            dev->deviceready(bytetotransfer, testbit(serialcontrol, 0));
 	            pendingrecieve = true;
 	        }
 	        else
@@ -113,7 +113,7 @@ namespace gb
 	    	}
 	    	else
 	    	{
-	    	    temp = ((TestBit(serialcontrol, 1) ? 16 : 512) >> serialmem.doublespeed);
+	    	    temp = ((testbit(serialcontrol, 1) ? 16 : 512) >> serialmem.doublespeed);
 	    	}
 
 	    	return temp;

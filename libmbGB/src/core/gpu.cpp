@@ -177,7 +177,7 @@ namespace gb
 	{
 	    if (scanlinecounter == 0 && gpumem.isgbcconsole())
 	    {
-		statinterruptsignal |= TestBit(stat, 5);
+		statinterruptsignal |= testbit(stat, 5);
 	    }
 	    else if (scanlinecounter == (4 << gpumem.doublespeed))
 	    {
@@ -186,7 +186,7 @@ namespace gb
 
 		if (gpumem.isdmgconsole())
 		{
-		    statinterruptsignal |= TestBit(stat, 5);
+		    statinterruptsignal |= testbit(stat, 5);
 		}
 		
 		if (drawpixels)
@@ -388,7 +388,7 @@ namespace gb
     void GPU::dmgscanline()
     {
 	pixelx = 0;
-	int height = ((TestBit(lcdc, 2)) ? 16 : 8);
+	int height = ((testbit(lcdc, 2)) ? 16 : 8);
 	sprites = 0;
 
 	for (int addr = 0; addr < (40 * 4); addr += 4)
@@ -399,10 +399,10 @@ namespace gb
 	    obj.x = gpumem.oam[addr + 1];
 	    obj.patternnum = gpumem.oam[addr + 2];
 	    uint8_t temp = gpumem.oam[addr + 3];
-	    obj.priority = TestBit(temp, 7);
-	    obj.yflip = TestBit(temp, 6);
-	    obj.xflip = TestBit(temp, 5);
-	    obj.palette = TestBit(temp, 4);
+	    obj.priority = testbit(temp, 7);
+	    obj.yflip = testbit(temp, 6);
+	    obj.xflip = testbit(temp, 5);
+	    obj.palette = testbit(temp, 4);
 
 	    uint8_t tempy = (ly - (obj.y - 16));
 
@@ -437,7 +437,7 @@ namespace gb
     void GPU::cgbscanline()
     {
 	pixelx = 0;
-	int height = ((TestBit(lcdc, 2)) ? 16 : 8);
+	int height = ((testbit(lcdc, 2)) ? 16 : 8);
 	sprites = 0;
 
 	for (int addr = 0; addr < (40 * 4); addr += 4)
@@ -448,11 +448,11 @@ namespace gb
 	    obj.x = gpumem.oam[addr + 1];
 	    obj.patternnum = (gpumem.oam[addr + 2] & ~BitGetVal(lcdc, 2));
 	    uint8_t temp = gpumem.oam[addr + 3];
-	    obj.priority = TestBit(temp, 7);
-	    obj.yflip = TestBit(temp, 6);
-	    obj.xflip = TestBit(temp, 5);
-	    obj.palette = TestBit(temp, 4);
-	    obj.cgbbank = TestBit(temp, 3);
+	    obj.priority = testbit(temp, 7);
+	    obj.yflip = testbit(temp, 6);
+	    obj.xflip = testbit(temp, 5);
+	    obj.palette = testbit(temp, 4);
+	    obj.cgbbank = testbit(temp, 3);
 	    obj.cgbpalette = (temp & 0x07);
 
 	    uint8_t tempy = (ly - (obj.y - 16));
@@ -481,7 +481,7 @@ namespace gb
 
 	tmaddr += ((((y >> 3) << 5) + (x >> 3)) & 0x03FF);
 
-	if (TestBit(lcdc, 4))
+	if (testbit(lcdc, 4))
 	{
 	    tileaddr = (gpumem.vram[tmaddr] << 4);
 	}
@@ -506,9 +506,9 @@ namespace gb
 	uint16_t tile = gpumem.vram[tmaddr];
 	bgattr = gpumem.vram[tmaddr + 0x2000];
 
-	uint16_t tileaddr = (TestBit(bgattr, 3)) ? 0x2000 : 0x0000;
+	uint16_t tileaddr = (testbit(bgattr, 3)) ? 0x2000 : 0x0000;
 
-	if (TestBit(lcdc, 4))
+	if (testbit(lcdc, 4))
 	{
 	    tileaddr += (tile << 4);
 	}
@@ -519,7 +519,7 @@ namespace gb
 
 	y &= 7;
 
-	if (TestBit(bgattr, 6))
+	if (testbit(bgattr, 6))
 	{
 	    y = (7 - y);
 	}
@@ -541,9 +541,9 @@ namespace gb
 	uint16_t tile = gpumem.vram[tmaddr];
 	winattr = gpumem.vram[tmaddr + 0x2000];
 
-	uint16_t tileaddr = (TestBit(winattr, 3)) ? 0x2000 : 0x0000;
+	uint16_t tileaddr = (testbit(winattr, 3)) ? 0x2000 : 0x0000;
 
-	if (TestBit(lcdc, 4))
+	if (testbit(lcdc, 4))
 	{
 	    tileaddr += (tile << 4);
 	}
@@ -554,7 +554,7 @@ namespace gb
 
 	y &= 7;
 
-	if (TestBit(winattr, 6))
+	if (testbit(winattr, 6))
 	{
 	    y = (7 - y);
 	}
@@ -668,7 +668,7 @@ namespace gb
 	    color = objcolor;
 	    isobjcolor = true;
 	}
-	else if (!TestBit(lcdc, 0))
+	else if (!testbit(lcdc, 0))
 	{
 	    color = objcolor;
 	    isobjcolor = true;
@@ -741,7 +741,7 @@ namespace gb
 
 	if (tx == 0 || pixelx == 0)
 	{
-	    bgdata = readtiledmg(TestBit(lcdc, 3), scx, scy);
+	    bgdata = readtiledmg(testbit(lcdc, 3), scx, scy);
 	}
 
 	bgpal = getdmgcolornum(bgdata, tx);
@@ -756,10 +756,10 @@ namespace gb
 
 	if (tx == 0 || pixelx == 0)
 	{
-	    bgdata = readtilecgbbg(TestBit(lcdc, 3), scx, scy);
+	    bgdata = readtilecgbbg(testbit(lcdc, 3), scx, scy);
 	}
 
-	if (TestBit(bgattr, 5))
+	if (testbit(bgattr, 5))
 	{
 	    tx = (7 - tx);
 	}
@@ -775,7 +775,7 @@ namespace gb
 	    bgcolor = getgbccolor((bgattr & 0x07), bgpal, true);
 	}
 
-	bgprior = TestBit(bgattr, 7);
+	bgprior = testbit(bgattr, 7);
     }
 
     void GPU::renderdmgwinpixel()
@@ -799,7 +799,7 @@ namespace gb
 
 	if (tx == 0 || pixelx == 0)
 	{
-	    windata = readtiledmg(TestBit(lcdc, 6), sx, sy);
+	    windata = readtiledmg(testbit(lcdc, 6), sx, sy);
 	}
 
 	bgpal = getdmgcolornum(windata, tx);
@@ -827,10 +827,10 @@ namespace gb
 
 	if (tx == 0 || pixelx == 0)
 	{
-	    windata = readtilecgbwin(TestBit(lcdc, 6), sx, sy);
+	    windata = readtilecgbwin(testbit(lcdc, 6), sx, sy);
 	}
 
-	if (TestBit(winattr, 5))
+	if (testbit(winattr, 5))
 	{
 	    tx = (7 - tx);
 	}
@@ -846,12 +846,12 @@ namespace gb
 	    bgcolor = getgbccolor((winattr & 0x07), bgpal, true);
 	}
 
-	bgprior = TestBit(winattr, 7);
+	bgprior = testbit(winattr, 7);
     }
 
     void GPU::renderdmgobjpixel()
     {
-	int height = (TestBit(lcdc, 2) ? 16 : 8);
+	int height = (testbit(lcdc, 2) ? 16 : 8);
 
 	objpal = 0;
 	objcolor = 0;
@@ -898,7 +898,7 @@ namespace gb
 
     void GPU::rendercgbobjpixel()
     {
-	int height = (TestBit(lcdc, 2) ? 16 : 8);
+	int height = (testbit(lcdc, 2) ? 16 : 8);
 
 	objpal = 0;
 	objcolor = 0;
@@ -998,9 +998,9 @@ namespace gb
     {	
 	uint8_t scy = scrolly;
 	uint8_t scx = scrollx;
-	uint16_t tilemap = TestBit(lcdc, 3) ? 0x9C00 : 0x9800;
-	uint16_t tiledata = TestBit(lcdc, 4) ? 0x8000 : 0x8800;
-	bool unsig = TestBit(lcdc, 4);
+	uint16_t tilemap = testbit(lcdc, 3) ? 0x9C00 : 0x9800;
+	uint16_t tiledata = testbit(lcdc, 4) ? 0x8000 : 0x8800;
+	bool unsig = testbit(lcdc, 4);
 
 	uint8_t ypos = 0;
 
@@ -1050,9 +1050,9 @@ namespace gb
 
 	    if (gpumem.isgbcconsole() && !gpumem.isdmgmode())
 	    {
-		banknum = TestBit(mapattrib, 3) ? 0x6000 : 0x8000;
+		banknum = testbit(mapattrib, 3) ? 0x6000 : 0x8000;
 
-		line = TestBit(mapattrib, 6) ? (7 - (ypos % 8)) : (ypos % 8);
+		line = testbit(mapattrib, 6) ? (7 - (ypos % 8)) : (ypos % 8);
 	    }
 
 	    line *= 2;
@@ -1061,8 +1061,8 @@ namespace gb
 
 	    if (gpumem.isgbcconsole() && !gpumem.isdmgmode())
 	    {
-		xpos = TestBit(mapattrib, 5) ? (7 - xpos) : xpos;
-		bgpriorline[pixel] = TestBit(mapattrib, 7);
+		xpos = testbit(mapattrib, 5) ? (7 - xpos) : xpos;
+		bgpriorline[pixel] = testbit(mapattrib, 7);
 	    }
 
 	    int colorbit = (xpos % 8);
@@ -1141,9 +1141,9 @@ namespace gb
 	}
 
 
-	bool unsig = TestBit(lcdc, 4);
+	bool unsig = testbit(lcdc, 4);
 	uint16_t tiledata = (unsig) ? 0x8000 : 0x8800;
-	uint16_t bgmem = TestBit(lcdc, 6) ? 0x9C00 : 0x9800;
+	uint16_t bgmem = testbit(lcdc, 6) ? 0x9C00 : 0x9800;
 
 
 	int ypos = windowlinecounter;
@@ -1195,8 +1195,8 @@ namespace gb
 
 		if (gpumem.isgbcconsole() && gpumem.isgbcmode())
 		{
-		    banknum = TestBit(mapattrib, 3) ? 0x6000 : 0x8000;
-		    line = TestBit(mapattrib, 6) ? (7 - (ypos % 8)) : (ypos % 8);
+		    banknum = testbit(mapattrib, 3) ? 0x6000 : 0x8000;
+		    line = testbit(mapattrib, 6) ? (7 - (ypos % 8)) : (ypos % 8);
 		}
 
 
@@ -1206,7 +1206,7 @@ namespace gb
 
 		if (gpumem.isgbcconsole() && !gpumem.isdmgmode() && !gpumem.biosload)
 		{
-		    xpos = TestBit(mapattrib, 5) ? (7 - xpos) : xpos;
+		    xpos = testbit(mapattrib, 5) ? (7 - xpos) : xpos;
 		}
 
 	        int colorbit = (xpos % 8);
@@ -1270,7 +1270,7 @@ namespace gb
     void GPU::renderobj()
     {
 	uint16_t spritedata = 0x8000;
-	int ysize = TestBit(lcdc, 2) ? 16 : 8;
+	int ysize = testbit(lcdc, 2) ? 16 : 8;
 	int spritelimit = 40;
 
 	uint8_t scanline = currentscanline;
@@ -1283,9 +1283,9 @@ namespace gb
 	    uint8_t patternnum = gpumem.readDirectly(0xFE00 + index + 2);
 	    uint8_t flags = gpumem.readDirectly(0xFE00 + index + 3);
 
-	    bool priority = TestBit(flags, 7);
-	    bool yflip = TestBit(flags, 6);
-	    bool xflip = TestBit(flags, 5);
+	    bool priority = testbit(flags, 7);
+	    bool yflip = testbit(flags, 6);
+	    bool xflip = testbit(flags, 5);
 
 	    int bank = 0;
 
@@ -1297,7 +1297,7 @@ namespace gb
 	    uint8_t line = (yflip) ? ((((scanline - ypos - ysize) + 1) * -1)) : ((scanline - ypos));
 
 
-	    if (TestBit(lcdc, 2))
+	    if (testbit(lcdc, 2))
 	    {
 		if (line < 8)
 		{
@@ -1329,7 +1329,7 @@ namespace gb
 		    int colornum = BitGetVal(data2, spritepixel);
 		    colornum <<= 1;
 		    colornum |= BitGetVal(data1, spritepixel);
-		    uint8_t coloraddr = TestBit(flags, 4) ? objpalette1 : objpalette0;
+		    uint8_t coloraddr = testbit(flags, 4) ? objpalette1 : objpalette0;
 
 		    uint8_t red = 0;
 		    uint8_t green = 0;
@@ -1352,7 +1352,7 @@ namespace gb
 		    {
 			int color = getdmgcolor(colornum, coloraddr);
 
-			uint16_t tempoffs = TestBit(flags, 4) ? 0xFF49 : 0xFF48;
+			uint16_t tempoffs = testbit(flags, 4) ? 0xFF49 : 0xFF48;
 
 			int coloroffset = (BitGetVal(tempoffs, 0) << 3);
 			
@@ -1388,7 +1388,7 @@ namespace gb
 			continue;
 		    }
 		    
-		    if (gpumem.isgbcmode() && TestBit(lcdc, 0) && (bgpriorline[xpixel] && !iswhite))
+		    if (gpumem.isgbcmode() && testbit(lcdc, 0) && (bgpriorline[xpixel] && !iswhite))
 		    {
 			continue;
 		    }

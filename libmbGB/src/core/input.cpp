@@ -53,6 +53,42 @@ namespace gb
 	cout << "Input::Shutting down..." << endl;
     }
 
+    bool Input::joypadpress()
+    {
+	return ((joypad & 0x0F) != 0x0F);
+    }
+
+    bool Input::buttonkeysselected()
+    {
+	return !TestBit(joypad, 5);
+    }
+
+    bool Input::directionkeysselected()
+    {
+	return !TestBit(joypad, 4);
+    }
+
+    uint8_t Input::readjoypad(uint16_t addr)
+    {
+	return (joypad | 0xC0);
+    }
+
+    void Input::writejoypad(uint16_t addr, uint8_t value)
+    {
+	joypad = ((joypad & 0x0F) | (value & 0x30));
+	updatejoypad();
+    }
+
+    void Input::keypressed(gbButton button)
+    {
+	buttonstates = BitReset(buttonstates, button);
+    }
+
+    void Input::keyreleased(gbButton button)
+    {
+	buttonstates = BitSet(buttonstates, button);
+    }
+
     void Input::updatejoypad()
     {
 	uint8_t controlbits = 0;

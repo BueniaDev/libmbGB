@@ -35,7 +35,7 @@ class mbGBWindow : public QMainWindow, public mbGBFrontend
 	void readSettings();
 	void writeSettings();
 
-	void audiocallback(audiotype left, audiotype right);
+	void audiocallback(int16_t left, int16_t right);
 	void rumblecallback(bool enabled);
 	void sensorcallback(uint16_t& sensorx, uint16_t& sensory);
 	void pixelcallback();
@@ -69,6 +69,7 @@ class mbGBWindow : public QMainWindow, public mbGBFrontend
 
 	DisplayWidget *disp_widget = NULL;
 	mbGBSettings *settings = NULL;
+	void setScale(int scale);
 
     public slots:
 	void openROM();
@@ -77,6 +78,10 @@ class mbGBWindow : public QMainWindow, public mbGBFrontend
 	void resetCore();
 	void openEmuSettings();
 	void drawframe();
+	void set1x();
+	void set2x();
+	void set3x();
+	void set4x();
 
     signals:
 	void signalframeready();

@@ -42,7 +42,6 @@ namespace gb
 	    {
 		dev = cb;
 	    }
-	    
 
 	    MMU& mem;
 

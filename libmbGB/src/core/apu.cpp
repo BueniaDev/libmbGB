@@ -178,6 +178,35 @@ namespace gb
 	{
 	    if ((!issoundon) && (addr != 0xFF26))
 	    {
+		switch ((addr & 0xFF))
+		{
+		    case 0x11:
+		    {
+			s1soundlength = (value & 0x3F);
+			reloads1lengthcounter();
+		    }
+		    break;
+		    case 0x16:
+		    {
+			s2soundlength = (value & 0x3F);
+			reloads2lengthcounter();
+		    }
+		    break;
+		    case 0x1B:
+		    {
+			wavesoundlength = value;
+			reloadwavelengthcounter();
+		    }
+		    break;
+		    case 0x20:
+		    {
+			noisesoundlength = (value & 0x3F);
+			reloadnoiselengthcounter();
+		    }
+		    break;
+		}
+
+
 		return;
 	    }
 
@@ -758,58 +787,9 @@ namespace gb
 	float leftfloat = (float)(leftsample * leftvolume);
 	float rightfloat = (float)(rightsample * rightvolume);
 
-	audiotype left;
-	audiotype right;
-
-	switch (audioflags)
-	{
-	    case MBGB_SIGNED8:
-	    {
-		static constexpr float ampl = 117;
-		left = (int8_t)(leftfloat * ampl);
-		right = (int8_t)(rightfloat * ampl);
-	    }
-	    break;
-	    case MBGB_SIGNED16:
-	    {
-		static constexpr float ampl = 30000;
-		left = (int16_t)(leftfloat * ampl);
-		right = (int16_t)(rightfloat * ampl);
-	    }
-	    break;
-	    case MBGB_SIGNED32:
-	    {
-		static constexpr float ampl = 1966080000;
-		left = (int32_t)(leftfloat * ampl);
-		right = (int32_t)(rightfloat * ampl);
-	    }
-	    break;
-	    case MBGB_UNSIGNED8:
-	    {
-		static constexpr float ampl = 117;
-		int8_t left8 = (int8_t)(leftfloat * ampl);
-		int8_t right8 = (int8_t)(rightfloat * ampl);
-		left = (uint8_t)(left8 + 128);
-		right = (uint8_t)(right8 + 128);
-	    }
-	    break;
-	    case MBGB_UNSIGNED16:
-	    {
-		static constexpr float ampl = 30000;
-		int16_t left16 = (int16_t)(leftfloat * ampl);
-		int16_t right16 = (int16_t)(rightfloat * ampl);
-		left = (uint16_t)(left16 + 32768);
-		right = (uint16_t)(right16 + 32768);
-	    }
-	    break;
-	    case MBGB_FLOAT32:
-	    {
-		left = leftfloat;
-		right = rightfloat;
-	    }
-	    break;
-	    default: break;
-	}
+	static constexpr float ampl = 30000;
+	auto left = (int16_t)(leftfloat * ampl);
+	auto right = (int16_t)(rightfloat * ampl);
 	
 
 	if (audiocallback)

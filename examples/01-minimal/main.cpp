@@ -15,20 +15,10 @@ int main(int argc, char* argv[])
     // Set sample rate for audio playback, in kHz
     core.setsamplerate(48000);
     
-    // Set audio type (we set it to signed 16-bit integers)
-    core.setaudioflags(MBGB_SIGNED16);
-    
     // Set the audio callback (we set it below)
-    core.setaudiocallback([](audiotype left, audiotype right){
-    	if (holds_alternative<int16_t>(left))
-    	{
-    	    cout << "Left: " << dec << get<int16_t>(left) << endl;
-    	}
-    	
-    	if (holds_alternative<int16_t>(right))
-    	{
-    	    cout << "Right: " << dec << get<int16_t>(right) << endl;
-    	}
+    core.setaudiocallback([](int16_t left, int16_t right){
+    	cout << "Left: " << dec << left << endl;
+    	cout << "Right: " << dec << right << endl;
     });
     
     // Process command-line arguments

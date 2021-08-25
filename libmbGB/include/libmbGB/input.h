@@ -54,47 +54,22 @@ namespace gb
 		
 	    uint8_t joypad = 0;
 		
-	    uint8_t readjoypad(uint16_t addr)
-	    {
-		return (joypad | 0xC0);
-	    }
-		
-	    void writejoypad(uint16_t addr, uint8_t value)
-	    {
-		joypad = ((joypad & 0x0F) | (value & 0x30));
-		updatejoypad();
-	    }
+	    uint8_t readjoypad(uint16_t addr);
+	    void writejoypad(uint16_t addr, uint8_t value);
 
-	    inline void keypressed(gbButton button)
-	    {
-		buttonstates = BitReset(buttonstates, button);
-	    }
-
-	    inline void keyreleased(gbButton button)
-	    {
-		buttonstates = BitSet(buttonstates, button);
-	    }
+	    void keypressed(gbButton button);
+	    void keyreleased(gbButton button);
 
 	    uint8_t buttonstates = 0xFF;
 	    bool wasunset = false;
 
-	    inline bool joypadpress()
-	    {
-		return ((joypad & 0x0F) != 0x0F);
-	    }
+	    bool joypadpress();
 
 	    bool interruptsignal = false;
 	    bool previnterruptsignal = false;
 
-	    inline bool buttonkeysselected()
-	    {
-		return !TestBit(joypad, 5);
-	    }
-
-	    inline bool directionkeysselected()
-	    {
-		return !TestBit(joypad, 4);
-	    }
+	    bool buttonkeysselected();
+	    bool directionkeysselected();
     };
 };
 

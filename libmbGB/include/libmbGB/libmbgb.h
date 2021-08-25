@@ -90,8 +90,8 @@ namespace gb
 	    void keyreleased(gbButton button);
 	    void sensorpressed(gbGyro pos);
 	    void sensorreleased(gbGyro pos);
-	    bool dumpvram(string filename);
-	    bool dumpmemory(string filename);
+	    vector<uint8_t> dumpvram();
+	    void setaddonfilename(string filename);
 	    void setdotrender(bool val);
 
 	    void setfrontend(mbGBFrontend *front);
@@ -121,7 +121,6 @@ namespace gb
 	    void setcamcallbacks(caminitfunc icb, camstopfunc scb, camframefunc fcb);
 	    void setprintercallback();
 	    void setprintcallback(printfunc cb);
-	    void setaudioflags(int val);
 	    bool isprinterenabled = false;
 	    bool ismobileenabled = false;
 	    bool ispowerenabled = false;

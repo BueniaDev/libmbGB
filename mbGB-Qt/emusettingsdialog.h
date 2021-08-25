@@ -23,6 +23,8 @@ class mbGBSettings : public QDialog
 
 	void initSelections();
 	void initLinkDeviceIndex();
+	void initMobileConfig();
+	void updateMobileConfig();
 
 	void readSettings(QSettings &settings);
 	void writeSettings(QSettings &settings);
@@ -30,12 +32,15 @@ class mbGBSettings : public QDialog
     public slots:
 	void acceptChanges();
 	void rejectChanges();
+	void createMobileConf();
+	void removeMobileConf();
 
     private:
 	GBCore *core;
 
 	int currentSystemType = 0;
 	int currentLinkDevice = 0;
+	QString currentMobileText = "";
 
 	Ui::SettingsDialog *ui;
 };

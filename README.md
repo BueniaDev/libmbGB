@@ -58,7 +58,7 @@ Core dependencies:
 
     * OpenSUSE (not tested): `sudo zypper in git cmake extra-cmake-modules`
 
-* Optional dependencies:
+Optional dependencies:
 
     * SDL2 (for the command-line frontend (and audio in the (currently WIP) Qt frontend)):
 

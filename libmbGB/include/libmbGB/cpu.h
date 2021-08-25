@@ -504,9 +504,9 @@ namespace gb
 	    inline uint8_t rl(uint8_t reg)
 	    {
 		uint8_t temp = reg;
-		bool carryval = TestBit(reg, 7);
+		bool carryval = testbit(reg, 7);
 
-		temp = ((reg << 1) | (iscarry() ? 1 : 0));
+		temp = ((reg << 1) | iscarry());
 
 		setzero(temp == 0);
 
@@ -521,7 +521,7 @@ namespace gb
 	    {
 		uint8_t temp = reg;
 
-		setcarry(TestBit(reg, 7));
+		setcarry(testbit(reg, 7));
 
 		temp = ((reg << 1) | (reg >> 7));
 
@@ -536,9 +536,9 @@ namespace gb
 	    inline uint8_t rr(uint8_t reg)
 	    {
 		uint8_t temp = reg;
-		bool carryval = TestBit(reg, 0);
+		bool carryval = testbit(reg, 0);
 
-		temp = ((reg >> 1) | ((iscarry() ? 1 : 0) << 7));
+		temp = ((reg >> 1) | (iscarry() << 7));
 
 		setzero(temp == 0);
 
@@ -553,7 +553,7 @@ namespace gb
 	    {
 		uint8_t temp = reg;
 
-		setcarry(TestBit(reg, 0));
+		setcarry(testbit(reg, 0));
 
 		temp = ((reg >> 1) | (reg << 7));
 
@@ -567,7 +567,7 @@ namespace gb
 
 	    inline uint8_t sla(uint8_t reg)
 	    {
-		setcarry(TestBit(reg, 7));
+		setcarry(testbit(reg, 7));
 
 		uint8_t temp = (reg << 1);
 
@@ -580,7 +580,7 @@ namespace gb
 
 	    inline uint8_t sra(uint8_t reg)
 	    {
-		setcarry(TestBit(reg, 0));
+		setcarry(testbit(reg, 0));
 
 		uint8_t temp = (reg >> 1);
 		temp |= ((temp & 0x40) << 1);
@@ -594,7 +594,7 @@ namespace gb
 
 	    inline uint8_t srl(uint8_t reg)
 	    {
-		setcarry(TestBit(reg, 0));
+		setcarry(testbit(reg, 0));
 
 		uint8_t temp = (reg >> 1);
 
@@ -617,19 +617,19 @@ namespace gb
 
 	    inline void bit(uint8_t reg, int bit)
 	    {
-		setzero(!TestBit(reg, bit));
+		setzero(!testbit(reg, bit));
 		setsubtract(false);
 		sethalf(true);
 	    }
 
 	    inline uint8_t res(uint8_t reg, int bit)
 	    {
-		return BitReset(reg, bit);
+		return resetbit(reg, bit);
 	    }
 
 	    inline uint8_t set(uint8_t reg, int bit)
 	    {
-		return BitSet(reg, bit);
+		return setbit(reg, bit);
 	    }
 
 	    inline void halt()
@@ -646,7 +646,7 @@ namespace gb
 
 	    inline void stop()
 	    {
-		++pc;
+		pc += 1;
 		haltedtick(4);
 
 		gpu.lcdc &= 0x7F;
@@ -656,11 +656,11 @@ namespace gb
 
 	    inline void doubleexec()
 	    {
-		++pc;
+		pc += 1;
 		
 		uint8_t key1 = mem.key1;
 
-		if (TestBit(key1, 0))
+		if (testbit(key1, 0))
 		{
 		   mem.doublespeed = !mem.doublespeed;
 		}
@@ -683,51 +683,50 @@ namespace gb
 	    void setzero(bool val)
 	    {
 		uint8_t temp = af.getlo();
-		temp = (val) ? BitSet(temp, 7) : BitReset(temp, 7);
+		temp = changebit(temp, 7, val);
 		af.setlo(temp);
 	    }
 
 	    bool iszero()
 	    {
-		return TestBit(af.getlo(), 7);
+		return testbit(af.getlo(), 7);
 	    }
 
 	    void setsubtract(bool val)
 	    {
 		uint8_t temp = af.getlo();
-		temp = (val) ? BitSet(temp, 6) : BitReset(temp, 6);
+		temp = changebit(temp, 6, val);
 		af.setlo(temp);
 	    }
 
 	    bool issubtract()
 	    {
-		return TestBit(af.getlo(), 6);
+		return testbit(af.getlo(), 6);
 	    }
 
 	    void sethalf(bool val)
 	    {
 		uint8_t temp = af.getlo();
-		temp = (val) ? BitSet(temp, 5) : BitReset(temp, 5);
+		temp = changebit(temp, 5, val);
 		af.setlo(temp);
 	    }
 
 	    bool ishalf()
 	    {
-		return TestBit(af.getlo(), 5);
+		return testbit(af.getlo(), 5);
 	    }
 
 	    void setcarry(bool val)
 	    {
 		uint8_t temp = af.getlo();
-		temp = (val) ? BitSet(temp, 4) : BitReset(temp, 4);
+		temp = changebit(temp, 4, val);
 		af.setlo(temp);
 	    }
 
 	    bool iscarry()
 	    {
-		return TestBit(af.getlo(), 4);
+		return testbit(af.getlo(), 4);
 	    }
-	
     };
 };
 

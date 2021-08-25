@@ -15,6 +15,8 @@ class DisplayWidget : public QWidget
 	DisplayWidget(GBCore *cb, QObject *parent = NULL);
 	~DisplayWidget();
 
+	void setResolution(int res);
+	int getResolution();
 	void init();
 	void shutdown();
 
@@ -24,6 +26,9 @@ class DisplayWidget : public QWidget
 
     protected:
 	void paintEvent(QPaintEvent *event);
+
+    private:
+	int resolution;
 };
 
 

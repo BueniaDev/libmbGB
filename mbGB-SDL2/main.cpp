@@ -548,20 +548,15 @@ class SDL2Frontend : public mbGBFrontend
 	    pix_render->draw_pixels(core->getframebuffer(), scale);
 	}
 	
-	void audiocallback(audiotype left, audiotype right)
+	void audiocallback(int16_t left, int16_t right)
 	{
 	    if (SDL_GetQueuedAudioSize(1) > 48000)
 	    {
 		return;
 	    }
 
-	    if (!holds_alternative<int16_t>(left) || !holds_alternative<int16_t>(right))
-    	    {
-	        return;
-	    }
-
-	    buffer.push_back(get<int16_t>(left));
-	    buffer.push_back(get<int16_t>(right));
+	    buffer.push_back(left);
+	    buffer.push_back(right);
 
 	    SDL_QueueAudio(1, buffer.data(), (2 * sizeof(int16_t)));
 	    buffer.clear();
@@ -992,11 +987,10 @@ class SDL2Frontend : public mbGBFrontend
 int main(int argc, char* argv[])
 {
     core.setsamplerate(48000);
-    core.setaudioflags(MBGB_SIGNED16);
 
     SDL2Frontend *front = new SDL2Frontend(&core, argv);
     core.setfrontend(front);
-    
+
     if (!core.getoptions(argc, argv))
     {
 	return 1;

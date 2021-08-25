@@ -37,12 +37,25 @@
     </property>
     <addaction name="actionPause"/>
     <addaction name="actionReset"/>
+    <addaction name="separator"/>
+    <addaction name="actionMultiplayer"/>
    </widget>
    <widget class="QMenu" name="menuSettings">
     <property name="title">
      <string>Settings</string>
     </property>
+    <widget class="QMenu" name="menuScreenSize">
+     <property name="title">
+      <string>Screen size</string>
+     </property>
+     <addaction name="action1x"/>
+     <addaction name="action2x"/>
+     <addaction name="action3x"/>
+     <addaction name="action4x"/>
+    </widget>
     <addaction name="actionGeneral"/>
+    <addaction name="separator"/>
+    <addaction name="menuScreenSize"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
@@ -97,6 +110,31 @@
   <action name="actionReset">
    <property name="text">
     <string>Reset</string>
+   </property>
+  </action>
+  <action name="action1x">
+   <property name="text">
+    <string>1x</string>
+   </property>
+  </action>
+  <action name="action2x">
+   <property name="text">
+    <string>2x</string>
+   </property>
+  </action>
+  <action name="action3x">
+   <property name="text">
+    <string>3x</string>
+   </property>
+  </action>
+  <action name="action4x">
+   <property name="text">
+    <string>4x</string>
+   </property>
+  </action>
+  <action name="actionMultiplayer">
+   <property name="text">
+    <string>New multiplayer window</string>
    </property>
   </action>
  </widget>

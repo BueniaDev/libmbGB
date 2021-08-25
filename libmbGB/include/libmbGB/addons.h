@@ -710,7 +710,11 @@ namespace gb
 
 	    void setsavefilename(string filename)
 	    {
-		config_filename = filename;
+		cout << filename << endl;
+		if (filename != config_filename)
+		{
+		    config_filename = filename;
+		}
 	    }
 
 	    string getsavefilename()

@@ -38,37 +38,42 @@ using namespace std;
 
 namespace gb
 {
-    // This type is used for creating the final waveform
-    using audiotype = variant<int8_t, int16_t, int32_t, uint8_t, uint16_t, uint32_t, float>;
-
     // Bit manipulation functions
 
+    // Placeholder macros until initial cleanup is complete
+    #define TestBit(val, bit) testbit(val, bit)
+    #define BitSet(val, bit) setbit(val, bit)
+    #define BitReset(val, bit) resetbit(val, bit)
+    #define BitChange(val, bit, is_set) changebit(val, bit, is_set)
+    #define BitGetVal(val, bit) getbitval(val, bit)
+
+    // Actual functions start here
     // Test bit x of a value
-    inline bool TestBit(uint32_t val, int bit)
+    inline bool testbit(uint32_t val, int bit)
     {
 	return (val & (1 << bit)) ? true : false;
     }
 
     // Set bit x of a value
-    inline uint32_t BitSet(uint32_t val, int bit)
+    inline uint32_t setbit(uint32_t val, int bit)
     {
 	return (val | (1 << bit));
     }
 
     // Reset bit x of a value
-    inline uint32_t BitReset(uint32_t val, int bit)
+    inline uint32_t resetbit(uint32_t val, int bit)
     {
 	return (val & ~(1 << bit));
     }
 
     // Change bit of value depending on value of "is_set"
-    inline uint32_t BitChange(uint32_t val, int bit, bool is_set)
+    inline uint32_t changebit(uint32_t val, int bit, bool is_set)
     {
-	return (is_set) ? BitSet(val, bit) : BitReset(val, bit);
+	return (is_set) ? setbit(val, bit) : resetbit(val, bit);
     }
 
     // Get value of bit x of a value
-    inline int BitGetVal(uint32_t val, int bit)
+    inline int getbitval(uint32_t val, int bit)
     {
 	return (val & (1 << bit)) ? 1 : 0;
     }
@@ -112,7 +117,7 @@ namespace gb
     	    virtual bool init() = 0;
     	    virtual void shutdown() = 0;
     	    virtual void runapp() = 0;
-    	    virtual void audiocallback(audiotype left, audiotype right) = 0;
+    	    virtual void audiocallback(int16_t left, int16_t right) = 0;
     	    virtual void rumblecallback(bool enabled) = 0;
     	    virtual void pixelcallback() = 0;
             virtual vector<uint8_t> loadfile(string filename) = 0;

@@ -225,12 +225,12 @@ namespace gb
 		    uint8_t latchdayshi = saveram[(ramsize + 36)];
 
 		    realdays = ((BitGetVal(realdayshi, 0) << 8) | realdayslo);
-		    rtchalt = TestBit(realdayshi, 6);
-		    realdayscarry = TestBit(realdayshi, 7);
+		    rtchalt = testbit(realdayshi, 6);
+		    realdayscarry = testbit(realdayshi, 7);
 
 		    latchdays = ((BitGetVal(latchdayshi, 0) << 8) | latchdayslo);
-		    latchhalt = TestBit(latchdayshi, 6);
-		    latchdayscarry = TestBit(latchdayshi, 7);
+		    latchhalt = testbit(latchdayshi, 6);
+		    latchdayscarry = testbit(latchdayshi, 7);
 
 		    for (int i = 0; i < 8; i++)
 		    {
@@ -721,7 +721,7 @@ namespace gb
 
 	    inline void initgbcdma(uint8_t value)
 	    {
-		hdmatype = TestBit(value, 7) ? HdmaType::Hdma : HdmaType::Gdma;
+		hdmatype = testbit(value, 7) ? HdmaType::Hdma : HdmaType::Gdma;
 		hdmabytestocopy = (((value & 0x7F) + 1) * 16);
 		ishdmaactive = true;
 		hdmabytes = 16;
@@ -854,7 +854,7 @@ namespace gb
 	    {
 		if (!ifwrittenthiscycle)
 		{
-		    interruptflags = BitSet(interruptflags, id);
+		    interruptflags = setbit(interruptflags, id);
 		}
 	    }
 
@@ -862,14 +862,14 @@ namespace gb
 	    {
 		if (!ifwrittenthiscycle)
 		{
-		    interruptflags = BitReset(interruptflags, id);
+		    interruptflags = resetbit(interruptflags, id);
 		}
 	    }
 
 	    bool ispending(int id)
 	    {
 		uint8_t temp = (interruptflags & interruptenabled);
-		return TestBit(temp, id);
+		return testbit(temp, id);
 	    }
 
 	    bool requestedenabledinterrupts()

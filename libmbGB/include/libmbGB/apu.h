@@ -23,38 +23,12 @@
 #include "utils.h"
 #include "libmbgb_api.h"
 #include <functional>
-#include <variant>
 using namespace gb;
 using namespace std;
 
 namespace gb
 {
-
-    using apuoutputfunc = function<void(audiotype, audiotype)>;
-    // Audio flags:
-    // Bit 0 - 1=Float samples, 0=Integer samples
-    // Bit 1 - 1=16-bit samples, 0=8/32-bit samples (defaults to 0 if bit 0 is set)
-    // Bit 2 - 1=8-bit samples, 0=32-bit samples (defaults to 0 if bit 0 or bit 1 is set)
-    // Bit 3 - 1=Signed samples, 0=Unsigned samples (defaults to 0 if bit 0 is set, or 1 if both bits 1 and 2 are clear)
-
-    #define MBGB_FLOAT (1 << 0)
-    #define MBGB_INTEGER (0 << 0)
-
-    #define MBGB_16BIT (1 << 1)
-    #define MBGB_8OR32BIT (1 << 0)
-
-    #define MBGB_8BIT (1 << 2)
-    #define MBGB_32BIT (0 << 2)
-
-    #define MBGB_SIGNED (1 << 3)
-    #define MBGB_UNSIGNED (0 << 3)
-
-    #define MBGB_FLOAT32 MBGB_FLOAT
-    #define MBGB_UNSIGNED16 MBGB_INTEGER | MBGB_16BIT | MBGB_UNSIGNED
-    #define MBGB_UNSIGNED8 MBGB_INTEGER | MBGB_8OR32BIT | MBGB_8BIT | MBGB_UNSIGNED
-    #define MBGB_SIGNED32 MBGB_INTEGER | MBGB_8OR32BIT | MBGB_32BIT | MBGB_SIGNED
-    #define MBGB_SIGNED16 MBGB_INTEGER | MBGB_16BIT | MBGB_SIGNED
-    #define MBGB_SIGNED8 MBGB_INTEGER | MBGB_8OR32BIT | MBGB_8BIT | MBGB_SIGNED
+    using apuoutputfunc = function<void(int16_t, int16_t)>;
 
     class LIBMBGB_API APU
     {
@@ -68,53 +42,6 @@ namespace gb
 	    void dosavestate(mbGBSavestate &file);
 
 	    MMU& apumem;
-	    
-	    int audioflags = 0;
-	    
-	    void setaudioflags(int val)
-	    {
-	        audioflags = val;
-	        
-	        switch (audioflags)
-	        {
-		    case MBGB_UNSIGNED8:
-		    {
-			cout << "Using unsigned 8-bit samples" << endl;
-		    }
-		    break;
-	            case MBGB_UNSIGNED16: 
-		    {
-			cout << "Using unsigned 16-bit integer samples" << endl;
-		    }
-		    break;
-		    case MBGB_SIGNED8:
-		    {
-			cout << "Using signed 8-bit samples" << endl;
-		    }
-		    break;
-	            case MBGB_SIGNED16: 
-		    {
-			cout << "Using signed 16-bit integer samples" << endl;
-		    }
-		    break;
-		    case MBGB_SIGNED32:
-		    {
-			cout << "Using signed 32-bit integer samples" << endl;
-		    }
-		    break;
-	            case MBGB_FLOAT32: 
-		    {
-			cout << "Using 32-bit float samples" << endl;
-		    }
-		    break;
-	            default:
-		    {
-			cout << "Warning - unrecognized audio flag, falling back to signed 16-bit audio" << endl; 
-			audioflags = MBGB_SIGNED16;
-		    }
-		    break;
-	        }
-	    }
 		
 	    int s1sweep = 0;
 	    bool s1negative = false;

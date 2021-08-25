@@ -8,7 +8,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 option(BUILD_EXAMPLES "Enables the headless renderer." OFF)
-option(BUILD_LIBRETRO "Enables the Libretro core." OFF)
 option(BUILD_SDL2 "Enables the example renderer (requires SDL2)." OFF)
 option(BUILD_QT "Enables the (WIP) Qt frontend (requires SDL2 and Qt)." OFF)
 
@@ -51,11 +50,6 @@ set(LIBMBGB
 	libmbGB/src/core/input.cpp
 	libmbGB/src/core/ops.cpp
 	libmbGB/src/core/libmbgb.cpp)
-
-if (BUILD_LIBRETRO STREQUAL "ON")
-	message(STATUS "Building mbGB-retro...")
-	add_subdirectory(mbGB-retro)
-endif()
 
 if (BUILD_SDL2 STREQUAL "ON")
 	message(STATUS "Building mbGB-SDL2...")

@@ -18,7 +18,6 @@ mbGBWindow::mbGBWindow(QWidget *parent) : ui(new Ui::MainWindow)
     SDL_OpenAudio(&audiospec, NULL);
 
     core.setsamplerate(48000);
-    core.setaudioflags(MBGB_SIGNED16);
     core.setfrontend(this);
 
     ui->setupUi(this);
@@ -39,6 +38,11 @@ mbGBWindow::mbGBWindow(QWidget *parent) : ui(new Ui::MainWindow)
     connect(ui->actionReset, SIGNAL(triggered()), this, SLOT(resetCore()));
 
     connect(ui->actionGeneral, SIGNAL(triggered()), this, SLOT(openEmuSettings()));
+
+    connect(ui->action1x, SIGNAL(triggered()), this, SLOT(set1x()));
+    connect(ui->action2x, SIGNAL(triggered()), this, SLOT(set2x()));
+    connect(ui->action3x, SIGNAL(triggered()), this, SLOT(set3x()));
+    connect(ui->action4x, SIGNAL(triggered()), this, SLOT(set4x()));
 
     connect(ui->actionAboutQt, SIGNAL(triggered()), QApplication::instance(), SLOT(aboutQt()));
 
@@ -63,6 +67,14 @@ void mbGBWindow::readSettings()
     QSettings emusettings("mbGB-Qt", "mbGB-Qt");
     settings->readSettings(emusettings);
     lastdir = emusettings.value("lastDir", ".").toString();
+    int r = emusettings.value("displayResolution", 2).toInt();
+
+    if ((r < 1) || (r > 4))
+    {
+	r = 2;
+    }
+
+    setScale(r);
 }
 
 void mbGBWindow::writeSettings()
@@ -70,6 +82,7 @@ void mbGBWindow::writeSettings()
     QSettings emusettings("mbGB-Qt", "mbGB-Qt");
     settings->writeSettings(emusettings);
     emusettings.setValue("lastDir", lastdir);
+    emusettings.setValue("displayResolution", disp_widget->getResolution());
 }
 
 void mbGBWindow::runthread()
@@ -155,6 +168,32 @@ void mbGBWindow::drawframe()
     disp_widget->repaint();
 }
 
+void mbGBWindow::set1x()
+{
+    setScale(1);
+}
+
+void mbGBWindow::set2x()
+{
+    setScale(2);
+}
+
+void mbGBWindow::set3x()
+{
+    setScale(3);
+}
+
+void mbGBWindow::set4x()
+{
+    setScale(4);
+}
+
+void mbGBWindow::setScale(int scale)
+{
+    disp_widget->setResolution(scale);
+    resize((160 * scale), ((144 * scale) + menuBar()->height()));
+}
+
 void mbGBWindow::closeEvent(QCloseEvent *event)
 {
     closeROM();
@@ -177,15 +216,10 @@ void mbGBWindow::runapp()
     return;
 }
 
-void mbGBWindow::audiocallback(audiotype left, audiotype right)
+void mbGBWindow::audiocallback(int16_t left, int16_t right)
 {
-    if (!holds_alternative<int16_t>(left) || !holds_alternative<int16_t>(right))
-    {
-        return;
-    }
-
-    apubuffer.push_back(get<int16_t>(left));
-    apubuffer.push_back(get<int16_t>(right));
+    apubuffer.push_back(left);
+    apubuffer.push_back(right);
 
     if (apubuffer.size() >= 4096)
     {

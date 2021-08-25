@@ -11,6 +11,17 @@ DisplayWidget::~DisplayWidget()
 
 }
 
+void DisplayWidget::setResolution(int r)
+{
+    resolution = r;
+    repaint();
+}
+
+int DisplayWidget::getResolution()
+{
+    return resolution;
+}
+
 void DisplayWidget::init()
 {
     is_cleared = false;
@@ -26,7 +37,7 @@ void DisplayWidget::shutdown()
 void DisplayWidget::paintEvent(QPaintEvent *event)
 {
     QPainter painter(this);
-    painter.scale(2, 2);
+    painter.scale(resolution, resolution);
 
     QColor bg_color(Qt::black);
     painter.fillRect(0, 0, 160, 144, bg_color);

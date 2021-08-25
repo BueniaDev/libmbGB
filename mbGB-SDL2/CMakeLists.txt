@@ -3,6 +3,7 @@ project(mbGB-SDL2)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 option(BUILD_WEBCAM "Enables webcam support for the Game Boy Camera implementation (requires OpenCV)." OFF)
 option(BUILD_OPENGL "Enables the hardware-accelerated OpenGL rendering backend." OFF)

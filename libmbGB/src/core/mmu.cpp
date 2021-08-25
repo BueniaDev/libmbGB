@@ -659,7 +659,7 @@ namespace gb
 		    }
 		    else
 		    {
-		    	if (TestBit(value, 7))
+		    	if (testbit(value, 7))
 		   	{
 			    initgbcdma(value);
 		    	}
@@ -681,7 +681,7 @@ namespace gb
 		    }	
 
 		    gbcbgpaletteindex = (value & 0x3F);
-		    gbcbgpalinc = TestBit(value, 7);
+		    gbcbgpalinc = testbit(value, 7);
 	        }
 	        break;
 	        case 0x69:
@@ -707,7 +707,7 @@ namespace gb
 		    }	
 
 		    gbcobjpaletteindex = (value & 0x3F);
-		    gbcobjpalinc = TestBit(value, 7);
+		    gbcobjpalinc = testbit(value, 7);
 	    	}
 	    	break;
 	    	case 0x6B:

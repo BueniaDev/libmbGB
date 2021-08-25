@@ -1,3 +1,0 @@
-[submodule "mbGB-retro/external/libretro-common"]
-	path = mbGB-retro/external/libretro-common
-	url = https://github.com/libretro/libretro-common.git
