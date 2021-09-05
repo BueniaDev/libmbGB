@@ -12,6 +12,19 @@ jobs:
       - image: "ubuntu:focal"
     steps:
       - run:
-          name: Test of sudo
-          command: 'sudo apt-get update'
+          name: Installing sudo
+          command: 'apt-get update && apt-get install -y sudo && rm -rf /var/lib/apt/lists/*'
+      - run:
+          name: Installing dependencies
+          command: 'sudo apt-get update && sudo apt-get upgrade && sudo apt-get install -y build-essential git cmake libsdl2-dev'
+      - checkout
+      - run:
+          name: Setting up build directory
+          command: 'mkdir build && cd build'
+      - run:
+          name: Configuring build
+          command: 'cmake .. -G "Unix Makefiles" -DBUILD_SDL2="ON" -DBUILD_EXAMPLES="ON" -DCMAKE_BUILD_TYPE="Release"'
+      - run:
+          name: Compiling build
+          command: 'make -j$(nproc --all)'
         
