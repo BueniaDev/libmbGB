@@ -5,6 +5,7 @@ workflows:
   build:
     jobs:
       - ubuntu_gcc
+      - ubuntu_clang
 
 jobs:
   ubuntu_gcc:
@@ -19,6 +20,25 @@ jobs:
           command: |
             apt-get update && apt-get install -y sudo && rm -rf /var/lib/apt/lists/*
             sudo apt-get update && sudo apt-get upgrade && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential git cmake libsdl2-dev
+      - checkout
+      - run:
+          name: Building libmbGB
+          command: |
+            mkdir build && cd build
+            cmake .. -G "Unix Makefiles" -DBUILD_SDL2="ON" -DCMAKE_BUILD_TYPE="Release"
+            make -j$(nproc --all)
+  ubuntu_clang:
+    docker:
+      - image: "ubuntu:focal"
+    working_directory: ~/circleci-libmbGB
+    environment:
+      TZ: "America/Chicago"
+    steps:
+      - run:
+          name: Installing dependencies
+          command: |
+            apt-get update && apt-get install -y sudo && rm -rf /var/lib/apt/lists/*
+            sudo apt-get update && sudo apt-get upgrade && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y clang clang-format libc++-dev git cmake libsdl2-dev
       - checkout
       - run:
           name: Building libmbGB
