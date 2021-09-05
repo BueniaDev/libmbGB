@@ -11,5 +11,7 @@ jobs:
     docker:
       - image: "ubuntu:focal"
     steps:
-      - run: echo "Hello world!"
+      - run:
+          name: Test of sudo
+          command: 'sudo apt-get update'
         
