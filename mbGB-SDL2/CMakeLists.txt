@@ -47,10 +47,10 @@ if (BUILD_OPENGL STREQUAL "ON")
 endif()
 
 find_package(SDL2 REQUIRED)
+include_directories(${SDL2_INCLUDE_DIRS})
 
 if (TARGET SDL2::SDL2)
     target_link_libraries(${PROJECT_NAME} SDL2::SDL2)
 else()
     target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES})
 endif()
-
