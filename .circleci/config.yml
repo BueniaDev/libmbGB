@@ -1,0 +1,15 @@
+version: 2.1
+
+workflows:
+  version: 2.1
+  build:
+    jobs:
+      - ubuntu_gcc
+
+jobs:
+  ubuntu_gcc:
+    docker:
+      - image: "ubuntu:focal"
+    steps:
+      - run: echo "Hello world!"
+        
