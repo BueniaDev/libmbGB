@@ -10,6 +10,7 @@ jobs:
   ubuntu_gcc:
     docker:
       - image: "ubuntu:focal"
+    working_directory: ~/circleci-libmbGB
     environment:
       TZ: "America/Chicago"
     steps:
@@ -21,12 +22,10 @@ jobs:
           command: 'sudo apt-get update && sudo apt-get upgrade && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential git cmake libsdl2-dev'
       - checkout
       - run:
-          name: Setting up build directory
-          command: 'mkdir libmbGB/build && cd libmbGB/build'
-      - run:
-          name: Configuring build
-          command: 'cmake .. -G "Unix Makefiles" -DBUILD_SDL2="ON" -DBUILD_EXAMPLES="ON" -DCMAKE_BUILD_TYPE="Release"'
-      - run:
-          name: Compiling build
-          command: 'make -j$(nproc --all)'
+          name: Building libmbGB
+          command: |
+            mkdir build && cd build
+            cmake .. -G "Unix Makefiles" -DCMAKE_BUILD_TYPE="Release"
+            make -j$(nproc --all)
+            
         
