@@ -149,6 +149,11 @@ namespace gb
 		    pixelx = linexbias;
 
 		    scanline();
+
+		    if ((ly >= windowy) && (windowx < 7))
+		    {
+			windowlinecounter += 1;
+		    }
 		}
 	    }
 	    else if (scanlinecounter == (gpumem.isdmgmode() ? 84 : (80 << gpumem.doublespeed)))
@@ -188,7 +193,7 @@ namespace gb
 		{
 		    statinterruptsignal |= testbit(stat, 5);
 		}
-		
+
 		if (drawpixels)
 		{
 		    drawpixels();
@@ -218,8 +223,6 @@ namespace gb
 
 		renderpixel(); // Renders current pixel
 	    }
-
-	    updateframebuffer();
 	}
     }
 
@@ -503,7 +506,7 @@ namespace gb
 
 	tmaddr += ((((y >> 3) << 5) + (x >> 3)) & 0x03FF);
 
-	uint16_t tile = gpumem.vram[tmaddr];
+	uint8_t tile = gpumem.vram[tmaddr];
 	bgattr = gpumem.vram[tmaddr + 0x2000];
 
 	uint16_t tileaddr = (testbit(bgattr, 3)) ? 0x2000 : 0x0000;
@@ -514,18 +517,16 @@ namespace gb
 	}
 	else
 	{
-	    tileaddr += (0x1000 + ((int8_t)(tile) << 4));
+	    tileaddr += (0x1000 + (int8_t(tile) << 4));
 	}
-
-	y &= 7;
 
 	if (testbit(bgattr, 6))
 	{
-	    y = (7 - y);
+	    y ^= 7;
 	}
 
 
-	tileaddr += (y << 1);
+	tileaddr += ((y & 7) << 1);
 	
 	return readvram16(tileaddr);
     }
@@ -623,6 +624,11 @@ namespace gb
 
 	gbRGB gbcolor = {dmgcolor, dmgcolor, dmgcolor};
 	setpixel(pixelx, ly, gbcolor);
+
+	if (pixelx == 159)
+	{
+	    updateframebuffer();
+	}
     }
 
     void GPU::rendercgbpixel()
@@ -731,12 +737,17 @@ namespace gb
 
 	gbRGB gbcolor = {red, green, blue};
 	setpixel(pixelx, ly, gbcolor);
+
+	if (pixelx == 159)
+	{
+	    updateframebuffer();
+	}
     }
 
     void GPU::renderdmgbgpixel()
     {
-	uint8_t scy = ((ly + scrolly) & 0xFF);
-	uint8_t scx = ((pixelx + scrollx) & 0xFF);
+	uint8_t scy = (ly + scrolly);
+	uint8_t scx = (pixelx + scrollx);
 	int tx = (scx & 7);
 
 	if (tx == 0 || pixelx == 0)
@@ -750,8 +761,8 @@ namespace gb
 
     void GPU::rendercgbbgpixel()
     {
-	int scy = ((ly + scrolly) & 0xFF);
-	int scx = ((pixelx + scrollx) & 0xFF);
+	uint8_t scy = (ly + scrolly);
+	uint8_t scx = (pixelx + scrollx);
 	int tx = (scx & 7);
 
 	if (tx == 0 || pixelx == 0)
@@ -780,22 +791,24 @@ namespace gb
 
     void GPU::renderdmgwinpixel()
     {
-	int winy = windowy;
-	int winx = windowx;
-	int sx = (pixelx - winx + 7);
-	int sy = (ly - winy);
-
-	if (sx < 0)
+	if (ly < windowy)
 	{
 	    return;
 	}
 
-	if (sy < 0)
+	if ((pixelx + 7) < windowx)
 	{
 	    return;
 	}
 
-	int tx = (sx % 8);
+	if ((pixelx + 7) == windowx)
+	{
+	    windowlinecounter += 1;
+	}
+
+	uint8_t sy = (windowlinecounter - 1);
+	uint8_t sx = (pixelx + 7 - windowx);
+	int tx = (sx & 7);
 
 	if (tx == 0 || pixelx == 0)
 	{
@@ -808,22 +821,26 @@ namespace gb
 
     void GPU::rendercgbwinpixel()
     {
-	int winy = windowy;
-	int winx = windowx;
-	int sx = (pixelx + 7 - winx);
-	int sy = (ly - winy);
-
-	if (sx < 0)
+	if (ly < windowy)
 	{
 	    return;
 	}
 
-	if (sy < 0)
+	if ((pixelx + 7) < windowx)
 	{
 	    return;
 	}
 
-	int tx = (sx % 8);
+	if ((pixelx + 7) == windowx)
+	{
+	    windowlinecounter += 1;
+	}
+
+	
+
+	uint8_t sy = (windowlinecounter - 1);
+	uint8_t sx = (pixelx + 7 - windowx);
+	int tx = (sx & 7);
 
 	if (tx == 0 || pixelx == 0)
 	{

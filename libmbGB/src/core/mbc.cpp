@@ -582,10 +582,10 @@ namespace gb
     // Note: Since the effective number of ROM and RAM banks are twice what
     // they usually would be, the size of each of those banks
     // is only half of the size that the banks would be
-    // on other mappers
+    // on other mappers.
     //
     // TODO: This mapper uses custom flash ROM (by Macronix), which hasn't been
-    // implemented in this mapper yet. However, it could be implemented in the
+    // implemented yet. However, it could be implemented in the
     // near future.
 
     uint8_t MMU::mbc6read(uint16_t addr)
