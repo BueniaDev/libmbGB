@@ -10,13 +10,15 @@ jobs:
   ubuntu_gcc:
     docker:
       - image: "ubuntu:focal"
+    environment:
+      TZ: "America/Chicago"
     steps:
       - run:
           name: Installing sudo
           command: 'apt-get update && apt-get install -y sudo && rm -rf /var/lib/apt/lists/*'
       - run:
           name: Installing dependencies
-          command: 'sudo apt-get update && sudo apt-get upgrade && sudo apt-get install -y build-essential git cmake libsdl2-dev'
+          command: 'sudo apt-get update && sudo apt-get upgrade && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential git cmake libsdl2-dev'
       - checkout
       - run:
           name: Setting up build directory
