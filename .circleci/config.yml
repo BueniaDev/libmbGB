@@ -22,7 +22,7 @@ jobs:
       - checkout
       - run:
           name: Setting up build directory
-          command: 'mkdir build && cd build'
+          command: 'mkdir libmbGB/build && cd libmbGB/build'
       - run:
           name: Configuring build
           command: 'cmake .. -G "Unix Makefiles" -DBUILD_SDL2="ON" -DBUILD_EXAMPLES="ON" -DCMAKE_BUILD_TYPE="Release"'
