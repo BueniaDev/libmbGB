@@ -16,7 +16,7 @@ macOS-x86_64-apple_task:
     image: big-sur-base
 
   setup_script:
-    - brew install git cmake pkg-config sdl2
+    - brew install git sdl2
 
   matrix:
     - build_script:
