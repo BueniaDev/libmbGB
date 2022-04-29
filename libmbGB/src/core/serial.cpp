@@ -1,6 +1,6 @@
 /*
     This file is part of libmbGB.
-    Copyright (C) 2021 BueniaDev.
+    Copyright (C) 2022 BueniaDev.
 
     libmbGB is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -92,14 +92,14 @@ namespace gb
 
     void Serial::updateserial()
     {
-	if (!TestBit(serialcontrol, 7) || (pendingrecieve && !swipedcard()))
+	if (!testbit(serialcontrol, 7) || (pendingrecieve && !swipedcard()))
 	{
 	    return;
 	}
 	
 	int cycles = gettransferrate();
 	
-	if (TestBit(serialcontrol, 0) || swipedcard())
+	if (testbit(serialcontrol, 0) || swipedcard())
 	{
 	    serialclock += 4;
 	    

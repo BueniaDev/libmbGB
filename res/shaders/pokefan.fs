@@ -24,6 +24,8 @@ out vec4 fragcolor;
 #define bg 0.21
 
 uniform sampler2D screen_texture;
+uniform int screen_width;
+uniform int screen_height;
 
 void main()
 {

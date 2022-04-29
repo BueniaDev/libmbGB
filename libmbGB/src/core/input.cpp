@@ -1,6 +1,6 @@
 /*
     This file is part of libmbGB.
-    Copyright (C) 2021 BueniaDev.
+    Copyright (C) 2022 BueniaDev.
 
     libmbGB is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -60,12 +60,12 @@ namespace gb
 
     bool Input::buttonkeysselected()
     {
-	return !TestBit(joypad, 5);
+	return !testbit(joypad, 5);
     }
 
     bool Input::directionkeysselected()
     {
-	return !TestBit(joypad, 4);
+	return !testbit(joypad, 4);
     }
 
     uint8_t Input::readjoypad(uint16_t addr)
@@ -79,14 +79,9 @@ namespace gb
 	updatejoypad();
     }
 
-    void Input::keypressed(gbButton button)
+    void Input::keychanged(gbButton button, bool is_pressed)
     {
-	buttonstates = BitReset(buttonstates, button);
-    }
-
-    void Input::keyreleased(gbButton button)
-    {
-	buttonstates = BitSet(buttonstates, button);
+	buttonstates = changebit(buttonstates, button, !is_pressed);
     }
 
     void Input::updatejoypad()
@@ -95,17 +90,17 @@ namespace gb
 
 	if (buttonkeysselected())
 	{
-	    controlbits |= ((TestBit(buttonstates, gbButton::A) ? 1 : 0) << 0);
-	    controlbits |= ((TestBit(buttonstates, gbButton::B) ? 1 : 0) << 1);
-	    controlbits |= ((TestBit(buttonstates, gbButton::Select) ? 1 : 0) << 2);
-	    controlbits |= ((TestBit(buttonstates, gbButton::Start) ? 1 : 0) << 3);
+	    controlbits |= ((testbit(buttonstates, gbButton::A) ? 1 : 0) << 0);
+	    controlbits |= ((testbit(buttonstates, gbButton::B) ? 1 : 0) << 1);
+	    controlbits |= ((testbit(buttonstates, gbButton::Select) ? 1 : 0) << 2);
+	    controlbits |= ((testbit(buttonstates, gbButton::Start) ? 1 : 0) << 3);
 	}
 	else if (directionkeysselected())
 	{
-	    controlbits |= ((TestBit(buttonstates, gbButton::Right) ? 1 : 0) << 0);
-	    controlbits |= ((TestBit(buttonstates, gbButton::Left) ? 1 : 0) << 1);
-	    controlbits |= ((TestBit(buttonstates, gbButton::Up) ? 1 : 0) << 2);
-	    controlbits |= ((TestBit(buttonstates, gbButton::Down) ? 1 : 0) << 3);
+	    controlbits |= ((testbit(buttonstates, gbButton::Right) ? 1 : 0) << 0);
+	    controlbits |= ((testbit(buttonstates, gbButton::Left) ? 1 : 0) << 1);
+	    controlbits |= ((testbit(buttonstates, gbButton::Up) ? 1 : 0) << 2);
+	    controlbits |= ((testbit(buttonstates, gbButton::Down) ? 1 : 0) << 3);
 	}
 	else
 	{

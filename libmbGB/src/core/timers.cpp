@@ -1,6 +1,6 @@
 /*
     This file is part of libmbGB.
-    Copyright (C) 2021 BueniaDev.
+    Copyright (C) 2022 BueniaDev.
 
     libmbGB is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -53,6 +53,13 @@ namespace gb
 	else
 	{
 	    divider = 0x1EA0;
+	}
+
+	if (!timermem.biosload)
+	{
+	    tima = 0;
+	    tma = 0;
+	    tac = 0;
 	}
 		
 	cout << "Timers::Initialized" << endl;
@@ -129,7 +136,7 @@ namespace gb
 	}
 
 	bool divtickbit = (divbit[tac & 0x3] & divider);
-	bool timainc = (divtickbit && TestBit(tac, 2));
+	bool timainc = (divtickbit && testbit(tac, 2));
 
 	if (!timainc && prevtimainc)
 	{

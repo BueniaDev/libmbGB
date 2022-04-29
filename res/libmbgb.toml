@@ -6,8 +6,18 @@
 # 1 = Use OpenGL backend (if available)
 pixel_renderer = 0
 
+# Enables/disables cheat codes
+enable_cheats = false
+# Selects the path to a cheats file, if any
+# (Note: name of cheats file must be encased in quotation marks)
+cheats_path = "cheatfile"
+
 [shaders]
 
+# Name of the vertex shader to use with the OpenGL backend, if it's available
+# (Note: shader name must be encased in quotation marks)
+vert_shader = "vertex"
+
 # Name of the fragment shader to use with the OpenGL backend, if it's available
-# (Note: fragment shader name must be encased in quotation marks)
+# (Note: shader name must be encased in quotation marks)
 frag_shader = "default"

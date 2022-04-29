@@ -1,6 +1,6 @@
 /*
     This file is part of libmbGB.
-    Copyright (C) 2021 BueniaDev.
+    Copyright (C) 2022 BueniaDev.
 
     libmbGB is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -39,18 +39,13 @@ namespace gb
 
     }
 
-    void GBCore::preinit()
+    void GBCore::init()
     {
 	if (isxmas())
 	{
 	    cout << "Happy holidays from libmbGB!" << endl;
 	}
 
-	coremmu->init();
-    }
-
-    void GBCore::init()
-    {
 	if (dev == NULL)
 	{
 	    connectserialdevice(new Disconnected());
@@ -63,13 +58,7 @@ namespace gb
 
 	loadconfigaddon();
 
-	coremmu->resetio();
-
-	if (!coremmu->biosload)
-	{
-	    coremmu->initio();
-	}
-
+	coremmu->init();
 	corecpu->init();
 	coregpu->init();
 	coreapu->init();
@@ -84,21 +73,12 @@ namespace gb
     void GBCore::shutdown(bool isreset)
     {
 	paused = true;
-	if (!gbcores.empty())
-	{
-	    for (auto &core : gbcores)
-	    {
-		core->shutdown();
-		core = NULL;
-	    }
-	}
-
-	gbcores.clear();
 	saveconfigaddon();
 
 	if (!isreset)
 	{
 	    dev = NULL;
+	    system_type = 0;
 	}
 
 	coreserial->shutdown();
@@ -110,7 +90,7 @@ namespace gb
 	savebackup();
 	
 	coremmu->shutdown();
-	
+
 	if (front != NULL)
 	{
 	    if (coremmu->isgbcamera())
@@ -207,7 +187,6 @@ namespace gb
 		{
 		    char *devname = argv[i + 1];
 
-
 		    if ((strcmp(devname, "dev") == 0))
 		    {
 			connectirdevice(new InfraredDebug());
@@ -229,22 +208,49 @@ namespace gb
 
 	    if ((strcmp(argv[i], "--sys-dmg") == 0))
 	    {
-		coremmu->gameboy = Console::DMG;
+		// Set system type to DMG
+		setsystemtype(1);
+
+		if (biosname == "")
+		{
+		    coremmu->biosload = true;
+		    biosname = "dmg_bios.bin";
+		}
 	    }
 
 	    if ((strcmp(argv[i], "--sys-gbc") == 0))
 	    {
-		coremmu->gameboy = Console::CGB;
+		// Set system type to CGB
+		setsystemtype(2);
+
+		if (biosname == "")
+		{
+		    coremmu->biosload = true;
+		    biosname = "cgb_bios.bin";
+		}
 	    }
 
 	    if ((strcmp(argv[i], "--sys-gba") == 0))
 	    {
-		coremmu->gameboy = Console::AGB;
+		// Set system type to AGB
+		setsystemtype(3);
+
+		if (biosname == "")
+		{
+		    coremmu->biosload = true;
+		    biosname = "agb_bios.bin";
+		}
 	    }
 
 	    if ((strcmp(argv[i], "--sys-hybrid") == 0))
 	    {
 		coremmu->hybrid = true;
+
+		if (biosname == "")
+		{
+		    coremmu->biosload = true;
+		    biosname = "cgb_bios.bin";
+		}
 	    }
 
 	    if ((strcmp(argv[i], "--dotrender") == 0))
@@ -301,6 +307,7 @@ namespace gb
 
     void GBCore::setsystemtype(int index)
     {
+	system_type = index;
 	switch (index)
 	{
 	    case 0: coremmu->gameboy = Console::Default; break;
@@ -364,28 +371,28 @@ namespace gb
 	devir = cb;
 	coreinfrared->setirdevice(devir);
     }
-    
+
     void GBCore::setfrontend(mbGBFrontend *cb)
     {
-        front = cb;
+	front = cb;
 
-        if (front != NULL)
-        {
-            setaudiocallback(bind(&mbGBFrontend::audiocallback, cb, _1, _2));
-            setrumblecallback(bind(&mbGBFrontend::rumblecallback, cb, _1));
-            setpixelcallback(bind(&mbGBFrontend::pixelcallback, cb));
+	if (front != NULL)
+	{
+	    setaudiocallback(bind(&mbGBFrontend::audiocallback, cb, _1, _2));
+	    setrumblecallback(bind(&mbGBFrontend::rumblecallback, cb, _1));
+	    setpixelcallback(bind(&mbGBFrontend::pixelcallback, cb));
 	    auto icb = bind(&mbGBFrontend::camerainit, cb);
 	    auto scb = bind(&mbGBFrontend::camerashutdown, cb);
 	    auto fcb = bind(&mbGBFrontend::cameraframe, cb, _1);
 	    setcamcallbacks(icb, scb, fcb);
-        }
+	}
     }
 
     bool GBCore::loadBIOS(string filename)
     {
 	cout << "mbGB::Loading BIOS..." << endl;
-        if (front != NULL)
-        {
+      if (front != NULL)
+      {
 	    return coremmu->loadBIOS(front->loadfile(filename));
 	}
 
@@ -395,8 +402,8 @@ namespace gb
     bool GBCore::loadROM(string filename)
     {
 	cout << "mbGB::Loading ROM " << filename << "..." << endl;
-        if (front != NULL)
-        {
+      if (front != NULL)
+      {
 	    return coremmu->loadROM(front->loadfile(filename));
 	}
 
@@ -437,7 +444,7 @@ namespace gb
     {
 	stringstream saveram;
 
-	saveram << romname << ".sav";
+	saveram << romname << "." << (save_extension.empty() ? "sav" : save_extension);
 
 	if (front != NULL)
 	{
@@ -451,7 +458,7 @@ namespace gb
     {
 	stringstream saveram;
 
-	saveram << romname << ".sav";
+	saveram << romname << "." << (save_extension.empty() ? "sav" : save_extension);
 
 	if (front != NULL)
 	{
@@ -459,6 +466,11 @@ namespace gb
 	}
 	
 	return true;
+    }
+
+    void GBCore::set_save_extension(string ext)
+    {
+	save_extension = ext;
     }
 
     size_t GBCore::getstatesize()
@@ -548,34 +560,19 @@ namespace gb
 	return coregpu->framebuffer;
     }
 
+    void GBCore::keychanged(gbButton button, bool is_pressed)
+    {
+	coreinput->keychanged(button, is_pressed);
+    }
+
     void GBCore::keypressed(gbButton button)
     {
-	coreinput->keypressed(button);
+	keychanged(button, true);
     }
 
     void GBCore::keyreleased(gbButton button)
     {
-	coreinput->keyreleased(button);
-    }
-
-    void GBCore::sensorpressed(gbGyro pos)
-    {
-	if (!coremmu->istiltsensor())
-	{
-	    return;
-	}
-
-	coremmu->sensorpressed(pos);
-    }
-
-    void GBCore::sensorreleased(gbGyro pos)
-    {
-	if (!coremmu->istiltsensor())
-	{
-	    return;
-	}
-
-	coremmu->sensorreleased(pos);
+	keychanged(button, false);
     }
 
     vector<uint8_t> GBCore::dumpvram()
@@ -614,20 +611,28 @@ namespace gb
 	}
     }
 
+    int GBCore::get_total_cycles()
+    {
+	return (70224 << coremmu->doublespeed);
+    }
+
+    void GBCore::set_accel_values(float x, float y)
+    {
+	coremmu->set_accel_values(x, y);
+    }
+
     void GBCore::runcore()
     {
-	while (totalcycles < (70224 << coremmu->doublespeed))
+	while (totalcycles < get_total_cycles())
 	{
 	    totalcycles += runinstruction();
 	}
-	
+
 	totalcycles = 0;
     }
 
     bool GBCore::initcore()
     {
-	preinit();
-
 	if (biosload())
 	{
 	    if (!loadBIOS(biosname))
@@ -652,8 +657,10 @@ namespace gb
 	    screenheight = 160;
 	}
 
+	cout << "Screen size: " << dec << int(screenwidth) << "x" << dec << int(screenheight) << endl;
+
 	init();
-	
+
 	if (front != NULL)
 	{
 	    front->init();
@@ -713,6 +720,11 @@ namespace gb
 	}
     }
 
+    void GBCore::addcheats(vector<string> cheats)
+    {
+	coremmu->add_cheats(cheats);
+    }
+
     void GBCore::resetcore()
     {
 	cout << "Resetting GBCore..." << endl;
@@ -720,6 +732,13 @@ namespace gb
 	// Shut down core components without
 	// resetting frontend or attached devices
 	shutdown(true);
+	// Override emulated system if manually set
+	setsystemtype(system_type);
 	initcore();
+    }
+
+    void GBCore::debugoutput()
+    {
+	corecpu->printregs();
     }
 };

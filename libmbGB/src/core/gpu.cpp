@@ -1,6 +1,6 @@
 /*
     This file is part of libmbGB.
-    Copyright (C) 2021 BueniaDev.
+    Copyright (C) 2022 BueniaDev.
 
     libmbGB is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -47,6 +47,14 @@ namespace gb
     {
 	scanlinecounter = 0;
 	windowlinecounter = 0;
+
+	if (!gpumem.biosload)
+	{
+	    lcdc = 0x91;
+	    stat = 0x81;
+	    ly = 0x00;
+	}
+
 	clearscreen();
 	cout << "GPU::Initialized" << endl;
     }
@@ -71,6 +79,8 @@ namespace gb
 	file.var8(&bgpalette);
 	file.var8(&objpalette0);
 	file.var8(&objpalette1);
+	file.varint(&scanlinecounter);
+	file.varint(&windowlinecounter);
     }
 	
     uint8_t GPU::readlcd(uint16_t addr)
@@ -124,14 +134,20 @@ namespace gb
 	    windowlinecounter = 0;
 	    ly = 0;
 	    setstatmode(0);
+
+	    offcounter += 4;
+
+	    if (offcounter == (70224 << gpumem.doublespeed))
+	    {
+		offcounter = 0;
+	    }
+
 	    return;
 	}
 
 	// Each scanline takes 456 cycles in single-speed mode, or 912 cycles in double-speed mode
-	int atomic_increase = (gpumem.doublespeed) ? 2 : 4;
-
 	// Increment scanline counter
-	scanlinecounter += atomic_increase;
+	scanlinecounter += 4;
 
 	updately(); // Update LY register
 	updatelycomparesignal(); // Update LY=LYC comparision
@@ -198,6 +214,8 @@ namespace gb
 		{
 		    drawpixels();
 		}
+
+		gpumem.handlevblank();
 	    }
 	}
 
@@ -284,7 +302,7 @@ namespace gb
 	if (!wasenabled && islcdenabled())
 	{
 	    // Set scanline counter to these values so it automatically ticks over to 0
-	    scanlinecounter = 452;
+	    scanlinecounter = (452 << gpumem.doublespeed);
 	    currentscanline = 153;
 	}
 	else if (wasenabled && !islcdenabled())
@@ -304,7 +322,7 @@ namespace gb
 	}
 
 	// LY increments once every 456 cycles (or every 912 cycles in double speed mode)
-	if (scanlinecounter == 456) 
+	if (scanlinecounter == (456 << gpumem.doublespeed))
 	{
 	    scanlinecounter = 0;
 
@@ -449,7 +467,7 @@ namespace gb
 
 	    obj.y = gpumem.oam[addr];
 	    obj.x = gpumem.oam[addr + 1];
-	    obj.patternnum = (gpumem.oam[addr + 2] & ~BitGetVal(lcdc, 2));
+	    obj.patternnum = (gpumem.oam[addr + 2] & ~getbitval(lcdc, 2));
 	    uint8_t temp = gpumem.oam[addr + 3];
 	    obj.priority = testbit(temp, 7);
 	    obj.yflip = testbit(temp, 6);
@@ -624,11 +642,6 @@ namespace gb
 
 	gbRGB gbcolor = {dmgcolor, dmgcolor, dmgcolor};
 	setpixel(pixelx, ly, gbcolor);
-
-	if (pixelx == 159)
-	{
-	    updateframebuffer();
-	}
     }
 
     void GPU::rendercgbpixel()
@@ -1086,9 +1099,9 @@ namespace gb
 	    colorbit -= 7;
 	    colorbit *= -1;
 
-	    int colornum = BitGetVal(data2, colorbit);
+	    int colornum = getbitval(data2, colorbit);
 	    colornum <<= 1;
-	    colornum |= BitGetVal(data1, colorbit);
+	    colornum |= getbitval(data1, colorbit);
 
 	    uint8_t red = 0;
 	    uint8_t green = 0;
@@ -1230,9 +1243,9 @@ namespace gb
 	        colorbit -= 7;
 	        colorbit *= -1;
 
-	        int colornum = BitGetVal(data2, colorbit);
+	        int colornum = getbitval(data2, colorbit);
 	        colornum <<= 1;
-	        colornum |= BitGetVal(data1, colorbit);
+	        colornum |= getbitval(data1, colorbit);
 
 	        uint8_t red = 0;
 	        uint8_t green = 0;
@@ -1343,9 +1356,9 @@ namespace gb
 		    uint8_t xpixel = (xpos + pixel);
 		    int spritepixel = (xflip) ? pixel : ((pixel - 7) * -1);
 		    bool iswhite = (bgscanline[xpixel] == 0);
-		    int colornum = BitGetVal(data2, spritepixel);
+		    int colornum = getbitval(data2, spritepixel);
 		    colornum <<= 1;
-		    colornum |= BitGetVal(data1, spritepixel);
+		    colornum |= getbitval(data1, spritepixel);
 		    uint8_t coloraddr = testbit(flags, 4) ? objpalette1 : objpalette0;
 
 		    uint8_t red = 0;
@@ -1371,7 +1384,7 @@ namespace gb
 
 			uint16_t tempoffs = testbit(flags, 4) ? 0xFF49 : 0xFF48;
 
-			int coloroffset = (BitGetVal(tempoffs, 0) << 3);
+			int coloroffset = (getbitval(tempoffs, 0) << 3);
 			
 			red = getdmgpalette(color, coloroffset, false).red;
 			green = getdmgpalette(color, coloroffset, false).green;

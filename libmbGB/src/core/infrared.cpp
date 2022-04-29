@@ -1,6 +1,6 @@
 /*
     This file is part of libmbGB.
-    Copyright (C) 2021 BueniaDev.
+    Copyright (C) 2022 BueniaDev.
 
     libmbGB is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -47,6 +47,7 @@ namespace gb
 	{
 	    infrared_reg = 0xFF;
 	}
+
 	cout << "Infrared::Initialized" << endl;
     }
 
@@ -68,17 +69,17 @@ namespace gb
 	{
 	    if ((infrared_reg >> 6) != 3)
 	    {
-		temp = BitSet(infrared_reg, 1);
+		temp = setbit(infrared_reg, 1);
 	    }
 	    else
 	    {
 		if (dev != NULL)
 		{
-		    temp = BitChange(infrared_reg, 1, !dev->getirstatus());
+		    temp = changebit(infrared_reg, 1, !dev->getirstatus());
 		}
 		else
 		{
-		    temp = BitSet(infrared_reg, 1);
+		    temp = setbit(infrared_reg, 1);
 		}
 	    }
 	}
@@ -95,8 +96,8 @@ namespace gb
 
 	if (addr == 0xFF56)
 	{
-	    bool old_ir_signal = TestBit(infrared_reg, 1);
-	    bool old_ir_stat = TestBit(infrared_reg, 0);
+	    bool old_ir_signal = testbit(infrared_reg, 1);
+	    bool old_ir_stat = testbit(infrared_reg, 0);
 
 	    uint8_t temp_val = val;
 	    temp_val &= 0xC1;
@@ -104,7 +105,7 @@ namespace gb
 	    temp_val |= 0x3C;
 	    infrared_reg = temp_val;
 
-	    ir_signal = TestBit(val, 0);
+	    ir_signal = testbit(val, 0);
 
 	    if (ir_signal != old_ir_stat)
 	    {

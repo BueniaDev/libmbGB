@@ -1,6 +1,6 @@
 /*
     This file is part of libmbGB.
-    Copyright (C) 2021 BueniaDev.
+    Copyright (C) 2022 BueniaDev.
 
     libmbGB is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -40,27 +40,13 @@ namespace gb
     using boolfunc = function<bool()>;
     using voidfunc = function<void()>;
 
-    using poweronfunc = function<void(bool)>;
-    using joypadfunc = voidfunc;
-    using statirqfunc = boolfunc;
-    using screenfunc = voidfunc;
-    using apulengthfunc = boolfunc;
-    using rumblefunc = function<void(bool)>;
+    using rumblefunc = function<void(double)>;
     using caminitfunc = boolfunc;
     using camstopfunc = voidfunc;
     using camframefunc = function<bool(array<int, (128 * 120)>&)>;
-  
-	
+
     using memoryreadfunc = function<uint8_t(uint16_t)>;
     using memorywritefunc = function<void(uint16_t, uint8_t)>;
-
-    enum gbGyro : int
-    {
-	gyLeft = 0,
-	gyRight = 1,
-	gyUp = 2,
-	gyDown = 3,
-    };
 
     class LIBMBGB_API MMU
     {
@@ -76,6 +62,12 @@ namespace gb
 	    void initvram();
 	    void initnot();
 	    void shutdown();
+
+	    void handlevblank();
+
+	    void updatecomponents();
+
+	    void set_accel_values(float x, float y);
 		
 	    array<memoryreadfunc, 0x80> memoryreadhandlers;
 	    array<memorywritefunc, 0x80> memorywritehandlers;
@@ -88,50 +80,6 @@ namespace gb
 	    void addmemorywritehandler(uint16_t addr, memorywritefunc cb)
 	    {
 		memorywritehandlers.at((addr - 0xFF00)) = cb;
-	    }
-
-	    inline void initio()
-	    {
-		if (isdmgmode())
-		{
-		    if (isdmgconsole())
-		    {
-			divider = 0xABCC;
-		    }
-		    else
-		    {
-			divider = 0x267C;
-		    }
-		}
-		else
-		{
-		    divider = 0x1EA0;
-		}
-
-		interruptenabled = 0x00;
-		interruptflags = 0xE0;
-	    	tima = 0x00;
-	    	tma = 0x00;
-	        tac = 0xF8;
-		vrambank = 0;
-		wrambank = 1;
-		writeByte(0xFF4D, 0x7E);
-		doublespeed = false;
-	    }
-
-	    inline void resetio()
-	    {
-	        sb = 0x00;
-	    	sc = 0x00;
-	    	divider = 0x0000;
-	    	tima = 0x00;
-	    	tma = 0x00;
-	        tac = 0x00;
-	        interruptflags = 0x00;
-	        dma = 0x00;
-	        key1 = 0x00;
-	        interruptenabled = 0x00;
-	    	dmaactive = false;
 	    }
 
 	    uint8_t readempty(uint16_t addr)
@@ -151,6 +99,8 @@ namespace gb
 
 	    bool loadbackup(vector<uint8_t> data);
 	    vector<uint8_t> savebackup();
+
+	    void add_cheats(vector<string> cheats);
 
 	    vector<uint8_t> rom;
 	    vector<uint8_t> vram;
@@ -200,6 +150,9 @@ namespace gb
 	    void updatetimer();
 	    void latchtimer();
 
+	    void initmbc3rtc();
+	    void updatembc3rtc();
+
 	    uint8_t latchsecs = 0;
 	    uint8_t latchmins = 0;
 	    uint8_t latchhours = 0;
@@ -207,71 +160,12 @@ namespace gb
 	    bool latchhalt = false;
 	    bool latchdayscarry = false;
 
-	    void loadbackuprtc(vector<uint8_t> saveram, int ramsize)
-	    {
-		int size = ((int)saveram.size());
+	    void loadbackuprtc(vector<uint8_t> saveram, size_t ramsize);
+	    void savebackuprtc(vector<uint8_t> &saveram);
+	    size_t rtc_data_size();
 
-		if (batteryenabled && (size == (ramsize + 48)))
-		{
-		    realsecs = saveram[ramsize];
-		    realmins = saveram[(ramsize + 4)];
-		    realhours = saveram[(ramsize + 8)];
-		    uint8_t realdayslo = saveram[(ramsize + 12)];
-		    uint8_t realdayshi = saveram[(ramsize + 16)];
-		    latchsecs = saveram[(ramsize + 20)];
-		    latchmins = saveram[(ramsize + 24)];
-		    latchhours = saveram[(ramsize + 28)];
-		    uint8_t latchdayslo = saveram[(ramsize + 32)];
-		    uint8_t latchdayshi = saveram[(ramsize + 36)];
-
-		    realdays = ((BitGetVal(realdayshi, 0) << 8) | realdayslo);
-		    rtchalt = testbit(realdayshi, 6);
-		    realdayscarry = testbit(realdayshi, 7);
-
-		    latchdays = ((BitGetVal(latchdayshi, 0) << 8) | latchdayslo);
-		    latchhalt = testbit(latchdayshi, 6);
-		    latchdayscarry = testbit(latchdayshi, 7);
-
-		    for (int i = 0; i < 8; i++)
-		    {
-			current_time |= (saveram[(ramsize + 40 + i)] << (i << 3));
-		    }
-
-		    if (current_time <= 0)
-		    {
-			current_time = time(NULL);
-		    }
-
-		    inittimer();
-		}
-	    }
-
-	    void savebackuprtc(vector<uint8_t> &saveram)
-	    {
-		int size = ((int)saveram.size());
-		cout << "Size: " << hex << (int)(size) << endl;
-
-		if (batteryenabled)
-		{
-		    inittimer();
-		    saveram.resize((size + 48), 0);
-		    saveram[size] = realsecs;
-		    saveram[(size + 4)] = realmins;
-		    saveram[(size + 8)] = realhours;
-		    saveram[(size + 12)] = (realdays & 0xFF);
-		    saveram[(size + 16)] = (((realdays >> 8) & 0x1) | (rtchalt << 6) | (realdayscarry << 7));
-		    saveram[(size + 20)] = latchsecs;
-		    saveram[(size + 24)] = latchmins;
-		    saveram[(size + 28)] = latchhours;
-		    saveram[(size + 32)] = (latchdays & 0xFF);
-		    saveram[(size + 36)] = (((latchdays >> 8) & 0x1) | (latchhalt << 6) | (latchdayscarry << 7));
-
-		    for (int i = 0; i < 8; i++)
-		    {
-			saveram[(size + 40 + i)] = ((uint8_t)(current_time >> (i << 3)));
-		    }
-		}
-	    }
+	    void loadmbc3rtc(vector<uint8_t> saveram, size_t ramsize);
+	    void savembc3rtc(vector<uint8_t> &saveram);
 
 	    int mbc6rombanka = 0;
 	    int mbc6rombankb = 0;
@@ -283,37 +177,57 @@ namespace gb
 	    bool mbc6flashenable = false;
 	    bool mbc6flashwriteenable = false;
 
-	    uint8_t readmbc7ram(uint16_t addr);
-	    void writembc7ram(uint16_t addr, uint8_t val);
-	    void writembc7eeprom(uint8_t val);
+	    // MBC7 variables
+	    uint8_t mbc7_reg_read(uint16_t addr);
+	    void mbc7_reg_write(uint16_t addr, uint8_t value);
 
-	    bool mbc7chipsel = false;
-	    bool mbc7chipclk = false;
-	    int mbc7chipcmd = 0;
-	    int mbc7chipaddr = 0;
-	    uint16_t mbc7chipbuf = 0;
-	    int mbc7chipsize = 0;
-	    int mbc7intstate = 0;
-	    int mbc7intvalue = 0;
-	    bool mbc7idle = true;
-	    bool mbc7wenable = false;
+	    int sensorx = 0;
+	    int sensory = 0;
 
-	    bool mbc7sensorlatch = false;
-	    uint16_t mbc7sensorx = 0x8000;
-	    uint16_t mbc7sensory = 0x8000;
+	    uint16_t mbc7_sensorx = 0;
+	    uint16_t mbc7_sensory = 0;
 
-	    int mbc7gyroval = 0;
+	    bool mbc7_latch = false;
 
-	    void sensorpressed(gbGyro pos);
-	    void sensorreleased(gbGyro pos);
+	    uint8_t read_mbc7_eeprom();
+	    void write_mbc7_eeprom(uint8_t value);
+	    void process_mbc7_command();
 
-	    int xsensor = 0;
-	    int ysensor = 0;
+	    void latch_mbc7_gyro();
 
-	    void updategyro();
+	    bool mbc7_cs = false;
+	    bool mbc7_clk = false;
+	    bool mbc7_di = false;
+	    bool mbc7_do = false;
 
-	    void updatesensor(gbGyro pos, bool ispressed);
-	    void setsensor();
+	    int mbc7_buffer = 0;
+	    int mbc7_length = 0;
+
+	    uint16_t mbc7_write_addr = 0;
+	    uint16_t mbc7_read_value = 0;
+	    uint16_t mbc7_write_value = 0;
+	    bool mbc7_erase_enabled = false;
+
+	    int mbc7_gyro_val = 0;
+
+	    enum MBC7State : int
+	    {
+		StartBit = 0,
+		Command = 1,
+		Read = 2,
+		Write = 3,
+		WriteAll = 4,
+	    };
+
+	    MBC7State mbc7_state = MBC7State::StartBit;
+
+	    // Rumble related variables
+	    void updaterumble();
+	    void handlerumble();
+
+	    int rumble_on_cycles = 0;
+	    int rumble_off_cycles = 0;
+	    int rumble_strength = 0;
 
 	    rumblefunc setrumble;
 
@@ -322,6 +236,7 @@ namespace gb
 		setrumble = cb;
 	    }
 
+	    // GB Camera variables
 	    bool cameramode = false;
 	    int camera_trigger = 0;
 	    uint8_t camera_outputedge = 0;
@@ -353,6 +268,57 @@ namespace gb
 
 	    void take_camera_pic();
 	    int camera_matrix_process(int val, int x, int y);
+
+	    // HuC1 variables
+	    bool huc1_bank_mode = false;
+	    bool huc1_ir_trigger = false;
+
+	    // HuC3 variables
+	    int huc3_mode = 0;
+	    uint8_t huc3_value = 0;
+	    int huc3_index = 0;
+
+	    void huc3_commit();
+
+	    // TPP1 variables
+	    uint8_t mr0_reg = 0;
+	    uint8_t mr1_reg = 0;
+	    uint8_t mr2_reg = 0;
+	    uint8_t mr4_reg = 0;
+
+	    enum TPP1Mapped : int
+	    {
+		ControlReg = 0,
+		SRAMRead = 1,
+		SRAMReadWrite = 2,
+		RTCLatched = 3,
+	    };
+
+	    TPP1Mapped map_control;
+
+	    uint8_t read_tpp1_control_reg(uint16_t addr);
+	    void write_tpp1_control_reg(uint16_t addr, uint8_t value);
+	    void write_tpp1_mr3(uint8_t value);
+	    uint8_t read_tpp1_rtc(uint16_t addr);
+	    void write_tpp1_rtc(uint16_t addr, uint8_t value);
+
+	    bool is_multi_rumble = false;
+
+	    int tpp1_latched_week = 0;
+	    int tpp1_latched_day = 0;
+	    int tpp1_latched_hours = 0;
+	    int tpp1_latched_minutes = 0;
+	    int tpp1_latched_seconds = 0;
+
+	    int tpp1_rtc_week = 0;
+	    int tpp1_rtc_day = 0;
+	    int tpp1_rtc_hours = 0;
+	    int tpp1_rtc_minutes = 0;
+	    int tpp1_rtc_seconds = 0;
+
+	    void updatetpp1rtc();
+
+	    // Other variables
 
 	    bool dump = false;
 
@@ -492,6 +458,23 @@ namespace gb
 
 	    inline void determinembctype(vector<uint8_t>& rom)
 	    {
+		if ((rom[0x0147] == 0xBC) && (rom[0x0149] == 0xC1) && (rom[0x14A] == 0x65))
+		{
+		    gbmbc = MBCType::TPP1;
+		    mbctype = "TPP1";
+		    externalrampres = (rom[0x0152] != 0);
+		    isrumblepres = testbit(rom[0x0153], 0);
+
+		    if (isrumblepres)
+		    {
+			is_multi_rumble = testbit(rom[0x0153], 1);
+		    }
+
+		    isrtcpres = testbit(rom[0x0153], 2);
+		    batteryenabled = testbit(rom[0x0153], 3);
+		    return;
+		}
+
 		switch (rom[0x0147])
 		{
 		    case 0x00: isromonly(rom); break;
@@ -516,27 +499,34 @@ namespace gb
 		    case 0x20: gbmbc = MBCType::MBC6; externalrampres = true; isrumblepres = false; mbctype = "MBC6"; batteryenabled = true; break;
 		    case 0x22: gbmbc = MBCType::MBC7; externalrampres = true; isrumblepres = true; mbctype = "MBC7 + SENSOR + RUMBLE + RAM + BATTERY"; batteryenabled = true; break;
 		    case 0xFC: gbmbc = MBCType::Camera; externalrampres = true; mbctype = "POCKET CAMERA"; batteryenabled = true; break;
+		    case 0xFE: gbmbc = MBCType::HuC3; mbctype = "HuC3"; break;
+		    case 0xFF: gbmbc = MBCType::HuC1; externalrampres = true; mbctype = "HuC1 + RAM + BATTERY"; batteryenabled = true; break;
 		    default: cout << "MMU::Error - Unrecognized MBC type of " << hex << (int)(rom[0x0147]) << endl; exit(1); break;
 		}
 	    }
 
 	    inline int getrombanks(vector<uint8_t>& rom)
 	    {
-		bool ismbc1 = ((rom[0x0147] >= 1) && (rom[0x0147] <= 3));
-
 		int banks = 0;
 
 		switch (rom[0x0148])
 		{
-		    case 0: banks = 1; romsize = "32 KB"; break;
+		    case 0: banks = 2; romsize = "32 KB"; break;
 		    case 1: banks = 4; romsize = "64 KB"; break;
 		    case 2: banks = 8; romsize = "128 KB"; break;
 		    case 3: banks = 16; romsize = "256 KB"; break;
 		    case 4: banks = 32; romsize = "512 KB"; break;
-		    case 5: banks = (ismbc1 ? 63 : 64); romsize = "1 MB"; break;
-		    case 6: banks = (ismbc1 ? 125 : 128); romsize = "2 MB"; break;
+		    case 5: banks = 64; romsize = "1 MB"; break;
+		    case 6: banks = 128; romsize = "2 MB"; break;
 		    case 7: banks = 256; romsize = "4 MB"; break;
 		    case 8: banks = 512; romsize = "8 MB"; break;
+		    case 9: banks = 1024; romsize = "16 MB"; break;
+		    case 10: banks = 2048; romsize = "32 MB"; break;
+		    case 11: banks = 4096; romsize = "64 MB"; break;
+		    case 12: banks = 8192; romsize = "128 MB"; break;
+		    case 13: banks = 16384; romsize = "256 MB"; break;
+		    case 14: banks = 32768; romsize = "512 MB"; break;
+		    case 15: banks = 65536; romsize = "1 GB"; break;
 		    case 82: banks = 72; romsize = "1.1 MB"; break;
 		    case 83: banks = 80; romsize = "1.2 MB"; break;
 		    case 84: banks = 96; romsize = "1.5 MB"; break;
@@ -549,6 +539,26 @@ namespace gb
 	    inline int getrambanks(vector<uint8_t>& rom)
 	    {
 		int banks = 0;
+
+		if (gbmbc == MBCType::TPP1)
+		{
+		    switch (rom[0x0152])
+		    {
+			case 0: banks = 0; mbcramsize = 0; ramsize = "None"; break;
+			case 1: banks = 1; mbcramsize = 8; ramsize = "8 KB"; break;
+			case 2: banks = 2; mbcramsize = 16; ramsize = "16 KB"; break;
+			case 3: banks = 4; mbcramsize = 32; ramsize = "32 KB"; break;
+			case 4: banks = 8; mbcramsize = 64; ramsize = "64 KB"; break;
+			case 5: banks = 16; mbcramsize = 128; ramsize = "128 KB"; break;
+			case 6: banks = 32; mbcramsize = 256; ramsize = "256 KB"; break;
+			case 7: banks = 64; mbcramsize = 512; ramsize = "512 KB"; break;
+			case 8: banks = 128; mbcramsize = 1024; ramsize = "1 MB"; break;
+			case 9: banks = 256; mbcramsize = 2048; ramsize = "2 MB"; break;
+			default: cout << "MMU::Error - Unrecognized TPP1 RAM quantity of " << hex << int(rom[0x0152]) << " given in cartridge" << endl; exit(1); break;
+		    }
+
+		    return banks;
+		}
 
 		switch (rom[0x0149])
 		{
@@ -570,7 +580,7 @@ namespace gb
 	
 		for (int i = 0x134; i < 0x0143; i++)
 		{
-		    temp << ((char)(int)(rom[i]));
+		    temp << char(rom[i]);
 		}
 
 		return temp.str();
@@ -581,7 +591,7 @@ namespace gb
 	    string ramsize;
 
 	    bool loadBIOS(vector<uint8_t> data);
-            bool loadROM(vector<uint8_t> data);
+	    bool loadROM(vector<uint8_t> data);
 
 	    uint8_t readByte(uint16_t addr);
 	    void writeByte(uint16_t addr, uint8_t value);
@@ -590,22 +600,40 @@ namespace gb
 
 	    uint8_t mbc1read(uint16_t addr);
 	    void mbc1write(uint16_t addr, uint8_t value);
+
 	    uint8_t mbc1rread(uint16_t addr);
 	    void mbc1rwrite(uint16_t addr, uint8_t value);
+
 	    uint8_t mbc1mread(uint16_t addr);
 	    void mbc1mwrite(uint16_t addr, uint8_t value);
+
 	    uint8_t mbc2read(uint16_t addr);
 	    void mbc2write(uint16_t addr, uint8_t value);
+
 	    uint8_t mbc3read(uint16_t addr);
 	    void mbc3write(uint16_t addr, uint8_t value);
+
 	    uint8_t mbc5read(uint16_t addr);
 	    void mbc5write(uint16_t addr, uint8_t value);
+
 	    uint8_t mbc6read(uint16_t addr);
 	    void mbc6write(uint16_t addr, uint8_t value);
+
 	    uint8_t mbc7read(uint16_t addr);
 	    void mbc7write(uint16_t addr, uint8_t value);
+
 	    uint8_t gbcameraread(uint16_t addr);
 	    void gbcamerawrite(uint16_t addr, uint8_t value);
+
+	    uint8_t huc3read(uint16_t addr);
+	    void huc3write(uint16_t addr, uint8_t value);
+
+	    uint8_t huc1read(uint16_t addr);
+	    void huc1write(uint16_t addr, uint8_t value);
+
+	    uint8_t tpp1read(uint16_t addr);
+	    void tpp1write(uint16_t addr, uint8_t value);
+
 	    uint8_t wisdomtreeread(uint16_t addr);
 	    void wisdomtreewrite(uint16_t addr, uint8_t value);
 
@@ -655,12 +683,6 @@ namespace gb
 
 	    HdmaType hdmatype;
 	    DmaState hdmastate = DmaState::Inactive;
-
-	    poweronfunc poweron;
-	    joypadfunc updatep1;
-	    statirqfunc statirq;
-	    screenfunc screen;
-	    apulengthfunc apulength;
 
 	    inline void writedma(uint8_t value)
 	    {
@@ -807,37 +829,6 @@ namespace gb
 		}
 	    }
 
-	    inline void writediv()
-	    {
-		divider = 0x0000;
-		isdivinterrupt = false;
-	    }
-
-	    void setpoweroncallback(poweronfunc cb)
-	    {
-		poweron = cb;
-	    }
-
-	    void setjoypadcallback(joypadfunc cb)
-	    {
-		updatep1 = cb;
-	    }
-
-	    void setstatirqcallback(statirqfunc cb)
-	    {
-		statirq = cb;
-	    }
-
-	    void setscreencallback(screenfunc cb)
-	    {
-		screen = cb;
-	    }
-
-	    void setapucallbacks(apulengthfunc cb)
-	    {
-		apulength = cb;
-	    }
-
 	    inline void exitbios()
 	    {
 		if ((biossize == 0x900) && (cartmem[0x143] != 0x80) && (cartmem[0x143] != 0xC0))
@@ -847,7 +838,6 @@ namespace gb
 
 		biosload = false;
 		cout << "MMU::Exiting BIOS..." << endl;
-		// screen();
 	    }
 
 	    inline void requestinterrupt(int id)
@@ -877,16 +867,6 @@ namespace gb
 		return (interruptflags & interruptenabled);
 	    }
 
-	    inline uint8_t readsc()
-	    {
-		return (sc & 0x7E);
-	    }
-
-	    inline void writesc(uint8_t value)
-	    {
-		sc = (value & 0x81);
-	    }
-
 	    inline void writeif(uint8_t value)
 	    {
 		interruptflags = (value & 0x1F);
@@ -900,18 +880,21 @@ namespace gb
 	    bool previnterruptsignal = false;
 	    bool isdivinterrupt = true;
 
-	    uint8_t sb = 0x00;
-	    uint8_t sc = 0x00;
-	    uint16_t divider = 0x0000;
-	    uint8_t tima = 0x00;
-	    uint8_t tma = 0x00;
-	    uint8_t tac = 0x00;
 	    uint8_t interruptflags = 0xE1;
 	    uint8_t dma = 0x00;
 	    uint8_t key1 = 0x00;
 	    uint8_t interruptenabled = 0x00;
 	    bool dmaactive = false;
 	    uint8_t lylastcycle = 0xFF;
+
+	private:
+	    vector<string> gamegenie_codes;
+	    vector<string> gameshark_codes;
+	    void apply_gg_cheats();
+	    void apply_gs_cheats();
+
+	    void add_gg_cheat(string cheat_code);
+	    void add_gs_cheat(string cheat_code);
 
     };
 };

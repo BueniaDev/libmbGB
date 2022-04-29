@@ -28,7 +28,6 @@ if (BUILD_WEBCAM STREQUAL "ON")
 endif()
 
 if (BUILD_OPENGL STREQUAL "ON")
-    message(WARNING "Though OpenGL rendering in mbGB-SDL2 is mostly complete, it's still missing a few features, so don't expect everything to work here...")
     target_compile_definitions(${PROJECT_NAME} PRIVATE -DUSE_OPENGL=1)
     find_package(OpenGL REQUIRED)
     find_package(GLUT REQUIRED)

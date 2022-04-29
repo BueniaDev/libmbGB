@@ -1,6 +1,6 @@
 /*
     This file is part of libmbGB.
-    Copyright (C) 2021 BueniaDev.
+    Copyright (C) 2022 BueniaDev.
 
     libmbGB is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -160,7 +160,7 @@ namespace gb
 		default: temp = 0xFF; break;
 	    }
 	}
-	else if ((addr >= 0xFF30) && (addr < 0xFF40))
+	else if (inRange(addr, 0xFF30, 0xFF40))
 	{
 	    temp = waveram[addr - 0xFF30];
 	}
@@ -265,7 +265,7 @@ namespace gb
 	    	{
 		    wavesweep = (value & 0x80);
 
-		    if (!TestBit(wavesweep, 7))
+		    if (!testbit(wavesweep, 7))
 		    {
 			waveenabled = false;
 		    }
@@ -317,7 +317,7 @@ namespace gb
 		default: return; break;
 	    }
     	}
-	else if ((addr >= 0xFF30) && (addr < 0xFF40))
+	else if (inRange(addr, 0xFF30, 0xFF40))
 	{
 	    waveram[addr - 0xFF30] = value;
     	}
@@ -341,7 +341,7 @@ namespace gb
 
     void APU::s1sweeptick(int frameseq)
     {
-	bool sweepinc = TestBit(frameseq, 1);
+	bool sweepinc = testbit(frameseq, 1);
 
 	if (s1sweepenabled)
 	{
@@ -367,9 +367,9 @@ namespace gb
 	
     void APU::s1lengthcountertick(int frameseq)
     {
-	bool lengthcounterdec = TestBit(frameseq, 0);
+	bool lengthcounterdec = testbit(frameseq, 0);
 
-	if (TestBit(s1freqhi, 6) && s1lengthcounter > 0)
+	if (testbit(s1freqhi, 6) && s1lengthcounter > 0)
 	{
 	    if (!lengthcounterdec && prevs1lengthdec)
 	    {
@@ -387,7 +387,7 @@ namespace gb
 	
     void APU::s1envelopetick(int frameseq)
     {
-	bool envelopeinc = TestBit(frameseq, 2);
+	bool envelopeinc = testbit(frameseq, 2);
 
 	if (s1envelopeenabled)
 	{
@@ -397,7 +397,7 @@ namespace gb
 
 		if (s1envelopecounter == 0)
 		{
-		    if (!TestBit(s1volumeenvelope, 3))
+		    if (!testbit(s1volumeenvelope, 3))
 		    {
 			s1volume -= 1;
 
@@ -454,9 +454,9 @@ namespace gb
 	
     void APU::s2lengthcountertick(int frameseq)
     {
-	bool lengthcounterdec = TestBit(frameseq, 0);
+	bool lengthcounterdec = testbit(frameseq, 0);
 
-	if (TestBit(s2freqhi, 6) && s2lengthcounter > 0)
+	if (testbit(s2freqhi, 6) && s2lengthcounter > 0)
 	{
 	    if (!lengthcounterdec && prevs2lengthdec)
 	    {
@@ -474,7 +474,7 @@ namespace gb
 
     void APU::s2envelopetick(int frameseq)
     {
-	bool envelopeinc = TestBit(frameseq, 2);
+	bool envelopeinc = testbit(frameseq, 2);
 
 	if (s2envelopeenabled)
 	{
@@ -484,7 +484,7 @@ namespace gb
 
 		if (s2envelopecounter == 0)
 		{
-		    if (!TestBit(s2volumeenvelope, 3))
+		    if (!testbit(s2volumeenvelope, 3))
 		    {
 			s2volume -= 1;
 			if (s2volume == 0)
@@ -549,7 +549,7 @@ namespace gb
 	    int sampleindex = ((wavepos + playingbankoffs) & 0x3F);
 	    uint8_t samplebyte = waveram[sampleindex >> 1];
 
-	    wavecurrentsample = (TestBit(sampleindex, 0) ? (samplebyte & 0x0F) : (samplebyte >> 4));
+	    wavecurrentsample = (testbit(sampleindex, 0) ? (samplebyte & 0x0F) : (samplebyte >> 4));
 	    wavereloadperiod();
 	}
 	else
@@ -560,9 +560,9 @@ namespace gb
 
     void APU::wavelengthcountertick(int frameseq)
     {
-	bool lengthcounterdec = TestBit(frameseq, 0);
+	bool lengthcounterdec = testbit(frameseq, 0);
 
-	if (TestBit(wavefreqhi, 6) && wavelengthcounter > 0)
+	if (testbit(wavefreqhi, 6) && wavelengthcounter > 0)
 	{
 	    if (!lengthcounterdec && prevwavelengthdec)
 	    {
@@ -601,9 +601,9 @@ namespace gb
 	
     void APU::noiselengthcountertick(int frameseq)
     {
-	bool lengthcounterdec = TestBit(frameseq, 0);
+	bool lengthcounterdec = testbit(frameseq, 0);
 
-	if (TestBit(noisefreqhi, 6) && noiselengthcounter > 0)
+	if (testbit(noisefreqhi, 6) && noiselengthcounter > 0)
 	{
 	    if (!lengthcounterdec && prevnoiselengthdec)
 	    {
@@ -621,7 +621,7 @@ namespace gb
 
     void APU::noiseenvelopetick(int frameseq)
     {
-	bool envelopeinc = TestBit(frameseq, 2);
+	bool envelopeinc = testbit(frameseq, 2);
 
 	if (noiseenvelopeenabled)
 	{
@@ -631,7 +631,7 @@ namespace gb
 
 		if (noiseenvelopecounter == 0)
 		{
-		    if (!TestBit(noisevolumeenvelope, 3))
+		    if (!testbit(noisevolumeenvelope, 3))
 		    {
 			noisevolume -= 1;
 
@@ -668,9 +668,9 @@ namespace gb
 		noiselfsr >>= 1;
 		noiselfsr |= (xoredbits << 14);
 
-		if (TestBit(noisefreqlo, 3))
+		if (testbit(noisefreqlo, 3))
 		{
-		    noiselfsr = BitReset(noiselfsr, 6);
+		    noiselfsr = resetbit(noiselfsr, 6);
 		    noiselfsr |= (xoredbits << 6);
 		}
 	    }
@@ -695,7 +695,7 @@ namespace gb
 	int outputvol = 0;
 	if (noiseenabled)
 	{
-	    outputvol = (TestBit((~noiselfsr), 0) * noisevolume);
+	    outputvol = (testbit((~noiselfsr), 0) * noisevolume);
 	}
 	else
 	{
@@ -715,14 +715,14 @@ namespace gb
 	noiseupdate(getframesequencer());
 
 	if (samplecounter == maxsamples)
-        {
+	{
 	    samplecounter = 0;
 	    mixaudio();
-        }
+	}
 	else
-        {
+	{
 	    samplecounter += 1;
-        }
+	}
     }
 
     void APU::mixaudio()
@@ -738,12 +738,12 @@ namespace gb
 	if (s1enabledleft())
 	{
 	    leftsample += sound1;
-        }
+	}
 
 	if (s1enabledright())
 	{
 	    rightsample += sound1;
-        }
+	}
 
 	if (s2enabledleft())
 	{

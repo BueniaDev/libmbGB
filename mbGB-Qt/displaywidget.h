@@ -12,15 +12,16 @@ using namespace gb;
 class DisplayWidget : public QWidget
 {
     public:
-	DisplayWidget(GBCore *cb, QObject *parent = NULL);
+	DisplayWidget(GBCore &cb, QObject *parent = NULL);
 	~DisplayWidget();
 
+	void setSize(int w, int h);
 	void setResolution(int res);
 	int getResolution();
 	void init();
 	void shutdown();
 
-	GBCore *core = NULL;
+	GBCore &core;
 
 	bool is_cleared = false;
 
@@ -29,6 +30,8 @@ class DisplayWidget : public QWidget
 
     private:
 	int resolution;
+	int width = 0;
+	int height = 0;
 };
 
 

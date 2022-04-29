@@ -1,0 +1,18 @@
+# Format for libmbGB's cheat file (NOTE: all code MUST be in TOML syntax):
+#
+# The format for a valid cheat code string is as follows:
+# "ID:CODEDATA"
+# 
+# ID: Simple ID for the cheat code. The valid code IDs are:
+# GG: Game Genie code
+# GS: Game Shark code
+# 
+# CODEDATA: The actual cheat code (seperated by hyphens instead of spaces)
+#
+# The below entry is an example of what a valid cheat code list looks like:
+# cheats = ["GG:123-456-789", "GG:DEA-DBE-EEF" "GS:FEEEEEED", "GS:00000001"]
+# The sole array in a cheat file MUST be labeled "cheats" in order for
+# the cheat file to be considered valid.
+
+# Enter formatted cheats into the below array
+cheats = []

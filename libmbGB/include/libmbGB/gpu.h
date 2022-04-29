@@ -1,6 +1,6 @@
 /*
     This file is part of libmbGB.
-    Copyright (C) 2021 BueniaDev.
+    Copyright (C) 2022 BueniaDev.
 
     libmbGB is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -151,11 +151,11 @@ namespace gb
 	    {
 		if (cond)
 		{
-		    stat = BitSet(stat, 2);
+		    stat = setbit(stat, 2);
 		}
 		else
 		{
-		    stat = BitReset(stat, 2);
+		    stat = resetbit(stat, 2);
 		}
 	    }
 
@@ -241,6 +241,7 @@ namespace gb
 	    bool previnterruptsignal = false;
 
 	    int scanlinecounter = 452;
+	    int offcounter = 0;
 	    int currentscanline = 0;
 	    int windowlinecounter = 0;
 
@@ -382,11 +383,6 @@ namespace gb
 
 	    inline int line153cycles()
 	    {
-		// Note: In this implementation, the scanline counter is incremented
-		// by 2 cycles per update in double-speed mode, and 4 cycles per
-		// update in single-speed mode, so we need to convert the cycle
-		// counts into the appropriate scanline-counter ticks
-
 	        if (gpumem.isdmgconsole())
 		{
 		    return 4;
@@ -397,8 +393,7 @@ namespace gb
 		}
 		else if (gpumem.doublespeed)
 		{
-		    // 12 cycles for line 153 divided by 2 scanline counter incrementations in double-speed mode
-		    return 6;
+		    return 12;
 		}
 		else
 		{
@@ -408,7 +403,7 @@ namespace gb
 
 	    inline int mode3cycles()
 	    {
-	        int cycles = 256;
+	        int cycles = (256 << gpumem.doublespeed);
 
 	        int scxmod = (scrollx % 8);
 

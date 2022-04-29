@@ -108,7 +108,7 @@ class PixelRenderer
 class OpenGLRenderer : public PixelRenderer
 {
     public:
-	OpenGLRenderer(GBCore *gbcb, SDL_Window *cb) : core(gbcb), window(cb)
+	OpenGLRenderer(GBCore &gbcb, SDL_Window *cb) : core(gbcb), window(cb)
 	{
 
 	}
@@ -202,7 +202,7 @@ class OpenGLRenderer : public PixelRenderer
 	    }
 
 	    glBindTexture(GL_TEXTURE_2D, lcd_texture);
-	    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, core->screenwidth, core->screenheight, 0, GL_RGB, GL_UNSIGNED_BYTE, arr.data());
+	    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, core.screenwidth, core.screenheight, 0, GL_RGB, GL_UNSIGNED_BYTE, arr.data());
 	    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
@@ -216,6 +216,8 @@ class OpenGLRenderer : public PixelRenderer
 	    glActiveTexture(GL_TEXTURE0);
 	    glBindTexture(GL_TEXTURE_2D, lcd_texture);
 	    glUniform1i(glGetUniformLocation(program_id, "screen_texture"), 0);
+            glUniform1i(glGetUniformLocation(program_id, "screen_width"), core.screenwidth);
+	    glUniform1i(glGetUniformLocation(program_id, "screen_height"), core.screenheight);
 
 	    glBindVertexArray(vao);
 	    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
@@ -238,7 +240,7 @@ class OpenGLRenderer : public PixelRenderer
 
 	    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
 
-	    SDL_Surface *surf = SDL_CreateRGBSurfaceWithFormatFrom(pixels.data(), width, height, 32, (3 * width), SDL_PIXELFORMAT_RGBA32);
+	    SDL_Surface *surf = SDL_CreateRGBSurfaceWithFormatFrom(pixels.data(), width, height, 32, (4 * width), SDL_PIXELFORMAT_RGBA32);
 
 	    SDL_InvertSurfaceVert(surf);
 	    SDL_SaveBMP(surf, filename.c_str());
@@ -309,7 +311,7 @@ class OpenGLRenderer : public PixelRenderer
 	}
 
 	SDL_Window *window = NULL;
-	GBCore *core = NULL;
+	GBCore &core;
 
 	int render_scale = 0;
 
@@ -371,7 +373,7 @@ class OpenGLRenderer : public PixelRenderer
 
 	    cout << "Compiling vertex shader: " << vertex_shader_file << endl;
 
-	    const char* vs_code_ptr = vs_code.c_str();
+	    char const* vs_code_ptr = vs_code.c_str();
 
 	    glShaderSource(vert_id, 1, &vs_code_ptr, NULL);
 	    glCompileShader(vert_id);
@@ -379,14 +381,18 @@ class OpenGLRenderer : public PixelRenderer
 	    glGetShaderiv(vert_id, GL_COMPILE_STATUS, &result);
 	    glGetShaderiv(vert_id, GL_INFO_LOG_LENGTH, &log_length);
 
-	    vector<char> vs_error(log_length);
-	    glGetShaderInfoLog(vert_id, log_length, NULL, &vs_error[0]);
 
-	    cout << "Vertex shader error log: " << vs_error.data() << endl;
+	    if (result == GL_FALSE)
+	    {
+		vector<char> vs_error(log_length);
+		glGetShaderInfoLog(vert_id, log_length, NULL, &vs_error[0]);
+
+		cout << "Vertex shader error log: " << &vs_error[0] << endl;
+	    }
 
 	    cout << "Compiling fragment shader: " << fragment_shader_file << endl;
 
-	    const char* fs_code_ptr = fs_code.c_str();
+	    char const* fs_code_ptr = fs_code.c_str();
 
 	    glShaderSource(frag_id, 1, &fs_code_ptr, NULL);
 	    glCompileShader(frag_id);
@@ -394,10 +400,14 @@ class OpenGLRenderer : public PixelRenderer
 	    glGetShaderiv(frag_id, GL_COMPILE_STATUS, &result);
 	    glGetShaderiv(frag_id, GL_INFO_LOG_LENGTH, &log_length);
 
-	    vector<char> fs_error(log_length);
-	    glGetShaderInfoLog(frag_id, log_length, NULL, &fs_error[0]);
+	    if (result == GL_FALSE)
+	    {
+		vector<char> fs_error(log_length);
+		glGetShaderInfoLog(frag_id, log_length, NULL, &fs_error[0]);
 
-	    cout << "Fragment shader error log: " << fs_error.data() << endl;
+	 	cout << "Fragment shader error log: " << &fs_error[0] << endl;
+		fflush(stdout);
+	    }
 
 	    cout << "Linking shaders..." << endl;
 
@@ -408,10 +418,15 @@ class OpenGLRenderer : public PixelRenderer
 
 	    glGetProgramiv(prog_id, GL_LINK_STATUS, &result);
 	    glGetProgramiv(prog_id, GL_INFO_LOG_LENGTH, &log_length);
-	    vector<char> prog_error(log_length);
-	    glGetProgramInfoLog(prog_id, log_length, NULL, &prog_error[0]);
 
-	    cout << "Linking error log: " << prog_error.data() << endl;
+	    if (result == GL_FALSE)
+	    {
+		vector<char> prog_error(log_length);
+		glGetProgramInfoLog(prog_id, log_length, NULL, &prog_error[0]);
+
+		cout << "Linking error log: " << &prog_error[0] << endl;
+		fflush(stdout);
+	    }
 
 	    glDeleteShader(vert_id);
 	    glDeleteShader(frag_id);
@@ -425,7 +440,7 @@ class OpenGLRenderer : public PixelRenderer
 class SoftwareRenderer : public PixelRenderer
 {
     public:
-	SoftwareRenderer(GBCore *gbcb, SDL_Window *cb) : core(gbcb), window(cb)
+	SoftwareRenderer(GBCore &gbcb, SDL_Window *cb) : core(gbcb), window(cb)
 	{
 
 	}
@@ -438,7 +453,7 @@ class SoftwareRenderer : public PixelRenderer
 	bool init_renderer(string vert, string frag)
 	{
 	    render = SDL_CreateRenderer(window, -1, 0);
-	    texture = SDL_CreateTexture(render, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STREAMING, core->screenwidth, core->screenheight);
+	    texture = SDL_CreateTexture(render, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STREAMING, core.screenwidth, core.screenheight);
 	    SDL_SetRenderDrawColor(render, 0, 0, 0, 255);
 	    return true;
 	}
@@ -452,7 +467,7 @@ class SoftwareRenderer : public PixelRenderer
 	void draw_pixels(vector<gbRGB> arr, int scale)
 	{
 	    assert(render && texture);
-	    SDL_UpdateTexture(texture, NULL, arr.data(), (core->screenwidth * sizeof(gbRGB)));
+	    SDL_UpdateTexture(texture, NULL, arr.data(), (core.screenwidth * sizeof(gbRGB)));
 	    SDL_RenderClear(render);
 	    SDL_RenderCopy(render, texture, NULL, NULL);
 	    SDL_RenderPresent(render);
@@ -478,7 +493,7 @@ class SoftwareRenderer : public PixelRenderer
 	SDL_Window *window = NULL;
 	SDL_Renderer *render = NULL;
 	SDL_Texture *texture = NULL;
-	GBCore *core = NULL;
+	GBCore &core;
 
 	int render_scale = 0;
 };

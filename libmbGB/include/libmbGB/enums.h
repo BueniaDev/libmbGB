@@ -1,6 +1,6 @@
 /*
     This file is part of libmbGB.
-    Copyright (C) 2021 BueniaDev.
+    Copyright (C) 2022 BueniaDev.
 
     libmbGB is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 
 enum class Console {Default, DMG, CGB, AGB};
 enum class Mode {Default, DMG, CGB};
-enum class MBCType {None, MBC1, MBC2, MBC3, MBC5, MBC6, MBC7, Camera, WisdomTree};
+enum class MBCType {None, MBC1, MBC2, MBC3, MBC5, MBC6, MBC7, Camera, HuC3, HuC1, WisdomTree, TPP1};
 enum CPUState : uint8_t
 {
     Running = 0, 

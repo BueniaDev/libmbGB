@@ -1,6 +1,6 @@
 /*
     This file is part of libmbGB.
-    Copyright (C) 2021 BueniaDev.
+    Copyright (C) 2022 BueniaDev.
 
     libmbGB is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -727,6 +727,7 @@ namespace gb
     MobileAdapterGB::MobileAdapterGB()
     {
 	config_memory.fill(0);
+	set_backend(new MobileAdapterBackend());
     }
 
     MobileAdapterGB::~MobileAdapterGB()
@@ -896,6 +897,7 @@ namespace gb
 	    // Begin Session
 	    case 0x10:
 	    {
+		cout << "Command 0x10" << endl;
 		array<uint8_t, 8> nintendo_logo = {0x4E, 0x49, 0x4E, 0x54, 0x45, 0x4E, 0x44, 0x4F};
 
 		if ((packet_length & packet_data.size()) != 8)
@@ -939,6 +941,7 @@ namespace gb
 	    case 0x11:
 	    {
 		// Response packet contains empty packet data
+		cout << "Command 0x11" << endl;
 		prepareresponse(0x11);
 		begun_session = false;
 	    }
@@ -950,19 +953,22 @@ namespace gb
 		// TODO: Implement a proper server-replacement protocol
 		// This code will serve as a placeholder for now
 
-		cout << "Dialing telephone number of ";
+		cout << "Command 0x12" << endl;
 
-		for (int i = 2; i < static_cast<int>(packet_data.size()); i++)
+		string phone_number = "";
+		stringstream number_str;
+
+		for (size_t i = 2; i < packet_data.size(); i++)
 		{
-		    cout << ((char)packet_data[i]);
-
-		    if (i == (static_cast<int>(packet_data.size()) - 1))
-		    {
-			cout << endl;
-		    }
+		    number_str << char(packet_data.at(i));
 		}
 
-		cout << endl;
+		phone_number = number_str.str();
+
+		if (isValidBackend())
+		{
+		    getBackend()->dialNumber(phone_number);
+		}
 		
 		// The line becomes busy once the telephone number is dialed
 		line_busy = true;
@@ -974,6 +980,7 @@ namespace gb
 	    // Hang Up Telephone
 	    case 0x13:
 	    {
+		cout << "Command 0x13" << endl;
 		line_busy = false;
 		prepareresponse(0x13);
 	    }
@@ -981,12 +988,14 @@ namespace gb
 	    // Wait For Telephone Call
 	    case 0x14:
 	    {
+		cout << "Command 0x14" << endl;
 		prepareresponse(0x14);
 	    }
 	    break;
 	    // Transfer Data
 	    case 0x15:
 	    {
+		cout << "Command 0x15" << endl;
 		switch (port_num)
 		{
 		    case 25: processsmtp(); break;
@@ -999,6 +1008,7 @@ namespace gb
 	    // Telephone Status
 	    case 0x17:
 	    {
+		cout << "Command 0x17" << endl;
 		vector<uint8_t> phone_data;
 
 		if (line_busy)
@@ -1086,6 +1096,7 @@ namespace gb
 	    // ISP Login
 	    case 0x21:
 	    {
+		cout << "Command 0x21" << endl;
 		// TODO: Implement a proper server-replacement protocol
 		// This code will serve as a placeholder for now
 
@@ -1098,17 +1109,18 @@ namespace gb
 		    return;
 		}
 
+		string login_id = "";
+		stringstream id_str;
+
 		// Fetch login ID (as well as its length)
 		int login_id_length = packet_data[0];
 
-		cout << "Login ID: ";
-
 		for (int i = 0; i < login_id_length; i++)
 		{
-		    cout << ((char)packet_data[(1 + i)]);
+		    id_str << char(packet_data[(1 + i)]);
 		}
 
-		cout << endl;
+		login_id = id_str.str();
 
 		int isp_login_count = (login_id_length + 1);
 
@@ -1117,55 +1129,59 @@ namespace gb
 
 		isp_login_count += 1;
 
-		cout << "Password: ";
+		string password = "";
+		stringstream pass_str;
 
 		for (int i = 0; i < password_length; i++)
 		{
-		    cout << ((char)packet_data[(isp_login_count + i)]);
+		    pass_str << char(packet_data[(isp_login_count + i)]);
 		}
 
-		cout << endl;
+		password = pass_str.str();
 
 		isp_login_count += password_length;
 
 		// Fetch primary DNS address
-		cout << "Primary DNS: ";
+		string primary_dns = "";
+		stringstream prim_dns_str;
 
 		for (int i = 0; i < 4; i++)
 		{
-		    cout << dec << ((int)packet_data[(isp_login_count + i)]);
+		    prim_dns_str << dec << int(packet_data[(isp_login_count + i)]);
 
 		    if (i < 3)
 		    {
-			cout << ".";
+			prim_dns_str << ".";
 		    }
 		}
 
-		cout << endl;
+		primary_dns = prim_dns_str.str();
 
 		isp_login_count += 4;
 
 		// Fetch secondary DNS address
-		cout << "Secondary DNS: ";
+		string secondary_dns = "";
+		stringstream second_dns_str;
 
 		for (int i = 0; i < 4; i++)
 		{
-		    cout << dec << ((int)packet_data[(isp_login_count + i)]);
+		    second_dns_str << dec << int(packet_data[(isp_login_count + i)]);
 
 		    if (i < 3)
 		    {
-			cout << ".";
-		    }
-		    else
-		    {
-			cout << endl;
+			second_dns_str << ".";
 		    }
 		}
 
-		cout << endl;
+		secondary_dns = second_dns_str.str();
 
 		// Return placeholder IP address of 127.0.0.1 for now
 		array<uint8_t, 4> ip_addr = {0x7F, 0x00, 0x00, 0x01};
+
+		if (isValidBackend())
+		{
+		    ip_addr = getBackend()->loginISP(login_id, password, primary_dns, secondary_dns);
+		}
 
 		prepareresponse(0x21, ip_addr);
 	    }
@@ -1173,12 +1189,14 @@ namespace gb
 	    // ISP Logout
 	    case 0x22:
 	    {
+		cout << "Command 0x22" << endl;
 		prepareresponse(0x22);
 	    }
 	    break;
 	    // Open TCP Connection
 	    case 0x23:
 	    {
+		cout << "Command 0x23" << endl;
 		cout << "Opening TCP connection..." << endl;
 
 		cout << "IP address: ";
@@ -1212,6 +1230,7 @@ namespace gb
 	    // Close TCP Connection
 	    case 0x24:
 	    {
+		cout << "Command 0x24" << endl;
 		// Reset all sessions when closing the TCP connection
 		begun_pop_session = false;
 		begun_smtp_session = false;
@@ -1225,6 +1244,7 @@ namespace gb
 	    // DNS Query
 	    case 0x28:
 	    {
+		cout << "Command 0x28" << endl;
 		cout << "DNS query for domain name of ";
 
 		for (int i = 0; i < static_cast<int>(packet_data.size()); i++)
@@ -1253,6 +1273,8 @@ namespace gb
     {
 	// TODO: Implement a proper server-replacement protocol
 	// Placeholder code will be used here for now
+
+	cout << "Processing HTTP..." << endl;
 
 	string response_text = "";
 	uint8_t response_id = 0x00;
@@ -1359,6 +1381,7 @@ namespace gb
 
     void MobileAdapterGB::processpop()
     {
+	cout << "Processing POP3..." << endl;
 	// TODO: Implement a proper server-replacement protocol
 	// Placeholder code will be used here for now
 
@@ -1564,6 +1587,7 @@ namespace gb
 
     void MobileAdapterGB::processsmtp()
     {
+	cout << "Processing SMTP..." << endl;
 	// TODO: Implement a proper server-replacement protocol
 	// Placeholder code will be used here for now
 

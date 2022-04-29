@@ -1,6 +1,6 @@
 /*
     This file is part of libmbGB.
-    Copyright (C) 2021 BueniaDev.
+    Copyright (C) 2022 BueniaDev.
 
     libmbGB is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -57,8 +57,7 @@ namespace gb
 	    uint8_t readjoypad(uint16_t addr);
 	    void writejoypad(uint16_t addr, uint8_t value);
 
-	    void keypressed(gbButton button);
-	    void keyreleased(gbButton button);
+	    void keychanged(gbButton button, bool is_pressed);
 
 	    uint8_t buttonstates = 0xFF;
 	    bool wasunset = false;

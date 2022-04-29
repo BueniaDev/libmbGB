@@ -1,6 +1,6 @@
 /*
     This file is part of libmbGB.
-    Copyright (C) 2021 BueniaDev.
+    Copyright (C) 2022 BueniaDev.
 
     libmbGB is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 #include "libmbgb_api.h"
 #include "utils.h"
 #include <iostream>
+#include <sstream>
 #include <functional>
 #include <vector>
 #include <queue>
@@ -520,6 +521,39 @@ namespace gb
     // Note: Since this is a Game Boy / Game Boy Color emulator, and not a Game Boy Advance emulator,
     // only compatible Game Boy Color titles will be supported
 
+    // External backend interface for Mobile Adapter GB class
+    class MobileAdapterBackend
+    {
+	public:
+	    MobileAdapterBackend()
+	    {
+
+	    }
+
+	    ~MobileAdapterBackend()
+	    {
+
+	    }
+
+	    virtual void dialNumber(string number)
+	    {
+		cout << "Dialing telephone number of " << number << endl;
+		cout << endl;
+	    }
+
+	    virtual array<uint8_t, 4> loginISP(string id, string password, string primary_dns, string secondary_dns)
+	    {
+		cout << "Login ID: " << id << endl;
+		cout << "Password: " << password << endl;
+		cout << "Primary DNS: " << primary_dns << endl;
+		cout << "Secondary DNS: " << secondary_dns << endl;
+		cout << endl;
+
+		// Return placeholder value of "127.0.0.1"
+		return {0x7F, 0x00, 0x00, 0x01};
+	    }
+    };
+
     // Types of Japanese cell phones that were supported (or planned to be supported)
     // by the Mobile Adapter GB (formatted in an enum for simplicity)
     enum MobilePhoneType : int
@@ -535,11 +569,11 @@ namespace gb
     {
 	using htmlarr = array<string, 1>;
 
-        public:
-            MobileAdapterGB();
-            ~MobileAdapterGB();
+	public:
+	    MobileAdapterGB();
+	    ~MobileAdapterGB();
             
-            linkfunc madaptlink;
+	    linkfunc madaptlink;
 	    string config_filename = "";
 
 	    uint8_t sent_byte = 0x00;
@@ -593,24 +627,24 @@ namespace gb
 		return "Mobile Adapter GB";
 	    }
             
-            void setlinkcallback(linkfunc cb)
-            {
-                madaptlink = cb;
-            }
+	    void setlinkcallback(linkfunc cb)
+	    {
+		madaptlink = cb;
+	    }
 
 	    void setprintcallback(printfunc cb)
 	    {
 		return;
 	    }
             
-            void deviceready(uint8_t byte, bool ismode)
-            {
-            	if (ismode)
-            	{
+ 	    void deviceready(uint8_t byte, bool ismode)
+	    {
+		if (ismode)
+		{
 		    sent_byte = byte;
-            	    update();
-            	}
-            }
+		    update();
+		}
+	    }
 
 	    string http_data = "";
 	    int http_data_index = 0;
@@ -625,7 +659,7 @@ namespace gb
 		"<title>Hello from Karen Kujo, your FAVORITE waifu!</title>",
 	    };
             
-            void update();
+	    void update();
 	    void processbyte();
 	    void processcmd();
 	    void processhttp();
@@ -661,29 +695,29 @@ namespace gb
 		prepareresponse(cmd, empty);
 	    }
             
-            void transfer()
-            {
-            	if (madaptlink)
-            	{
+	    void transfer()
+	    {
+		if (madaptlink)
+		{
 		    // Transfer response byte to Game Boy
-            	    madaptlink(link_byte);
-            	}
-            }
+		    madaptlink(link_byte);
+		}
+	    }
             
-            void swipebarcode()
-            {
-            	return;
-            }
+	    void swipebarcode()
+	    {
+		return;
+	    }
             
-            bool swipedcard()
-            {
-                return false;
-            }
+	    bool swipedcard()
+	    {
+		return false;
+	    }
             
-            int serialcycles()
-            {
-                return 0;
-            }
+	    int serialcycles()
+	    {
+		return 0;
+	    }
 
 	    bool loadfile(vector<uint8_t> data)
 	    {
@@ -738,6 +772,24 @@ namespace gb
 
 		return temp_data;
 	    }
+
+	private:
+	    void set_backend(MobileAdapterBackend *cb)
+	    {
+		backend = cb;
+	    }
+
+	    bool isValidBackend()
+	    {
+		return (backend != NULL);
+	    }
+
+	    MobileAdapterBackend *getBackend()
+	    {
+		return backend;
+	    }
+
+	    MobileAdapterBackend *backend = NULL;
     };
 
     // Emulates the Turbo File GB (developed by ASCII Corporation, first used in RPG Tsukuru GB)

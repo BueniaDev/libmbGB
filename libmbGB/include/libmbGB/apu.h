@@ -1,6 +1,6 @@
 /*
     This file is part of libmbGB.
-    Copyright (C) 2021 BueniaDev.
+    Copyright (C) 2022 BueniaDev.
 
     libmbGB is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -176,19 +176,19 @@ namespace gb
 		
 	    inline bool s1enabledleft()
 	    {
-		return (s1enabled && (TestBit(soundselect, 4)));
+		return (s1enabled && (testbit(soundselect, 4)));
 	    }
 
 	    inline bool s1enabledright()
 	    {
-		return (s1enabled && (TestBit(soundselect, 0)));
+		return (s1enabled && (testbit(soundselect, 0)));
 	    }
 		
 	    inline void writes1sweep(uint8_t value)
 	    {
 		s1sweep = (value & 0x7F);
 
-		if ((((s1sweep & 0x70) >> 4) == 0) || ((s1sweep & 0x07) == 0) || (!TestBit(s1sweep, 3) && s1negative))
+		if ((((s1sweep & 0x70) >> 4) == 0) || ((s1sweep & 0x07) == 0) || (!testbit(s1sweep, 3) && s1negative))
 		{
 		    s1sweepenabled = false;
 		}
@@ -214,10 +214,10 @@ namespace gb
 
 	    inline void s1writereset(uint8_t value)
 	    {
-		bool lengthwasenable = TestBit(s1freqhi, 6);
+		bool lengthwasenable = testbit(s1freqhi, 6);
 		s1freqhi = (value & 0xC7);
 
-		if (apulengthlow() && !lengthwasenable && TestBit(s1freqhi, 6) && s1lengthcounter > 0)
+		if (apulengthlow() && !lengthwasenable && testbit(s1freqhi, 6) && s1lengthcounter > 0)
 		{
 		    s1lengthcounter -= 1;
 
@@ -227,7 +227,7 @@ namespace gb
 		    }
 		}
 
-		if (TestBit(s1freqhi, 7))
+		if (testbit(s1freqhi, 7))
 		{
 		    s1resetchannel();
 		}
@@ -237,7 +237,7 @@ namespace gb
 	    {
 		int freqdelta = (s1shadowfreq >> (s1sweep & 0x07));
 
-		if (TestBit(s1sweep, 3))
+		if (testbit(s1sweep, 3))
 		{
 		    freqdelta *= -1;
 
@@ -278,7 +278,7 @@ namespace gb
 		s1envelopecounter = (s1volumeenvelope & 0x07);
 		s1envelopeenabled = (s1envelopecounter != 0);
 
-		if ((!TestBit(s1volumeenvelope, 3) && s1volume == 0) || (TestBit(s1volumeenvelope, 3) && s1volume == 0x0F))
+		if ((!testbit(s1volumeenvelope, 3) && s1volume == 0) || (testbit(s1volumeenvelope, 3) && s1volume == 0x0F))
 		{
 		    s1envelopeenabled = false;
 		}
@@ -287,7 +287,7 @@ namespace gb
 		{
 		    s1lengthcounter = 64;
 
-		    if (apulengthlow() && TestBit(s1freqhi, 6))
+		    if (apulengthlow() && testbit(s1freqhi, 6))
 		    {
 			s1lengthcounter -= 1;
 		    }
@@ -307,12 +307,12 @@ namespace gb
 		
 	    inline bool s2enabledleft()
 	    {
-		return (s2enabled && (TestBit(soundselect, 5)));
+		return (s2enabled && testbit(soundselect, 5));
 	    }
 
 	    inline bool s2enabledright()
 	    {
-		return (s2enabled && (TestBit(soundselect, 1)));
+		return (s2enabled && testbit(soundselect, 1));
 	    }
 
 	    inline void reloads2lengthcounter()
@@ -335,10 +335,10 @@ namespace gb
 
 	    inline void s2writereset(uint8_t value)
 	    {
-		bool lengthwasenable = TestBit(s2freqhi, 6);
+		bool lengthwasenable = testbit(s2freqhi, 6);
 		s2freqhi = (value & 0xC7);
 
-		if (apulengthlow() && !lengthwasenable && TestBit(s2freqhi, 6) && s2lengthcounter > 0)
+		if (apulengthlow() && !lengthwasenable && testbit(s2freqhi, 6) && s2lengthcounter > 0)
 		{
 		    s2lengthcounter -= 1;
 
@@ -348,7 +348,7 @@ namespace gb
 		    }
 		}
 
-		if (TestBit(s2freqhi, 7))
+		if (testbit(s2freqhi, 7))
 		{
 		    s2resetchannel();
 		}
@@ -365,7 +365,7 @@ namespace gb
 		s2envelopeenabled = (s2envelopecounter != 0);
 
 
-		if ((!TestBit(s2volumeenvelope, 3) && s2volume == 0) || (TestBit(s2volumeenvelope, 3) && s2volume == 0x0F))
+		if ((!testbit(s2volumeenvelope, 3) && s2volume == 0) || (testbit(s2volumeenvelope, 3) && s2volume == 0x0F))
 		{
 		    s2envelopeenabled = false;
 		}
@@ -374,7 +374,7 @@ namespace gb
 		{
 		    s2lengthcounter = 64;
 
-		    if (apulengthlow() && TestBit(s2freqhi, 6))
+		    if (apulengthlow() && testbit(s2freqhi, 6))
 		    {
 			s2lengthcounter -= 1;
 		    }
@@ -394,12 +394,12 @@ namespace gb
 		
 	    inline bool waveenabledleft()
 	    {
-		return (waveenabled && (TestBit(soundselect, 6)));
+		return (waveenabled && testbit(soundselect, 6));
 	    }
 
 	    inline bool waveenabledright()
 	    {
-		return (waveenabled && (TestBit(soundselect, 2)));
+		return (waveenabled && testbit(soundselect, 2));
 	    }
 		
 	    inline void reloadwavelengthcounter()
@@ -416,10 +416,10 @@ namespace gb
 
 	    inline void wavewritereset(uint8_t value)
 	    {
-		bool lengthwasenable = TestBit(wavefreqhi, 6);
+		bool lengthwasenable = testbit(wavefreqhi, 6);
 		wavefreqhi = (value & 0xC7);
 
-		if (apulengthlow() && !lengthwasenable && TestBit(wavefreqhi, 6) && wavelengthcounter > 0)
+		if (apulengthlow() && !lengthwasenable && testbit(wavefreqhi, 6) && wavelengthcounter > 0)
 		{
 		    wavelengthcounter -= 1;
 
@@ -429,7 +429,7 @@ namespace gb
 		    }
 		}
 
-		if (TestBit(wavefreqhi, 7))
+		if (testbit(wavefreqhi, 7))
 		{
 		    waveresetchannel();
 		}
@@ -445,25 +445,25 @@ namespace gb
 		{
 		    wavelengthcounter = 256;
 
-		    if (apulengthlow() && TestBit(wavefreqhi, 6))
+		    if (apulengthlow() && testbit(wavefreqhi, 6))
 		    {
 			wavelengthcounter -= 1;
 		    }
 		}
 
 		wavepos = 0;
-		waveenabled = TestBit(wavesweep, 7);
+		waveenabled = testbit(wavesweep, 7);
 		wavecurrentsample = wavelastplayedsample;
 	    }
 		
 	    inline bool noiseenabledleft()
 	    {
-		return (noiseenabled && (TestBit(soundselect, 7)));
+		return (noiseenabled && testbit(soundselect, 7));
 	    }
 
 	    inline bool noiseenabledright()
 	    {
-		return (noiseenabled && (TestBit(soundselect, 3)));
+		return (noiseenabled && testbit(soundselect, 3));
 	    }
 		
 	    inline void reloadnoiselengthcounter()
@@ -474,10 +474,10 @@ namespace gb
 
 	    inline void noisewritereset(uint8_t value)
 	    {
-		bool lengthwasenable = TestBit(noisefreqhi, 6);
+		bool lengthwasenable = testbit(noisefreqhi, 6);
 		noisefreqhi = (value & 0xC0);
 
-		if (apulengthlow() && !lengthwasenable && TestBit(noisefreqhi, 6) && noiselengthcounter > 0)
+		if (apulengthlow() && !lengthwasenable && testbit(noisefreqhi, 6) && noiselengthcounter > 0)
 		{
 		    noiselengthcounter -= 1;
 
@@ -487,7 +487,7 @@ namespace gb
 		    }
 		}
 
-		if (TestBit(noisefreqhi, 7))
+		if (testbit(noisefreqhi, 7))
 		{
 		    noiseresetchannel();
 		}
@@ -510,7 +510,7 @@ namespace gb
 		noiseenvelopeenabled = (noiseenvelopecounter != 0);
 
 
-		if ((!TestBit(noisevolumeenvelope, 3) && noisevolume == 0) || (TestBit(noisevolumeenvelope, 3) && noisevolume == 0x0F))
+		if ((!testbit(noisevolumeenvelope, 3) && noisevolume == 0) || (testbit(noisevolumeenvelope, 3) && noisevolume == 0x0F))
 		{
 		    noiseenvelopeenabled = false;
 		}
@@ -519,7 +519,7 @@ namespace gb
 		{
 		    noiselengthcounter = 64;
 
-		    if (apulengthlow() && TestBit(noisefreqhi, 6))
+		    if (apulengthlow() && testbit(noisefreqhi, 6))
 		    {
 			noiselengthcounter -= 1;
 		    }
@@ -535,10 +535,10 @@ namespace gb
 		
 	    inline void writesoundon(uint8_t value)
 	    {
-		bool wasenabled = TestBit(soundon, 7);
+		bool wasenabled = testbit(soundon, 7);
 		soundon = (value & 0x80);
 
-		if (wasenabled && !TestBit(soundon, 7))
+		if (wasenabled && !testbit(soundon, 7))
 		{
 		    clearregisters();
 		    issoundon = false;
@@ -637,7 +637,7 @@ namespace gb
 
 	    inline bool apulengthlow()
 	    {
-		return !TestBit(getframesequencer(), 0);
+		return !testbit(getframesequencer(), 0);
 	    }
     };
 };

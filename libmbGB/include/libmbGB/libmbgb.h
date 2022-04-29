@@ -1,6 +1,6 @@
 /*
     This file is part of libmbGB.
-    Copyright (C) 2021 BueniaDev.
+    Copyright (C) 2022 BueniaDev.
 
     libmbGB is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -65,16 +65,12 @@ namespace gb
 	    unique_ptr<Serial> coreserial;
 	    unique_ptr<Infrared> coreinfrared;
 	    unique_ptr<APU> coreapu;
-
-	    vector<GBCore*> gbcores;
 	    
 	    mbGBFrontend *front = NULL;
 
 	    void preinit();
 	    void init();
 	    void shutdown(bool isreset = false);
-
-	    void addcore(string romfile);
 
 	    bool getoptions(int argc, char* argv[]);
 	    bool loadBIOS(string filename);
@@ -86,15 +82,20 @@ namespace gb
 	    gbRGB getpixel(int x, int y);
 	    vector<gbRGB> getframebuffer();
 	    void printusage(char *argv);
+	    void keychanged(gbButton button, bool is_pressed);
 	    void keypressed(gbButton button);
 	    void keyreleased(gbButton button);
-	    void sensorpressed(gbGyro pos);
-	    void sensorreleased(gbGyro pos);
 	    vector<uint8_t> dumpvram();
 	    void setaddonfilename(string filename);
 	    void setdotrender(bool val);
+	    void addcheats(vector<string> cheats);
+	    void set_save_extension(string ext);
 
 	    void setfrontend(mbGBFrontend *front);
+
+	    void set_accel_values(float x, float y);
+
+	    int get_total_cycles();
 
 	    bool loadbackup();
 	    bool savebackup();
@@ -111,6 +112,7 @@ namespace gb
 	    void update(int steps);
 	    void runcore();
 	    void runapp();
+	    void debugoutput();
 	    bool islinkactive();
 	    bool initcore();
 	    void resetcore();
@@ -140,8 +142,8 @@ namespace gb
 	    bool biosload();
 	    bool isagbmode();
 
-	    int screenwidth = 0;
-	    int screenheight = 0;
+	    int screenwidth = 160;
+	    int screenheight = 144;
 
 	    int totalcycles = 0;
 	    
@@ -164,6 +166,10 @@ namespace gb
 	    void connectirdevice(InfraredDevice *cb);
 	private:
 	    bool iscorerunning = false;
+
+	    int system_type = 0;
+
+	    string save_extension = "";
     };
 };
 

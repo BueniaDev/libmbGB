@@ -182,7 +182,7 @@ make -j$(nproc --all)
 
 ## MBC1-based multicart games
 
-MBC1 multicarts, such as Mortal Kombat 1/2 and Bomberman Collection, as well as a few others, require the command line argument of "--mbc1m" passed to libmbGB in order to run properly.
+MBC1 multicarts, such as Mortal Kombat 1/2 and Bomberman Collection, as well as a few others, currently require the command line argument of "--mbc1m" passed to libmbGB in order to run properly.
 
 However, a fix for this issue is currently in the works.
 
@@ -192,6 +192,7 @@ However, a fix for this issue is currently in the works.
 
 * Improving existing Game Boy (Color) support
 * Improve GB Printer and Mobile Adapter GB support
+* Improve (and eventually finish up) Turbo File GB support
 * Finish up graphical frontend (mbGB-Qt)
 
 ## Medium-term
@@ -203,7 +204,7 @@ However, a fix for this issue is currently in the works.
 
 ## Long-term
 
-* Add support for various obscure Game Boy (Color) addons (Zok Zok Heroes Full Changer, Turbo File GB, etc.)
+* Add support for various obscure Game Boy (Color) addons (Zok Zok Heroes Full Changer, Pocket Pikachu, etc.)
 * Linux GUI (via mbGB-Gtk)
 * Any feature you can ask for that isn't ouright stupid
 
@@ -215,6 +216,6 @@ libmbGB is free software: you can redistribute it and/or modify it under the ter
 
 # Copyright
 
-(C) 2021 BueniaDev. This project is not affiliated in any way with Nintendo. Game Boy and Game Boy Color are registered trademarks of Nintendo Co., Ltd.
+(C) 2022 BueniaDev. This project is not affiliated in any way with Nintendo. Game Boy and Game Boy Color are registered trademarks of Nintendo Co., Ltd.
 
 For information regarding libmbGB's stance on copyright infringement, as well as proof of libmbGB's legality, see the LEGAL.md file in this repository.

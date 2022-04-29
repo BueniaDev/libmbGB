@@ -1,6 +1,6 @@
 /*
     This file is part of libmbGB.
-    Copyright (C) 2021 BueniaDev.
+    Copyright (C) 2022 BueniaDev.
 
     libmbGB is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -23,6 +23,8 @@ using namespace std;
 
 namespace gb
 {
+    // MBC1 mapper (supports both regular MBC1 and MBC1M)
+    // TODO: Implement MBC1S mapper
     uint8_t MMU::mbc1read(uint16_t addr)
     {
 	if (ismulticart)
@@ -47,6 +49,7 @@ namespace gb
 	}
     }
 
+    // Regular MBC1 mapper
     uint8_t MMU::mbc1rread(uint16_t addr)
     {
 	uint8_t temp = 0;
@@ -58,7 +61,7 @@ namespace gb
 	{
 	    temp = cartmem[(addr - 0x4000) + (currentrombank * 0x4000)];
 	}
-	else if ((addr >= 0xA000) && (addr < 0xC000))
+	else if (inRange(addr, 0xA000, 0xC000))
 	{
 	    if (ramenabled)
 	    {
@@ -124,7 +127,7 @@ namespace gb
 		rommode = false;
 	    }
 	}
-	else if ((addr >= 0xA000) && (addr < 0xC000))
+	else if (inRange(addr, 0xA000, 0xC000))
 	{
 	    if (ramenabled)
 	    {
@@ -133,6 +136,7 @@ namespace gb
 	}
     }
 
+    // MBC1M mapper
     uint8_t MMU::mbc1mread(uint16_t addr)
     {
 	uint8_t temp = 0;
@@ -153,7 +157,7 @@ namespace gb
 	{
 	    temp = cartmem[(addr - 0x4000) + (currentrombank * 0x4000)];
 	}
-	else if ((addr >= 0xA000) && (addr < 0xC000))
+	else if (inRange(addr, 0xA000, 0xC000))
 	{
 	    if (ramenabled)
 	    {
@@ -189,7 +193,7 @@ namespace gb
 	{
 	    rommode = testbit(value, 0);
 	}
-	else if ((addr >= 0xA000) && (addr < 0xC000))
+	else if (inRange(addr, 0xA000, 0xC000))
 	{
 	    if (ramenabled)
 	    {
@@ -198,6 +202,7 @@ namespace gb
 	}
     }
 
+    // MBC2 mapper
     uint8_t MMU::mbc2read(uint16_t addr)
     {
 	uint8_t temp = 0;
@@ -210,11 +215,11 @@ namespace gb
 	{
 	    temp = cartmem[(addr - 0x4000) + (currentrombank * 0x4000)];
 	}
-	else if ((addr >= 0xA000) && (addr < 0xC000))
+	else if (inRange(addr, 0xA000, 0xC000))
 	{
 	    if (ramenabled)
 	    {
-		temp = rambanks[addr - 0xA000];
+		temp = (rambanks[(addr & 0x1FF)] | 0xF0);
 	    }
 	    else
 	    {
@@ -227,33 +232,35 @@ namespace gb
 
     void MMU::mbc2write(uint16_t addr, uint8_t value)
     {
-	if (addr < 0x2000)
+	if (addr < 0x4000)
 	{
-	    uint8_t upperbyte = (addr >> 8);
-	    if (!testbit(upperbyte, 0))
+	    if (!testbit(addr, 8))
 	    {
-		ramenabled = !ramenabled;
+		ramenabled = ((value & 0xF) == 0xA);
 	    }
-	}
-	else if (addr < 0x4000)
-	{
-	    uint8_t upperbyte = (addr >> 8);
-	    if (testbit(upperbyte, 0))
+	    else
 	    {
-		currentrombank = (value & 0x0F);
+		currentrombank = (value & 0xF);
+
+		if (currentrombank == 0)
+		{
+		    currentrombank += 1;
+		}
+
+		currentrombank %= numrombanks;
 	    }
+
 	}
-	else if ((addr >= 0xA000) && (addr < 0xA200))
+	else if (inRange(addr, 0xA000, 0xC000))
 	{
 	    if (ramenabled)
 	    {
-		rambanks[addr - 0xA000] = value;
+		rambanks[(addr & 0x1FF)] = (value & 0xF);
 	    }
 	}
-
-	return;
     }
 
+    // MBC3 mapper
     uint8_t MMU::mbc3read(uint16_t addr)
     {
 	uint8_t temp = 0;
@@ -265,7 +272,7 @@ namespace gb
 	{
 	    temp = cartmem[(addr - 0x4000) + (currentrombank * 0x4000)];
 	}
-	else if ((addr >= 0xA000) && (addr < 0xC000))
+	else if (inRange(addr, 0xA000, 0xC000))
 	{
 	    if (currentrambank < 0x8)
 	    {
@@ -348,13 +355,13 @@ namespace gb
 		}
 	    }
 	}
-	else if ((addr >= 0xA000) && (addr < 0xC000))
+	else if (inRange(addr, 0xA000, 0xC000))
 	{
 	    if (ramenabled && (currentrambank < 0x8))
 	    {
 		rambanks[(addr - 0xA000) + (currentrambank * 0x2000)] = value;
 	    }
-	    else if (rtcenabled && ((currentrambank >= 0x8) && (currentrambank <= 0xC)))
+	    else if (rtcenabled && inRangeEx(currentrambank, 0x8, 0xC))
 	    {
 		switch (currentrambank)
 		{
@@ -369,7 +376,7 @@ namespace gb
 		    case 0xB: realdays = ((realdays & 0x100) | value); break;
 		    case 0xC:
 		    {
-			realdays = ((BitGetVal(value, 0) << 8) | (realdays & 0xFF));
+			realdays = ((getbitval(value, 0) << 8) | (realdays & 0xFF));
 			rtchalt = testbit(value, 6);
 			realdayscarry = testbit(value, 7);
 		    }
@@ -391,12 +398,31 @@ namespace gb
 
     void MMU::updatetimer()
     {
+	if (!isrtcpres)
+	{
+	    return;
+	}
+
+	if (gbmbc == MBCType::MBC3)
+	{
+	    updatembc3rtc();
+	}
+
+	if (gbmbc == MBCType::TPP1)
+	{
+	    updatetpp1rtc();
+	}
+    }
+
+    void MMU::updatembc3rtc()
+    {
 	if (rtchalt)
 	{
 	    return;
 	}
 
-	timercounter += 4;
+	int atomic_increase = doublespeed ? 2 : 4;
+	timercounter += atomic_increase;
 
 	if (timercounter == 4194304)
 	{
@@ -431,8 +457,21 @@ namespace gb
 
     void MMU::inittimer()
     {
+	if (!isrtcpres)
+	{
+	    return;
+	}
+
+	if (gbmbc == MBCType::MBC3)
+	{
+	    initmbc3rtc();
+	}
+    }
+
+    void MMU::initmbc3rtc()
+    {
 	time_t newtime = time(NULL);
-	unsigned int difference = 0;
+	uint32_t difference = 0;
 
 	// Set the Unix timestamp equal to the system time if it's set to 0
 	// This helps prevent absurd timestamp differences from triggering
@@ -446,7 +485,7 @@ namespace gb
 	// and the current system time
 	if ((newtime > current_time) && !rtchalt)
 	{
-	    difference = (unsigned int)(newtime - current_time);
+	    difference = uint32_t(newtime - current_time);
 	    current_time = newtime;
 	}
 	else
@@ -493,7 +532,7 @@ namespace gb
 	realdays = newdays;
 
 	realdays &= 0xFEFF;
-	realdays |= BitGetVal(newdays, 8);
+	realdays |= getbitval(newdays, 8);
 
 	if (newdays > 511)
 	{
@@ -501,6 +540,72 @@ namespace gb
 	}
     }
 
+    void MMU::loadmbc3rtc(vector<uint8_t> saveram, size_t ramsize)
+    {
+	size_t size = saveram.size();
+
+	if (batteryenabled && (size == (ramsize + 48)))
+	{
+	    realsecs = saveram[ramsize];
+	    realmins = saveram[(ramsize + 4)];
+	    realhours = saveram[(ramsize + 8)];
+	    uint8_t realdayslo = saveram[(ramsize + 12)];
+	    uint8_t realdayshi = saveram[(ramsize + 16)];
+	    latchsecs = saveram[(ramsize + 20)];
+	    latchmins = saveram[(ramsize + 24)];
+	    latchhours = saveram[(ramsize + 28)];
+	    uint8_t latchdayslo = saveram[(ramsize + 32)];
+	    uint8_t latchdayshi = saveram[(ramsize + 36)];
+
+	    realdays = ((getbitval(realdayshi, 0) << 8) | realdayslo);
+	    rtchalt = testbit(realdayshi, 6);
+	    realdayscarry = testbit(realdayshi, 7);
+
+	    latchdays = ((getbitval(latchdayshi, 0) << 8) | latchdayslo);
+	    latchhalt = testbit(latchdayshi, 6);
+	    latchdayscarry = testbit(latchdayshi, 7);
+
+	    for (int i = 0; i < 8; i++)
+	    {
+		current_time |= (saveram[(ramsize + 40 + i)] << (i << 3));
+	    }
+
+	    if (current_time <= 0)
+	    {
+		current_time = time(NULL);
+	    }
+
+	    inittimer();
+	}
+    }
+
+    void MMU::savembc3rtc(vector<uint8_t> &saveram)
+    {
+	size_t size = saveram.size();
+
+	if (batteryenabled)
+	{
+	    inittimer();
+	    saveram.resize((size + 48), 0);
+	    saveram[size] = realsecs;
+	    saveram[(size + 4)] = realmins;
+	    saveram[(size + 8)] = realhours;
+	    saveram[(size + 12)] = (realdays & 0xFF);
+	    saveram[(size + 16)] = (((realdays >> 8) & 0x1) | (rtchalt << 6) | (realdayscarry << 7));
+	    saveram[(size + 20)] = latchsecs;
+	    saveram[(size + 24)] = latchmins;
+	    saveram[(size + 28)] = latchhours;
+	    saveram[(size + 32)] = (latchdays & 0xFF);
+	    saveram[(size + 36)] = (((latchdays >> 8) & 0x1) | (latchhalt << 6) | (latchdayscarry << 7));
+
+	    for (int i = 0; i < 8; i++)
+	    {
+		saveram[(size + 40 + i)] = ((uint8_t)(current_time >> (i << 3)));
+	    }
+	}
+    }
+
+    // MBC5 mapper
     uint8_t MMU::mbc5read(uint16_t addr)
     {
 	uint8_t temp = 0;
@@ -513,7 +618,7 @@ namespace gb
 	{
 	    temp = cartmem[(addr - 0x4000) + (currentrombank * 0x4000)];
 	}
-	else if ((addr >= 0xA000) && (addr < 0xC000))
+	else if (inRange(addr, 0xA000, 0xC000))
 	{
 	    if (ramenabled)
 	    {
@@ -559,13 +664,15 @@ namespace gb
 
 	    if (isrumblepres == true)
 	    {
-		if (setrumble)
+		bool is_rumble = (rumble_strength != 0);
+
+		if (testbit(value, 3) != is_rumble)
 		{
-		    setrumble(testbit(value, 3));
+		    rumble_strength = (is_rumble) ? 0 : 3;
 		}
 	    }
 	}
-	else if ((addr >= 0xA000) && (addr < 0xC000))
+	else if (inRange(addr, 0xA000, 0xC000))
 	{
 	    if (ramenabled)
 	    {
@@ -577,7 +684,7 @@ namespace gb
 	return;
     }
 
-    // MBC6 mapper (used by Net de Get) (WIP implementation)
+    // MBC6 mapper (used by Net de Get) (WIP)
     //
     // Note: Since the effective number of ROM and RAM banks are twice what
     // they usually would be, the size of each of those banks
@@ -620,7 +727,7 @@ namespace gb
 		temp = 0x00;
 	    }
 	}
-	else if ((addr >= 0xA000) && (addr < 0xB000))
+	else if (inRange(addr, 0xA000, 0xB000))
 	{
 	    if (ramenabled)
 	    {
@@ -632,7 +739,7 @@ namespace gb
 		temp = 0x00;
 	    }
 	}
-	else if ((addr >= 0xB000) && (addr < 0xC000))
+	else if (inRange(addr, 0xB000, 0xC000))
 	{
 	    if (ramenabled)
 	    {
@@ -722,7 +829,7 @@ namespace gb
 	    cout << "Unimplemented: ROM/Flash bank B writing" << endl;
 	    exit(1);
 	}
-	else if ((addr >= 0xA000) && (addr < 0xB000))
+	else if (inRange(addr, 0xA000, 0xB000))
 	{
 	    if (ramenabled)
 	    {
@@ -730,7 +837,7 @@ namespace gb
 		rambanks[(addr - 0xA000) + ramaddr] = val;
 	    }
 	}
-	else if ((addr >= 0xB000) && (addr < 0xC000))
+	else if (inRange(addr, 0xB000, 0xC000))
 	{
 	    if (ramenabled)
 	    {
@@ -742,6 +849,7 @@ namespace gb
 	return;
     }
 
+    // MBC7 mapper (used by Kirby Tilt n' Tumble, Koro Koro Kirby and Command Master)
     uint8_t MMU::mbc7read(uint16_t addr)
     {
 	uint8_t temp = 0;
@@ -754,16 +862,20 @@ namespace gb
 	{
 	    temp = cartmem[(addr - 0x4000) + (currentrombank * 0x4000)];
 	}
-	else if ((addr >= 0xA000) && (addr < 0xC000))
+	else if (inRange(addr, 0xA000, 0xB000))
 	{
-	    if (ramsecenabled)
+	    if (ramenabled && ramsecenabled)
 	    {
-		temp = readmbc7ram(addr);
+		temp = mbc7_reg_read(addr);
 	    }
 	    else
 	    {
 		temp = 0xFF;
 	    }
+	}
+	else if (inRange(addr, 0xB000, 0xC000))
+	{
+	    temp = 0xFF;
 	}
 
 	return temp;
@@ -773,413 +885,365 @@ namespace gb
     {
 	if (addr < 0x2000)
 	{
-	    ramenabled = ((val & 0xF) == 0xA);
+	    switch (val & 0xF)
+	    {
+		case 0x0:
+		{
+		    ramenabled = false;
+		    ramsecenabled = false;
+		}
+		break;
+		case 0xA: ramenabled = true; break;
+		default: break;
+	    }
 	}
 	else if (addr < 0x4000)
 	{
 	    currentrombank = (val & 0x7F);
-	    currentrombank &= (numrombanks - 1);
+	    currentrombank %= numrombanks;
 	}
 	else if (addr < 0x6000)
 	{
-	    if ((ramenabled == true) && (val == 0x40))
-	    {
-		ramsecenabled = true;
-	    }
-	    else
-	    {
-		ramsecenabled = false;
-	    }
+	    ramsecenabled = (val == 0x40);
 	}
-	else if ((addr >= 0xA000) && (addr < 0xC000))
+	else if (inRange(addr, 0xA000, 0xB000))
 	{
-	    if (ramsecenabled)
+	    if (ramenabled && ramsecenabled)
 	    {
-		writembc7ram(addr, val);
+		mbc7_reg_write(addr, val);
 	    }
-	    return;
 	}
     }
 
-    uint8_t MMU::readmbc7ram(uint16_t addr)
+    uint8_t MMU::mbc7_reg_read(uint16_t addr)
     {
+	int reg_num = ((addr >> 4) & 0xF);
 	uint8_t temp = 0;
 
-	if ((addr >= 0xA000) && (addr < 0xB000))
+	switch (reg_num)
 	{
-	    int tempaddr = ((addr >> 4) & 0xF);
-
-	    switch (tempaddr)
+	    case 2: temp = (mbc7_sensorx & 0xFF); break;
+	    case 3: temp = (mbc7_sensorx >> 8); break;
+	    case 4: temp = (mbc7_sensory & 0xFF); break;
+	    case 5: temp = (mbc7_sensory >> 8); break;
+	    case 8: temp = read_mbc7_eeprom(); break;
+	    default:
 	    {
-		case 0x2: temp = (mbc7sensorx & 0xFF); break;
-		case 0x3: temp = (mbc7sensorx >> 8); break;
-		case 0x4: temp = (mbc7sensory & 0xFF); break;
-		case 0x5: temp = (mbc7sensory >> 8); break;
-		case 0x6: temp = 0x00; break;
-		case 0x7: temp = 0xFF; break;
-		case 0x8: temp = mbc7intvalue; break;
-		default: temp = 0x00; break;
+		cout << "Unrecognized register read from address of 0xax" << hex << int(reg_num) << "x" << endl;
+		exit(0);
+		temp = 0;
 	    }
+	    break;
+	}
 
-	    return temp;
-	}	
-	else
+	return temp;
+    }
+
+    void MMU::mbc7_reg_write(uint16_t addr, uint8_t value)
+    {
+	int reg_num = ((addr >> 4) & 0xF);
+
+	switch (reg_num)
 	{
-	    return 0xFF;
+	    case 0:
+	    {
+		mbc7_latch = ((value & 0x55) == 0x55);
+
+		if (mbc7_latch)
+		{
+		    mbc7_sensorx = 0x8000;
+		    mbc7_sensory = 0x8000;
+		}
+	    }
+	    break;
+	    case 1:
+	    {
+		mbc7_latch &= ((value & 0xAA) == 0xAA);
+
+		if (mbc7_latch)
+		{
+		    latch_mbc7_gyro();
+		    mbc7_latch = false;
+		}
+	    }
+	    break;
+	    case 8: write_mbc7_eeprom(value); break;
+	    default:
+	    {
+		cout << "Unrecognized register write to address of 0xax" << hex << int(reg_num) << "x, value of " << hex << int(value) << endl;
+		exit(0);
+	    }
+	    break;
 	}
     }
 
-    void MMU::writembc7ram(uint16_t addr, uint8_t val)
+    uint8_t MMU::read_mbc7_eeprom()
     {
-	if ((addr >= 0xA000) && (addr < 0xB000))
-	{
-	    int tempaddr = ((addr >> 4) & 0xF);
+	uint8_t temp = 0;
+	temp = changebit(temp, 7, mbc7_cs);
+	temp = changebit(temp, 6, mbc7_clk);
+	temp = changebit(temp, 1, mbc7_di);
+	temp = changebit(temp, 0, mbc7_do);
 
-	    switch (tempaddr)
+	/*
+	cout << "Reading EEPROM:" << endl;
+	cout << "DO pin: " << int(mbc7_do) << endl;
+	cout << "DI pin: " << int(mbc7_di) << endl;
+	cout << "CLK pin: " << int(mbc7_clk) << endl;
+	cout << "CS pin: " << int(mbc7_cs) << endl;
+	cout << endl;
+	*/
+	
+	return temp;
+    }
+
+    void MMU::write_mbc7_eeprom(uint8_t value)
+    {
+	/*
+	cout << "Writing EEPROM:" << endl;
+	cout << "DI pin: " << getbitval(value, 1) << endl;
+	cout << "CLK pin: " << getbitval(value, 6) << endl;
+	cout << "CS pin: " << getbitval(value, 7) << endl;
+	cout << endl;
+	*/
+
+	bool prev_clk = mbc7_clk;
+
+	mbc7_cs = testbit(value, 7);
+	mbc7_clk = testbit(value, 6);
+	mbc7_di = testbit(value, 1);
+
+	if (!prev_clk && mbc7_clk)
+	{
+	    switch (mbc7_state)
 	    {
-		case 0x0:
+		case MBC7State::StartBit:
 		{
-		    if (val == 0x55)
+		    if (mbc7_cs && mbc7_di)
 		    {
-			mbc7sensorx = 0x8000;
-			mbc7sensory = 0x8000;
+			mbc7_state = MBC7State::Command;
+			mbc7_do = false;
 		    }
 		}
 		break;
-		case 0x1:
+		case MBC7State::Command:
 		{
-		    if (val == 0xAA)
+		    mbc7_buffer <<= 1;
+		    mbc7_buffer |= mbc7_di;
+
+		    mbc7_length += 1;
+
+		    if (mbc7_length == 10)
 		    {
-		    	setsensor();
+			process_mbc7_command();
+			mbc7_length = 0;
+			mbc7_buffer = 0;
 		    }
 		}
 		break;
-		case 0x8: writembc7eeprom(val); break;
-		default: return; break;
-	    }
-	}	
-	else
-	{
-	    return;
-	}
-    }
-
-    void MMU::updatesensor(gbGyro pos, bool ispressed)
-    {
-	mbc7gyroval = BitChange(mbc7gyroval, pos, ispressed);
-    }
-
-    void MMU::sensorpressed(gbGyro pos)
-    {
-	updatesensor(pos, true);
-    }
-
-    void MMU::sensorreleased(gbGyro pos)
-    {
-	updatesensor(pos, false);
-    }
-
-    void MMU::updategyro()
-    {
-	if (testbit(mbc7gyroval, gbGyro::gyLeft))
-	{
-	    xsensor += 2;
-
-	    if (xsensor > 464)
-	    {
-		xsensor = 464;
-	    }
-
-	    if (xsensor < 0)
-	    {
-		xsensor = 10;
-	    }
-	}
-	else if (testbit(mbc7gyroval, gbGyro::gyRight))
-	{
-	    xsensor -= 2;
-
-	    if (xsensor < -464)
-	    {
-		xsensor = -464;
-	    }
-
-	    if (xsensor > 0)
-	    {
-		xsensor = -10;
-	    }
-	}
-	else if (xsensor > 0)
-	{
-	    xsensor -= 2;
-
-	    if (xsensor < 0)
-	    {
-		xsensor = 0;
-	    }
-	}
-	else if (xsensor < 0)
-	{
-	    xsensor += 2;
-
-	    if (xsensor > 0)
-	    {
-		xsensor = 0;
-	    }
-	}
-
-	if (testbit(mbc7gyroval, gbGyro::gyUp))
-	{
-	    ysensor += 2;
-
-	    if (ysensor > 464)
-	    {
-		ysensor = 464;
-	    }
-
-	    if (ysensor < 0)
-	    {
-		ysensor = 10;
-	    }
-	}
-	else if (testbit(mbc7gyroval, gbGyro::gyDown))
-	{
-	    ysensor -= 2;
-
-	    if (ysensor < -464)
-	    {
-		ysensor = -464;
-	    }
-
-	    if (ysensor > 0)
-	    {
-		ysensor = -10;
-	    }
-	}
-	else if (ysensor > 0)
-	{
-	    ysensor -= 2;
-
-	    if (ysensor < 0)
-	    {
-		ysensor = 0;
-	    }
-	}
-	else if (ysensor < 0)
-	{
-	    ysensor += 2;
-
-	    if (ysensor > 0)
-	    {
-		ysensor = 0;
-	    }
-	}
-    }
-
-    void MMU::setsensor()
-    {
-	updategyro();
-	mbc7sensorx = (0x81D0 + xsensor);
-	mbc7sensory = (0x81D0 + ysensor);
-    }
-
-    void MMU::writembc7eeprom(uint8_t val)
-    {
-	bool oldchipsel = mbc7chipsel;
-	bool oldchipclk = mbc7chipclk;
-	mbc7chipsel = testbit(val, 7);
-	mbc7chipclk = testbit(val, 6);
-
-	if (!oldchipsel && mbc7chipsel)
-	{
-	    if (mbc7intstate == 5)
-	    {
-		if (mbc7wenable)
+		case MBC7State::Read:
 		{
-		    uint16_t tempaddr = ((mbc7chipaddr & 0x7F) << 1);
-		    rambanks[tempaddr] = (mbc7chipbuf >> 8);
-		    rambanks[(tempaddr + 1)] = (mbc7chipbuf & 0xFF);
+		    mbc7_do = testbit(mbc7_read_value, 15);
+		    mbc7_read_value <<= 1;
+		    mbc7_length += 1;
+
+		    if (mbc7_length == 16)
+		    {
+			mbc7_length = 0;
+			mbc7_read_value = 0;
+			mbc7_state = MBC7State::StartBit;
+		    }
 		}
+		break;
+		case MBC7State::Write:
+		{
+		    mbc7_write_value <<= 1;
+		    mbc7_write_value |= mbc7_di;
+		    mbc7_length += 1;
 
-		mbc7intstate = 0;
-		mbc7intvalue = 1;
-	    }
-	    else
-	    {
-		mbc7idle = true;
-		mbc7intstate = 0;
+		    if (mbc7_length == 16)
+		    {
+			mbc7_length = 0;
+
+			if (mbc7_erase_enabled)
+			{
+			    rambanks[mbc7_write_addr] = (mbc7_write_value >> 8);
+			    rambanks[mbc7_write_addr + 1] = (mbc7_write_value & 0xFF);
+
+			    mbc7_do = true;
+			}
+
+			mbc7_write_value = 0;
+
+			mbc7_state = MBC7State::StartBit;
+		    }
+		}
+		break;
+		case MBC7State::WriteAll:
+		{
+		    mbc7_write_value <<= 1;
+		    mbc7_write_value |= mbc7_di;
+		    mbc7_length += 1;
+
+		    if (mbc7_length == 16)
+		    {
+			mbc7_length = 0;
+
+			if (mbc7_erase_enabled)
+			{
+			    for (size_t index = 0; index < rambanks.size(); index += 2)
+			    {
+				rambanks[index] = (mbc7_write_value >> 8);
+				rambanks[index + 1] = (mbc7_write_value & 0xFF);
+			    }
+
+			    mbc7_do = true;
+			}
+
+			mbc7_write_value = 0;
+
+			mbc7_state = MBC7State::StartBit;
+		    }
+		}
+		break;
+		default: break;
 	    }
 	}
+    }
 
-	if (!oldchipclk && mbc7chipclk)
+    void MMU::process_mbc7_command()
+    {
+	int cmd_type = ((mbc7_buffer >> 8) & 0x3);
+
+	switch (cmd_type)
 	{
-	    if (mbc7idle && testbit(val, 1))
+	    case 0:
 	    {
-		mbc7idle = false;
-		mbc7intstate = 1;
-	    }
-	    else
-	    {
-		switch (mbc7intstate)
+		int subcmd_type = ((mbc7_buffer >> 6) & 0x3);
+
+		switch (subcmd_type)
 		{
+		    // EWDS
+		    case 0:
+		    {
+			mbc7_erase_enabled = false;
+			mbc7_state = MBC7State::StartBit;
+		    }
+		    break;
+		    // WRAL
 		    case 1:
 		    {
-			mbc7chipbuf <<= 1;
-			mbc7chipbuf |= testbit(val, 1);
-			mbc7chipsize += 1;
-
-			if (mbc7chipsize == 2)
-			{
-			    mbc7chipcmd = (mbc7chipbuf & 0x3);
-			    mbc7chipsize = 0;
-			    mbc7intstate = 2;
-			}
+			mbc7_state = MBC7State::WriteAll;
 		    }
 		    break;
+		    // ERAL
 		    case 2:
 		    {
-			mbc7chipbuf <<= 1;
-			mbc7chipbuf |= testbit(val, 1);
-			mbc7chipsize += 1;
-
-			if (mbc7chipsize == 8)
+			if (mbc7_erase_enabled)
 			{
-			    mbc7chipaddr = (mbc7chipbuf & 0xFF);
-			    mbc7chipsize = 0;
-			    mbc7intstate = 3;
-
-			    if (mbc7chipcmd == 0)
+			    for (size_t index = 0; index < rambanks.size(); index += 2)
 			    {
-				if ((mbc7chipaddr >> 6) == 0)
-				{
-				    mbc7wenable = false;
-				    mbc7intstate = 0;
-				}
-				else if ((mbc7chipaddr >> 6) == 3)
-				{
-				    mbc7wenable = true;
-				    mbc7intstate = 0;
-				}
+				rambanks[index] = 0xFF;
+				rambanks[index + 1] = 0xFF;
 			    }
+
+			    mbc7_do = true;
 			}
+
+			mbc7_state = MBC7State::StartBit;
 		    }
 		    break;
+		    // EWEN
 		    case 3:
 		    {
-			mbc7chipbuf <<= 1;
-			mbc7chipbuf |= testbit(val, 1);
-			mbc7chipsize += 1;
-
-			switch (mbc7chipcmd)
-			{
-			    case 0:
-			    {
-				if (mbc7chipsize == 16)
-				{
-				    switch ((mbc7chipaddr >> 6))
-				    {
-					case 0:
-					{
-					    mbc7wenable = false;
-					    mbc7intstate = 0;
-					}
-					break;
-					case 1:
-					{
-					    if (mbc7wenable)
-					    {
-						for (int i = 0; i < 256; i++)
-						{
-						    rambanks[(i << 1)] = (mbc7chipbuf >> 8);
-						    rambanks[((i << 1) + 1)] = (mbc7chipbuf & 0xFF);
-						}
-					    }
-
-					    mbc7intstate = 5;
-					}
-					break;
-					case 2:
-					{
-					    if (mbc7wenable)
-					    {
-						for (int i = 0; i < 256; i++)
-						{
-						    rambanks[(i << 1)] = 0xFF;
-						    rambanks[((i << 1) + 1)] = 0xFF;
-						}
-					    }
-
-					    mbc7intstate = 5;
-					}
-					break;
-					case 3:
-					{
-					    mbc7wenable = true;
-					    mbc7intstate = 0;
-					}
-					break;
-				    }
-
-				    mbc7chipsize = 0;
-				}
-			    }
-			    break;
-			    case 1:
-			    {
-				if (mbc7chipsize == 16)
-				{
-				    mbc7chipsize = 0;
-				    mbc7intstate = 5;
-				    mbc7intvalue = 0;
-				}
-			    }
-			    break;
-			    case 2:
-			    {
-				if (mbc7chipsize == 1)
-				{
-				    uint16_t tempaddr = ((mbc7chipaddr & 0x7F) << 1);
-				    mbc7chipbuf = ((rambanks[tempaddr] << 8) | (rambanks[(tempaddr + 1)]));
-				    mbc7intstate = 4;
-				    mbc7chipsize = 0;
-				}
-			    }
-			    break;
-			    case 3:
-			    {
-				if (mbc7chipsize == 16)
-				{
-				    mbc7chipsize = 0;
-				    mbc7chipbuf = 0xFFFF;
-				    mbc7intstate = 5;
-				    mbc7intvalue = 0;
-				}
-			    }
-			    break;
-			    default: cout << "Unrecognized EEPROM command of " << dec << (int)(mbc7chipcmd) << endl; exit(1); break;
-			}
+			mbc7_erase_enabled = true;
+			mbc7_state = MBC7State::StartBit;
+		    }
+		    break;
+		    default:
+		    {
+			cout << "Unrecognized sub-command type of " << dec << int(subcmd_type) << endl;
+			exit(0);
 		    }
 		    break;
 		}
 	    }
-	}
-
-	if (oldchipclk && !mbc7chipclk)
-	{
-	    if (mbc7intstate == 4)
+	    break;
+	    // WRITE
+	    case 1:
 	    {
-		mbc7intvalue = (int)(testbit(mbc7chipbuf, 15));
-		mbc7chipbuf <<= 1;
-		mbc7chipsize += 1;
+		uint32_t eeprom_addr = (mbc7_buffer & 0xFF);
 
-		if (mbc7chipsize == 16)
+		if (numrombanks != 128)
 		{
-		    mbc7chipsize = 0;
-		    mbc7intstate = 0;
+		    eeprom_addr &= 0x7F;
 		}
+
+		eeprom_addr <<= 1;
+		mbc7_write_addr = eeprom_addr;
+		mbc7_state = MBC7State::Write;
 	    }
+	    break;
+	    // READ
+	    case 2:
+	    {
+		uint32_t eeprom_addr = (mbc7_buffer & 0xFF);
+
+		if (numrombanks != 128)
+		{
+		    eeprom_addr &= 0x7F;
+		}
+
+		eeprom_addr <<= 1;
+
+		mbc7_read_value = ((rambanks[eeprom_addr] << 8) | rambanks[eeprom_addr + 1]);
+		mbc7_state = MBC7State::Read;
+	    }
+	    break;
+	    // ERASE
+	    case 3:
+	    {
+		uint32_t eeprom_addr = (mbc7_buffer & 0xFF);
+
+		if (numrombanks != 128)
+		{
+		    eeprom_addr &= 0x7F;
+		}
+
+		eeprom_addr <<= 1;
+
+		if (mbc7_erase_enabled)
+		{
+		    rambanks[eeprom_addr] = 0xFF;
+		    rambanks[eeprom_addr + 1] = 0xFF;
+		    mbc7_do = true;
+		}
+
+		mbc7_state = MBC7State::StartBit;
+	    }
+	    break;
+	    default:
+	    {
+		cout << "Unrecognized MBC7 EEPROM command of " << dec << int(cmd_type) << endl;
+		exit(0);
+	    }
+	    break;
 	}
     }
+
+    void MMU::set_accel_values(float x, float y)
+    {
+	sensorx = int(0x70 * x);
+	sensory = int(0x70 * y);
+    }
+
+    void MMU::latch_mbc7_gyro()
+    {
+	mbc7_sensorx = (0x81D0 + sensorx);
+	mbc7_sensory = (0x81D0 + sensory);
+    }
+
+    // GB Camera mapper (used by the Game Boy Camera, obviously)
 
     uint8_t MMU::gbcameraread(uint16_t addr)
     {
@@ -1193,7 +1257,7 @@ namespace gb
 	{
 	    temp = cartmem[(addr - 0x4000) + (currentrombank * 0x4000)];
 	}
-	else if ((addr >= 0xA000) && (addr < 0xC000))
+	else if (inRange(addr, 0xA000, 0xC000))
 	{
 	    if (cameramode)
 	    {
@@ -1233,7 +1297,7 @@ namespace gb
 		currentrambank &= (numrambanks - 1);
 	    }
 	}
-	else if ((addr >= 0xA000) && (addr < 0xC000))
+	else if (inRange(addr, 0xA000, 0xC000))
 	{
 	    if (cameramode)
 	    {
@@ -1285,7 +1349,7 @@ namespace gb
 		camera_trigger = (val & 0x6);
 		if (testbit(val, 0) && camframe)
 		{
-		    camera_trigger = BitSet(camera_trigger, 0);
+		    camera_trigger = setbit(camera_trigger, 0);
 		    take_camera_pic();
 		    camera_capture = true;
 		}
@@ -1304,7 +1368,7 @@ namespace gb
 
     void MMU::updatecamera()
     {
-	if (gbmbc != MBCType::Camera)
+	if (!isgbcamera())
 	{
 	    return;
 	}
@@ -1321,7 +1385,7 @@ namespace gb
 	    if (camera_clock <= 0)
 	    {
 		camera_clock = 0;
-		camera_trigger = BitReset(camera_trigger, 0);
+		camera_trigger = resetbit(camera_trigger, 0);
 		camera_capture = false;
 	    }
 	}	
@@ -1608,11 +1672,281 @@ namespace gb
 	    }
 	}
 
-	for (int i = 0; i < static_cast<int>(final_buffer.size()); i++)
+	for (size_t i = 0; i < final_buffer.size(); i++)
 	{
 	    rambanks[(0x100 + i)] = final_buffer[i];
 	}
     }
+
+    // HuC3 mapper (WIP) (used in several Hudson Soft titles)
+    // Much of this implementation was derived from endrift's documentation,
+    // as well as the source code of both gbe-plus and SameBoy.
+    // Even then, there's still a massive amount of unknowns in regards
+    // to this mapper, and reverse-engineering work is still very much ongoing.
+    // This implementation will be updated as more info about 
+    // this specific mapper becomes publicly available.
+
+    uint8_t MMU::huc3read(uint16_t addr)
+    {
+	uint8_t temp = 0;
+	if (addr < 0x4000)
+	{
+	    temp = rom[addr];
+	}
+	else if (addr < 0x8000)
+	{
+	    temp = cartmem[(addr - 0x4000) + (currentrombank * 0x4000)];
+	}
+	else if (inRange(addr, 0xA000, 0xC000))
+	{
+	    switch (huc3_mode)
+	    {
+		case 0x0:
+		case 0xA:
+		{
+		    temp = rambanks[(addr - 0xA000) + (currentrambank * 0x2000)];
+		}
+		break;
+		case 0xB:
+		case 0xC:
+		{
+		    temp = huc3_value;
+		}
+		break;
+		case 0xD:
+		{
+		    temp = 0xFF;
+		}
+		break;
+		default:
+		{
+		    cout << "Unrecognized read under HuC3 mode of " << hex << int(huc3_mode) << endl;
+		    exit(0);
+		    temp = 0;
+		}
+		break;
+	    }
+	}
+
+	return temp;
+    }
+
+    void MMU::huc3write(uint16_t addr, uint8_t value)
+    {
+	if (addr < 0x2000)
+	{
+	    huc3_mode = (value & 0xF);
+	}
+	else if (addr < 0x4000)
+	{
+	    currentrombank = (value & 0x7F);
+
+	    if (currentrombank == 0)
+	    {
+		currentrombank += 1;
+	    }
+	}
+	else if (addr < 0x6000)
+	{
+	    currentrambank = (value & 0x3);
+	}
+	else if (addr < 0x8000)
+	{
+	    // TODO: What effects do writes have on this region?
+	    // (needs hardware verification)
+	    return;
+	}
+	else if (inRange(addr, 0xA000, 0xC000))
+	{
+	    switch (huc3_mode)
+	    {
+		case 0x0: break;
+		case 0xA:
+		{
+		    rambanks[(addr - 0xA000) + (currentrambank * 0x2000)] = value;
+		}
+		break;
+		case 0xB:
+		{
+		    huc3_value = (0x80 | value);
+		}
+		break;
+		case 0xD:
+		{
+		    huc3_commit();
+		}
+		break;
+		default:
+		{
+		    cout << "Unrecognized write under HuC3 mode of " << hex << int(huc3_mode) << endl;
+		    exit(0);
+		}
+		break;
+	    }
+	}
+    }
+
+    void MMU::huc3_commit()
+    {
+	int reg_num = ((huc3_value >> 4) & 0x7);
+	int reg_val = (huc3_value & 0xF);
+
+	switch (reg_num)
+	{
+	    case 1:
+	    {
+		// TODO: Implement HuC3 registers
+		if ((huc3_index & 0xF8) == 0x10)
+		{
+		    cout << "Latching Huc3 RTC..." << endl;
+		}
+
+		huc3_value &= 0xF0;
+
+		if (testbit(huc3_value, 4))
+		{
+		    huc3_index += 1;
+		}
+	    }
+	    break;
+	    case 3:
+	    {
+		if (testbit(huc3_value, 4))
+		{
+		    huc3_index += 1;
+		}
+	    }
+	    break;
+	    case 4:
+	    {
+		huc3_index = ((huc3_index & 0xF0) | reg_val);
+	    }
+	    break;
+	    case 5:
+	    {
+		huc3_index = ((huc3_index & 0xF) | (reg_val << 4));
+	    }
+	    break;
+	    case 6:
+	    {
+		switch (reg_val)
+		{
+		    case 0x0:
+		    {
+			cout << "Latching HuC3 RTC..." << endl;
+		    }
+		    break;
+		    case 0x1:
+		    {
+			cout << "Setting HuC3 RTC..." << endl;
+		    }
+		    break;
+		    case 0x2:
+		    {
+			cout << "Unimplemented: HuC3 read-only mode" << endl;
+		    }
+		    break;
+		    case 0xE:
+		    {
+			cout << "Playing HuC3 tone..." << endl;
+		    }
+		    break;
+		    default:
+		    {
+			cout << "Unrecognized HuC3 register value of " << hex << int(reg_val) << endl;
+			exit(0);
+		    }
+		    break;
+		}
+
+		huc3_value = 0xE1;
+	    }
+	    break;
+	    default:
+	    {
+		cout << "Unrecognized HuC3 register number of " << hex << int(reg_num) << endl;
+		exit(0);
+	    }
+	    break;
+	}
+    }
+
+    // HuC1 mapper (used most notably by Pokemon Card GB) (WIP)
+    uint8_t MMU::huc1read(uint16_t addr)
+    {
+	uint8_t temp = 0;
+
+	if (addr < 0x4000)
+	{
+	    temp = rom[addr];
+	}
+	else if (addr < 0x8000)
+	{
+	    temp = cartmem[(addr - 0x4000) + (currentrombank * 0x4000)];
+	}
+	else if (inRange(addr, 0xA000, 0xC000))
+	{
+	    if (huc1_ir_trigger)
+	    {
+		// TODO: Implement IR
+		temp = 0xC0;
+	    }
+	    else
+	    {
+		uint32_t huc1_ram_bank = (huc1_bank_mode) ? currentrambank : 0;
+		temp = rambanks[(addr - 0xA000) + (huc1_ram_bank * 0x2000)];
+	    }
+	}
+
+	return temp;
+    }
+
+    void MMU::huc1write(uint16_t addr, uint8_t value)
+    {
+	if (addr < 0x2000)
+	{
+	    huc1_ir_trigger = ((value & 0xF) == 0xE);
+	}
+	else if (addr < 0x4000)
+	{
+	    currentrombank = (value & 0x3F);
+
+	    if (currentrombank == 0)
+	    {
+		currentrombank += 1;
+	    }
+	}
+	else if (addr < 0x6000)
+	{
+	    currentrambank = (value & 0x3);
+	}
+	else if (addr < 0x8000)
+	{
+	    huc1_bank_mode = testbit(value, 0);
+	}
+	else if (inRange(addr, 0xA000, 0xC000))
+	{
+	    if (huc1_ir_trigger)
+	    {
+		// TODO: Implement IR
+		if (testbit(value, 0))
+		{
+		    cout << "Turning IR signal on..." << endl;
+		}
+		else
+		{
+		    cout << "Shutting IR signal off..." << endl;
+		}
+	    }
+	    else
+	    {
+		uint32_t huc1_ram_bank = (huc1_bank_mode) ? currentrambank : 0;
+		rambanks[(addr - 0xA000) + (huc1_ram_bank * 0x2000)] = value;
+	    }
+	}
+    }
+
+    // Wisdom Tree mapper (used by Wisdom Tree's unlicensed Game Boy games)
 
     uint8_t MMU::wisdomtreeread(uint16_t addr)
     {
@@ -1622,7 +1956,7 @@ namespace gb
 	{
 	    temp = cartmem[(addr + (wisdomrombank * 0x4000))];
 	}
-	else if ((addr >= 0xA000) && (addr < 0xC000))
+	else if (inRange(addr, 0xA000, 0xC000))
 	{
 	    temp = 0xFF;
 	}
@@ -1632,10 +1966,287 @@ namespace gb
 
     void MMU::wisdomtreewrite(uint16_t addr, uint8_t value)
     {
+	(void)value;
 	if (addr < 0x4000)
 	{
 	    int bank = (addr & 0x3F);
 	    wisdomrombank = (bank << 1);
+	}
+    }
+
+    // TPP1 mapper (custom homebrew mapper by TwitchPlaysPokemon)
+    // (https://github.com/TwitchPlaysPokemon/tpp1)
+    // TODO: Implement RTC saves
+
+    uint8_t MMU::tpp1read(uint16_t addr)
+    {
+	uint8_t temp = 0;
+
+	if (addr < 0x4000)
+	{
+	    temp = rom[addr];
+	}
+	else if (addr < 0x8000)
+	{
+	    uint16_t tpp1_rom_bank = (((mr1_reg << 8) | mr0_reg) % numrombanks);
+	    temp = cartmem[((addr - 0x4000) + (tpp1_rom_bank * 0x4000))];
+	}
+	else if (inRange(addr, 0xA000, 0xC000))
+	{
+	    switch (map_control)
+	    {
+		case TPP1Mapped::ControlReg: temp = read_tpp1_control_reg(addr); break;
+		case TPP1Mapped::SRAMRead:
+		case TPP1Mapped::SRAMReadWrite:
+		{
+		    uint16_t tpp1_ram_bank = (mr2_reg % numrambanks);
+		    temp = rambanks[(addr - 0xA000) + (tpp1_ram_bank * 0x2000)];
+		}
+		break;
+		case TPP1Mapped::RTCLatched: temp = read_tpp1_rtc(addr); break;
+		default: temp = 0; break;
+	    }
+	}
+
+	return temp;
+    }
+
+    void MMU::tpp1write(uint16_t addr, uint8_t value)
+    {
+	if (addr < 0x4000)
+	{
+	    write_tpp1_control_reg(addr, value);
+	}
+	else if (addr < 0x8000)
+	{
+	    return;
+	}
+	else if (inRange(addr, 0xA000, 0xC000))
+	{
+	    switch (map_control)
+	    {
+		case TPP1Mapped::ControlReg: break;
+		case TPP1Mapped::SRAMRead: break;
+		case TPP1Mapped::SRAMReadWrite:
+		{
+		    uint16_t tpp1_ram_bank = mr2_reg;
+		    rambanks[(addr - 0xA000) + (tpp1_ram_bank * 0x2000)] = value;
+		}
+		break;
+		case TPP1Mapped::RTCLatched: write_tpp1_rtc(addr, value); break;
+		default: break;
+	    }
+	}
+    }
+
+    uint8_t MMU::read_tpp1_control_reg(uint16_t addr)
+    {
+	uint8_t temp = 0;
+	int reg_addr = (addr & 3);
+
+	switch (reg_addr)
+	{
+	    case 0: temp = mr0_reg; break;
+	    case 1: temp = mr1_reg; break;
+	    case 2: temp = mr2_reg; break;
+	    case 3: temp = mr4_reg; break;
+	    default: break;
+	}
+
+	return temp;
+    }
+
+    void MMU::write_tpp1_control_reg(uint16_t addr, uint8_t value)
+    {
+	int reg_addr = (addr & 3);
+
+	switch (reg_addr)
+	{
+	    case 0: mr0_reg = value; break;
+	    case 1: mr1_reg = value; break;
+	    case 2: mr2_reg = value; break;
+	    case 3: write_tpp1_mr3(value); break;
+	    default: break;   
+	}
+    }
+
+    uint8_t MMU::read_tpp1_rtc(uint16_t addr)
+    {
+	if (!isrtcpres)
+	{
+	    return 0x00;
+	}
+
+	uint8_t temp = 0;
+	int reg_addr = (addr & 3);
+
+	switch (reg_addr)
+	{
+	    case 0: temp = tpp1_latched_week; break;
+	    case 1: temp = ((tpp1_latched_day << 5) | tpp1_latched_hours); break;
+	    case 2: temp = tpp1_latched_minutes; break;
+	    case 3: temp = tpp1_latched_seconds; break;
+	    default: break;
+	}
+
+	return temp;
+    }
+
+    void MMU::write_tpp1_rtc(uint16_t addr, uint8_t value)
+    {
+	if (!isrtcpres)
+	{
+	    return;
+	}
+
+	int reg_addr = (addr & 3);
+
+	switch (reg_addr)
+	{
+	    case 0:
+	    {
+		tpp1_latched_week = value;
+	    }
+	    break;
+	    case 1:
+	    {
+		tpp1_latched_day = ((value >> 5) & 0x7);
+		tpp1_latched_hours = (value & 0x1F);
+	    }
+	    break;
+	    case 2:
+	    {
+		tpp1_latched_minutes = value;
+	    }
+	    break;
+	    case 3:
+	    {
+		tpp1_latched_seconds = value;
+	    }
+	    break;
+	    default: break;   
+	}
+    }
+
+    void MMU::write_tpp1_mr3(uint8_t value)
+    {
+	switch (value)
+	{
+	    case 0x00: map_control = TPP1Mapped::ControlReg; break;
+	    case 0x02: map_control = TPP1Mapped::SRAMRead; break;
+	    case 0x03: map_control = TPP1Mapped::SRAMReadWrite; break;
+	    case 0x05: map_control = TPP1Mapped::RTCLatched; break;
+	    case 0x10:
+	    {
+		tpp1_latched_week = tpp1_rtc_week;
+		tpp1_latched_day = tpp1_rtc_day;
+		tpp1_latched_hours = tpp1_rtc_hours;
+		tpp1_latched_minutes = tpp1_rtc_minutes;
+		tpp1_latched_seconds = tpp1_rtc_seconds;
+	    }
+	    break;
+	    case 0x11:
+	    {
+		tpp1_rtc_week = tpp1_latched_week;
+		tpp1_rtc_day = tpp1_latched_day;
+		tpp1_rtc_hours = (tpp1_latched_hours & 0x1F);
+		tpp1_rtc_minutes = (tpp1_latched_minutes & 0x3F);
+		tpp1_rtc_seconds = (tpp1_latched_seconds & 0x3F);
+	    }
+	    break;
+	    case 0x14:
+	    {
+		mr4_reg = resetbit(mr4_reg, 3);
+	    }
+	    break;
+	    case 0x18:
+	    {
+		mr4_reg = resetbit(mr4_reg, 2);
+	    }
+	    break;
+	    case 0x19:
+	    {
+		mr4_reg = setbit(mr4_reg, 2);
+	    }
+	    break;
+	    case 0x20:
+	    case 0x21:
+	    case 0x22:
+	    case 0x23:
+	    {
+		// Only set rumble strength if rumble is present
+		if (isrumblepres)
+		{
+		    rumble_strength = (value & 3);
+
+		    // If multiple rumble speeds aren't supported,
+		    // the highest rumble strength allowed is 1
+		    if (!is_multi_rumble)
+		    {
+			rumble_strength = clamp(rumble_strength, 0, 1);
+		    }
+
+		    mr4_reg = ((mr4_reg & 0xFC) | rumble_strength);
+		}
+		else
+		{
+		    mr4_reg &= 0xFC;
+		}
+	    }
+	    break;
+	    default:
+	    {
+		cout << "Unrecognized TPP1 MR3 value of " << hex << int(value) << endl;
+		exit(0);
+	    }
+	    break;
+	}
+    }
+
+    void MMU::updatetpp1rtc()
+    {
+	if (!testbit(mr4_reg, 2))
+	{
+	    return;
+	}
+
+	int atomic_increase = doublespeed ? 2 : 4;
+	timercounter += atomic_increase;
+
+	if (timercounter == 4194304)
+	{
+	    timercounter = 0;
+	    tpp1_rtc_seconds = ((tpp1_rtc_seconds + 1) & 63);
+
+	    if (tpp1_rtc_seconds == 60)
+	    {
+		tpp1_rtc_seconds = 0;
+		tpp1_rtc_minutes += 1;
+
+		if (tpp1_rtc_minutes == 60)
+		{
+		    tpp1_rtc_minutes = 0;
+		    tpp1_rtc_hours += 1;
+
+		    if (tpp1_rtc_hours == 24)
+		    {
+			tpp1_rtc_hours = 0;
+			tpp1_rtc_day += 1;
+
+			if (tpp1_rtc_day == 7)
+			{
+			    tpp1_rtc_day = 0;
+			    tpp1_rtc_week += 1;
+
+			    if (tpp1_rtc_week == 256)
+			    {
+				tpp1_rtc_week = 0;
+				mr4_reg = setbit(mr4_reg, 3);
+			    }
+			}
+		    }
+		}
+	    }
 	}
     }
 };

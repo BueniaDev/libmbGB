@@ -4,8 +4,6 @@ using namespace std;
 using namespace toml;
 using namespace std::placeholders;
 
-GBCore core;
-
 struct Controller
 {
     SDL_GameController *controller;
@@ -66,7 +64,7 @@ JoypadControllers control;
 class SDL2Frontend : public mbGBFrontend
 {
     public:
-        SDL2Frontend(GBCore *cb, char *argv[]) : core(cb)
+        SDL2Frontend(GBCore &cb, char *argv[]) : core(cb)
         {
 	    set_path(argv);
         }
@@ -87,9 +85,9 @@ class SDL2Frontend : public mbGBFrontend
 	    #else
 	    const char seperator = '/';
 	    #endif // __WIN32__
-	    string filepath = SDL_GetBasePath();
+	    base_path = SDL_GetBasePath();
 	    stringstream configpath;
-	    configpath << filepath << "libmbgb.toml";
+	    configpath << base_path << "libmbgb.toml";
 	    auto stream = ifstream(configpath.str().c_str());
 	    ParseResult pr = parse(stream);
 
@@ -103,30 +101,52 @@ class SDL2Frontend : public mbGBFrontend
 
 	    pixel_renderer = toml.get<int>("general.pixel_renderer");
 
+	    bool is_cheats_enable = toml.get<bool>("general.enable_cheats");
+
+	    if (is_cheats_enable)
+	    {
+		string cheat_filename = toml.get<string>("general.cheats_path");
+
+		if (!parse_cheat_codes(cheat_filename))
+		{
+		    return false;
+		}
+	    }
+
 	    // Filepath of vertex shader
+	    string shader_vert = toml.get<string>("shaders.vert_shader");
 	    stringstream vertshader_str;
-	    vertshader_str << filepath << "shaders" << seperator << "vertex.vs";
+	    vertshader_str << base_path << "shaders" << seperator << shader_vert << ".vs";
 
 	    // Filepath of fragment shader
-	    string shader = toml.get<string>("shaders.frag_shader");
-
+	    string shader_frag = toml.get<string>("shaders.frag_shader");
 	    stringstream fragshader_str;
-	    fragshader_str << filepath << "shaders" << seperator << shader << ".fs";
+	    fragshader_str << base_path << "shaders" << seperator << shader_frag << ".fs";
 
 	    vert_shader = vertshader_str.str();
 	    frag_shader = fragshader_str.str();
 
 	    return true;
 	}
-        
-        bool init()
-        {
+
+	bool init_core()
+	{
 	    if (!init_config())
 	    {
 		cout << "Error parsing config file." << endl;
 		return false;
 	    }
 
+	    if (!core.initcore())
+	    {
+		return false;
+	    }
+
+	    return true;
+	}
+        
+        bool init()
+        {
 	    if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
 	    {
 		cout << "SDL2 could not be initialized! SDL_Error: " << SDL_GetError() << endl;
@@ -140,7 +160,7 @@ class SDL2Frontend : public mbGBFrontend
 	    }
 	    #endif // USE_OPENGL
 
-	    window = SDL_CreateWindow("mbGB-SDL2", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, (core->screenwidth * scale), (core->screenheight * scale), window_flags);
+	    window = SDL_CreateWindow("mbGB-SDL2", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, (core.screenwidth * scale), (core.screenheight * scale), window_flags);
 
 	    if (window == NULL)
 	    {
@@ -218,6 +238,11 @@ class SDL2Frontend : public mbGBFrontend
 	
 	    return true;
 	}
+
+	void stop_core()
+	{
+	    core.shutdown();
+	}
 	
 	void shutdown()
 	{
@@ -258,11 +283,11 @@ class SDL2Frontend : public mbGBFrontend
 	
 	void runmachine()
 	{
-	    SDL_PauseAudio(core->paused);
+	    SDL_PauseAudio(core.paused);
 
-	    if (!core->paused)
+	    if (!core.paused)
 	    {
-	    	core->runcore();
+	    	core.runcore();
 		drawpixels();
 	    }
 	}
@@ -281,14 +306,14 @@ class SDL2Frontend : public mbGBFrontend
 	
 	void releaseallkeys()
 	{
-	    core->keyreleased(gbButton::A);
-	    core->keyreleased(gbButton::B);
-	    core->keyreleased(gbButton::Start);
-	    core->keyreleased(gbButton::Select);
-	    core->keyreleased(gbButton::Up);
-	    core->keyreleased(gbButton::Down);
-	    core->keyreleased(gbButton::Left);
-	    core->keyreleased(gbButton::Right);
+	    core.keyreleased(gbButton::A);
+	    core.keyreleased(gbButton::B);
+	    core.keyreleased(gbButton::Start);
+	    core.keyreleased(gbButton::Select);
+	    core.keyreleased(gbButton::Up);
+	    core.keyreleased(gbButton::Down);
+	    core.keyreleased(gbButton::Left);
+	    core.keyreleased(gbButton::Right);
 	}
 	
 	void limitframerate()
@@ -349,152 +374,127 @@ class SDL2Frontend : public mbGBFrontend
 
 	void reset()
 	{
-
+	    return;
 	}
 	
 	void handleinput(SDL_Event event)
 	{
-	    if (event.type == SDL_KEYDOWN)
+	    if ((event.type == SDL_KEYDOWN) || (event.type == SDL_KEYUP))
 	    {
+		bool is_pressed = (event.type == SDL_KEYDOWN);
+
 		switch (event.key.keysym.sym)
 		{
-		    case SDLK_UP: core->keypressed(gbButton::Up); break;
-		    case SDLK_DOWN: core->keypressed(gbButton::Down); break;
-		    case SDLK_LEFT: core->keypressed(gbButton::Left); break;
-		    case SDLK_RIGHT: core->keypressed(gbButton::Right); break;
-		    case SDLK_a: core->keypressed(gbButton::A); break;
-		    case SDLK_b: core->keypressed(gbButton::B); break;
-		    case SDLK_RETURN: core->keypressed(gbButton::Start); break;
-		    case SDLK_SPACE: core->keypressed(gbButton::Select); break;
-		    case SDLK_p: core->paused = !core->paused; break;
-		    case SDLK_r: core->resetcore(); break;
-		    case SDLK_q: screenshot(); break;
-		    case SDLK_i: core->sensorpressed(gbGyro::gyUp); break;
-		    case SDLK_j: core->sensorpressed(gbGyro::gyLeft); break;
-		    case SDLK_k: core->sensorpressed(gbGyro::gyDown); break;
-		    case SDLK_l: 
-                    {
-			if (isctrlshiftpressed(event))
-                        {
-                            core->loadstate();
-                        }
-                        else
-                        {
-                            core->sensorpressed(gbGyro::gyRight);
-                        }
-                    }
-                    break;
+		    case SDLK_UP: core.keychanged(gbButton::Up, is_pressed); break;
+		    case SDLK_DOWN: core.keychanged(gbButton::Down, is_pressed); break;
+		    case SDLK_LEFT: core.keychanged(gbButton::Left, is_pressed); break;
+		    case SDLK_RIGHT: core.keychanged(gbButton::Right, is_pressed); break;
+		    case SDLK_a: core.keychanged(gbButton::A, is_pressed); break;
+		    case SDLK_b: core.keychanged(gbButton::B, is_pressed); break;
+		    case SDLK_RETURN: core.keychanged(gbButton::Start, is_pressed); break;
+		    case SDLK_SPACE: core.keychanged(gbButton::Select, is_pressed); break;
+		    case SDLK_p:
+		    {
+			if (is_pressed)
+			{
+			    core.paused = !core.paused;
+			}
+		    }
+		    break;
+		    case SDLK_r:
+		    {
+			if (is_pressed)
+			{
+			    core.resetcore();
+			}
+		    }
+		    break;
+		    case SDLK_q:
+		    {
+			if (is_pressed)
+			{
+			    screenshot();
+			}
+		    }
+		    break;
+		    case SDLK_l:
+		    {
+			if (is_pressed && isctrlshiftpressed(event))
+			{
+			    core.loadstate();
+			}
+		    }
+		    break;
 		    case SDLK_s: 
-                    {
-			if (isctrlshiftpressed(event))
-                        {
-                            core->savestate();
-                        }
-                        else
-                        {
-                            core->swipebarcode();
-                        }
-                    }
-                    break;
+		    {
+			if (is_pressed)
+			{
+			    if (isctrlshiftpressed(event))
+			    {
+				core.savestate();
+			    }
+			    else
+			    {
+				core.swipebarcode();
+			    }
+			}
+		    }
+		    break;
 		}
-    	    }
-	    else if (event.type == SDL_KEYUP)
+	    }
+	    else if ((event.type == SDL_CONTROLLERBUTTONDOWN) || (event.type == SDL_CONTROLLERBUTTONUP))
 	    {
-	    	switch (event.key.keysym.sym)
-	    	{
-		    case SDLK_UP: core->keyreleased(gbButton::Up); break;
-		    case SDLK_DOWN: core->keyreleased(gbButton::Down); break;
-		    case SDLK_LEFT: core->keyreleased(gbButton::Left); break;
-		    case SDLK_RIGHT: core->keyreleased(gbButton::Right); break;
-		    case SDLK_a: core->keyreleased(gbButton::A); break;
-		    case SDLK_b: core->keyreleased(gbButton::B); break;
-		    case SDLK_RETURN: core->keyreleased(gbButton::Start); break;
-		    case SDLK_SPACE: core->keyreleased(gbButton::Select); break;
-		    case SDLK_i: core->sensorreleased(gbGyro::gyUp); break;
-		    case SDLK_j: core->sensorreleased(gbGyro::gyLeft); break;
-		    case SDLK_k: core->sensorreleased(gbGyro::gyDown); break;
-		    case SDLK_l: core->sensorreleased(gbGyro::gyRight); break;
-		}
-    	    }	
-	    else if (event.type == SDL_CONTROLLERBUTTONDOWN)
-    	    {
+		bool is_pressed = (event.type == SDL_CONTROLLERBUTTONDOWN);
+
 		switch (event.cbutton.button)
 		{
-		    case SDL_CONTROLLER_BUTTON_START: core->keypressed(gbButton::Start); break;
-		    case SDL_CONTROLLER_BUTTON_BACK: core->keypressed(gbButton::Select); break;
-		    case SDL_CONTROLLER_BUTTON_A: core->keypressed(gbButton::A); break;
-		    case SDL_CONTROLLER_BUTTON_B: core->keypressed(gbButton::B); break;
-		    case SDL_CONTROLLER_BUTTON_DPAD_UP: core->keypressed(gbButton::Up); break;
-		    case SDL_CONTROLLER_BUTTON_DPAD_DOWN: core->keypressed(gbButton::Down); break;
-		    case SDL_CONTROLLER_BUTTON_DPAD_LEFT: core->keypressed(gbButton::Left); break;
-		    case SDL_CONTROLLER_BUTTON_DPAD_RIGHT: core->keypressed(gbButton::Right); break;
-		    case SDL_CONTROLLER_BUTTON_LEFTSHOULDER: core->savestate(); break;
-		    case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER: core->loadstate(); break;
-		    case SDL_CONTROLLER_BUTTON_X: core->paused = !core->paused; break;
+		    case SDL_CONTROLLER_BUTTON_START: core.keychanged(gbButton::Start, is_pressed); break;
+		    case SDL_CONTROLLER_BUTTON_BACK: core.keychanged(gbButton::Select, is_pressed); break;
+		    case SDL_CONTROLLER_BUTTON_A: core.keychanged(gbButton::A, is_pressed); break;
+		    case SDL_CONTROLLER_BUTTON_B: core.keychanged(gbButton::B, is_pressed); break;
+		    case SDL_CONTROLLER_BUTTON_DPAD_UP: core.keychanged(gbButton::Up, is_pressed); break;
+		    case SDL_CONTROLLER_BUTTON_DPAD_DOWN: core.keychanged(gbButton::Down, is_pressed); break;
+		    case SDL_CONTROLLER_BUTTON_DPAD_LEFT: core.keychanged(gbButton::Left, is_pressed); break;
+		    case SDL_CONTROLLER_BUTTON_DPAD_RIGHT: core.keychanged(gbButton::Right, is_pressed); break;
+		    case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
+		    {
+			if (is_pressed)
+			{
+			    core.savestate();
+			}
+		    }
+		    break;
+		    case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
+		    {
+			if (is_pressed)
+			{
+			    core.loadstate();
+			}
+		    }
+		    break;
+		    case SDL_CONTROLLER_BUTTON_LEFTSTICK: core.keychanged(gbButton::A, is_pressed); break;
+		    case SDL_CONTROLLER_BUTTON_X:
+		    {
+			if (is_pressed)
+			{
+			    core.paused = !core.paused;
+			}
+		    }
+		    break;
+		    case SDL_CONTROLLER_BUTTON_Y:
+		    {
+			if (is_pressed)
+			{
+			    core.swipebarcode();
+			}
+		    }
+		    break;
 		}
-    	    }
-    	    else if (event.type == SDL_CONTROLLERBUTTONUP)
-    	    {
-		switch (event.cbutton.button)
-		{
-		    case SDL_CONTROLLER_BUTTON_START: core->keyreleased(gbButton::Start); break;
-		    case SDL_CONTROLLER_BUTTON_BACK: core->keyreleased(gbButton::Select); break;
-		    case SDL_CONTROLLER_BUTTON_A: core->keyreleased(gbButton::A); break;
-		    case SDL_CONTROLLER_BUTTON_B: core->keyreleased(gbButton::B); break;
-		    case SDL_CONTROLLER_BUTTON_DPAD_UP: core->keyreleased(gbButton::Up); break;
-		    case SDL_CONTROLLER_BUTTON_DPAD_DOWN: core->keyreleased(gbButton::Down); break;
-		    case SDL_CONTROLLER_BUTTON_DPAD_LEFT: core->keyreleased(gbButton::Left); break;
-		    case SDL_CONTROLLER_BUTTON_DPAD_RIGHT: core->keyreleased(gbButton::Right); break;
-		}
-    	    }
+	    }
     	    else if (event.type == SDL_CONTROLLERAXISMOTION)
 	    {
 		switch (event.caxis.axis)
 		{
-		    case SDL_CONTROLLER_AXIS_LEFTY:
-		    {
-			if (event.caxis.value < -controllerdeadzone)
-			{
-			    ydir = -1;
-			}
-			else if (event.caxis.value > controllerdeadzone)
-			{
-			    ydir = 1;
-			}
-			else if (event.caxis.value == 0)
-			{
-			    ydir = 0;
-			}
-			else
-			{
-			    ydir = 0;
-			}
-	
-			handleaxis(ydir, true);
-		    }
-		    break;
-		    case SDL_CONTROLLER_AXIS_RIGHTY:
-		    {
-			if (event.caxis.value < -controllerdeadzone)
-			{
-			    ysensordir = -1;
-			}
-			else if (event.caxis.value > controllerdeadzone)
-			{
-			    ysensordir = 1;
-			}
-			else if (event.caxis.value == 0)
-			{
-			    ysensordir = 0;
-			}
-			else
-			{
-			    ysensordir = 0;
-			}
-	
-			handleaxisgyro(ysensordir, true);
-		    }
-		    break;
 		    case SDL_CONTROLLER_AXIS_LEFTX:
 		    {
 			if (event.caxis.value < -controllerdeadzone)
@@ -519,24 +519,36 @@ class SDL2Frontend : public mbGBFrontend
 		    break;
 		    case SDL_CONTROLLER_AXIS_RIGHTX:
 		    {
+			accel_x = -(float(event.caxis.value) / 32767.0);
+			core.set_accel_values(accel_x, accel_y);
+		    }
+		    break;
+		    case SDL_CONTROLLER_AXIS_LEFTY:
+		    {
 			if (event.caxis.value < -controllerdeadzone)
 			{
-			    xsensordir = -1;
+			    ydir = -1;
 			}
 			else if (event.caxis.value > controllerdeadzone)
 			{
-			    xsensordir = 1;
+			    ydir = 1;
 			}
 			else if (event.caxis.value == 0)
 			{
-			    xsensordir = 0;
+			    ydir = 0;
 			}
 			else
 			{
-			    xsensordir = 0;
+			    ydir = 0;
 			}
 	
-			handleaxisgyro(xsensordir, false);
+			handleaxis(ydir, true);
+		    }
+		    break;
+		    case SDL_CONTROLLER_AXIS_RIGHTY:
+		    {
+			accel_y = -(float(event.caxis.value) / 32767.0);
+			core.set_accel_values(accel_x, accel_y);
 		    }
 		    break;
 		}
@@ -545,7 +557,7 @@ class SDL2Frontend : public mbGBFrontend
 	
 	void drawpixels()
 	{
-	    pix_render->draw_pixels(core->getframebuffer(), scale);
+	    pix_render->draw_pixels(core.getframebuffer(), scale);
 	}
 	
 	void audiocallback(int16_t left, int16_t right)
@@ -562,35 +574,31 @@ class SDL2Frontend : public mbGBFrontend
 	    buffer.clear();
 	}
 	
-	void rumblecallback(bool isenabled)
+	void rumblecallback(double strength)
 	{
 	    if (!isrumbleenabled)
 	    {
 		return;
 	    }
 
-	    if (isenabled && !isrumbling)
+	    if (strength == 0)
 	    {
-		if (SDL_HapticRumblePlay(haptic, 0.5, 2000) != 0)
-		{
-		    cout << "Error playing rumble! SDL_Error: " << SDL_GetError() << endl;
-		    exit(1);
-		}
-		
-		isrumbling = true;
-	    }
-	    else if (!isenabled && isrumbling)
-    	    {
 		if (SDL_HapticRumbleStop(haptic) != 0)
 		{
 		    cout << "Error stopping rumble! SDL_Error: " << SDL_GetError() << endl;
 	    	    exit(1);
 		}
-
-		isrumbling = false;
-    	    }
+	    }
+	    else
+	    {
+		if (SDL_HapticRumblePlay(haptic, strength, 250) != 0)
+		{
+		    cout << "Error playing rumble! SDL_Error: " << SDL_GetError() << endl;
+		    exit(1);
+		}
+	    }
 	}
-	
+
 	void handleaxis(int direction, bool isvert)
 	{
 	    gbButton dir1 = (isvert) ? gbButton::Up : gbButton::Left;
@@ -598,23 +606,10 @@ class SDL2Frontend : public mbGBFrontend
 
 	    switch (direction)
 	    {
-		case -1: core->keypressed(dir1); core->keyreleased(dir2); break;
-		case 0: core->keyreleased(dir1); core->keyreleased(dir2); break;
-		case 1: core->keyreleased(dir1); core->keypressed(dir2); break;
+		case -1: core.keypressed(dir1); core.keyreleased(dir2); break;
+		case 0: core.keyreleased(dir1); core.keyreleased(dir2); break;
+		case 1: core.keyreleased(dir1); core.keypressed(dir2); break;
     	    }
-	}
-
-	void handleaxisgyro(int direction, bool isvert)
-	{
-    	    gbGyro dir1 = (isvert) ? gbGyro::gyUp : gbGyro::gyLeft;
-	    gbGyro dir2 = (isvert) ? gbGyro::gyDown : gbGyro::gyRight;
-
-	    switch (direction)
-	    {
-		case -1: core->sensorpressed(dir1); core->sensorreleased(dir2); break;
-		case 0: core->sensorreleased(dir1); core->sensorreleased(dir2); break;
-		case 1: core->sensorreleased(dir1); core->sensorpressed(dir2); break;
-	    }
 	}
 	
 	void pixelcallback()
@@ -755,24 +750,12 @@ class SDL2Frontend : public mbGBFrontend
 	    #endif // USE_WEBCAM
 	}
 
-	void gen_noise(array<int, (128 * 120)> &arr)
-	{
-	    srand(time(NULL));
-	    for (int i = 0; i < 128; i++)
-	    {
-		for (int j = 0; j < 120; j++)
-		{
-		    arr[(i + (j * 128))] = (rand() & 0xFF);
-		}
-	    }
-	}
-
 	bool cameraframe(array<int, (128 * 120)> &arr)
 	{
 	    #ifdef USE_WEBCAM
 	    if (!camera_enabled)
 	    {
-		gen_noise(arr);
+		return mbGBFrontend::cameraframe(arr);
 	    }
 	    else
 	    {
@@ -820,8 +803,7 @@ class SDL2Frontend : public mbGBFrontend
 
 	    return true;
 	    #else
-	    gen_noise(arr);
-	    return true;
+	    return mbGBFrontend::camerframe(arr);
 	    #endif // USE_WEBCAM
 	}
 
@@ -932,9 +914,43 @@ class SDL2Frontend : public mbGBFrontend
 	    appname = argv[0];
 	}
 
+	bool parse_cheat_codes(string filename)
+	{
+	    stringstream cheatpath;
+	    cheatpath << base_path << filename << ".toml";
+	    auto stream = ifstream(cheatpath.str().c_str());
+	    ParseResult pr = parse(stream);
+
+	    if (!pr.valid())
+	    {
+		cout << "Cheat file could not be parsed! toml::errorReason: " << pr.errorReason << endl;
+		return false;
+	    }
+
+	    const auto toml = pr.value;
+
+	    const Value *base = toml.find("cheats");
+
+	    if (base == NULL)
+	    {
+		cout << "Cheats array does not exist" << endl;
+		return false;
+	    }
+
+	    if (!base->is<vector<string>>())
+	    {
+		cout << "Cheats array is invalid" << endl;
+		return false;
+	    }
+
+	    vector<string> cheat_codes = base->as<vector<string>>();
+	    core.addcheats(cheat_codes);
+	    return true;
+	}
+
 	string appname;
 	    
-	GBCore *core;
+	GBCore &core;
         
 	SDL_Window *window = NULL;
 	SDL_GameController *player1 = NULL;
@@ -982,13 +998,18 @@ class SDL2Frontend : public mbGBFrontend
 	#endif
 
 	string printer_filename = "";
+	string base_path = "";
+
+	float accel_x = 0;
+	float accel_y = 0;
 };
 
 int main(int argc, char* argv[])
 {
+    GBCore core;
     core.setsamplerate(48000);
 
-    SDL2Frontend *front = new SDL2Frontend(&core, argv);
+    SDL2Frontend *front = new SDL2Frontend(core, argv);
     core.setfrontend(front);
 
     if (!core.getoptions(argc, argv))
@@ -996,12 +1017,12 @@ int main(int argc, char* argv[])
 	return 1;
     }
 
-    if (!core.initcore())
+    if (!front->init_core())
     {
 	return 1;
     }
     
-    core.runapp();
-    core.shutdown();
+    front->runapp();
+    front->stop_core();
     return 0;
 }

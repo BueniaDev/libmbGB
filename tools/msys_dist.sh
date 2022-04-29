@@ -24,8 +24,9 @@ fi
 cp ../res/bootroms/bin/dmg_bios.bin dist
 cp ../res/bootroms/bin/cgb_bios.bin dist
 cp ../res/bootroms/bin/agb_bios.bin dist
-cp -r ../res/shaders dist
-cp ../res/libmbgb.toml dist
+cp -n -r ../res/shaders dist
+cp -n -r ../res/cheatfile.toml dist
+cp -n ../res/libmbgb.toml dist
 if [ -d "mbGB-Qt" ]; then
     windeployqt dist/mbGB-Qt.exe
 fi
