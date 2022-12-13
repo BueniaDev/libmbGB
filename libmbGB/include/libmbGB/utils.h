@@ -22,6 +22,7 @@
 #include <iostream>
 #include <sstream>
 #include <cstdint>
+#include <cstring>
 #include <vector>
 #include <deque>
 #include <array>
@@ -202,6 +203,11 @@ namespace gb
     enum GBMBCType
     {
 	ROMOnly = 0,
+	MBC1 = 1,
+	MBC2 = 2,
+	MBC3 = 3,
+	MBC5 = 5,
+	PocketCamera = 10
     };
 
     class LIBMBGB_API mbGBUnmappedMemory : public exception
@@ -247,14 +253,25 @@ namespace gb
 
 	    }
 
+	    void configure(int flags, int rom_banks, int ram_banks)
+	    {
+		is_ram_active = testbit(flags, 0);
+		is_battery_active = testbit(flags, 1);
+		num_rom_banks = rom_banks;
+		num_ram_banks = ram_banks;
+		configureMapper((flags >> 2));
+	    }
+
 	    void init(vector<uint8_t> &rom)
 	    {
 		cart_rom = rom;
+		initMapper();
 	    }
 
 	    void shutdown()
 	    {
 		cart_rom.clear();
+		shutdownMapper();
 	    }
 
 	    virtual uint8_t readByte(uint16_t addr)
@@ -269,6 +286,21 @@ namespace gb
 		return;
 	    }
 
+	    virtual void configureMapper(int)
+	    {
+		return;
+	    }
+
+	    virtual void initMapper()
+	    {
+		return;
+	    }
+
+	    virtual void shutdownMapper()
+	    {
+		return;
+	    }
+
 	protected:
 	    uint8_t fetchROM(uint32_t addr)
 	    {
@@ -276,8 +308,40 @@ namespace gb
 		return cart_rom.at(addr);
 	    }
 
+	    int wrapROMBanks(int bank_num)
+	    {
+		int num_banks = max(1, num_rom_banks);
+		return (bank_num % num_banks);
+	    }
+
+	    int wrapRAMBanks(int bank_num)
+	    {
+		int num_banks = max(1, num_ram_banks);
+		return (bank_num % num_banks);
+	    }
+
+	    bool isRAMActive()
+	    {
+		return is_ram_active;
+	    }
+
+	    bool isBatteryActive()
+	    {
+		return is_battery_active;
+	    }
+
+	    int getRAMSize()
+	    {
+		return (num_ram_banks << 13);
+	    }
+
 	private:
 	    vector<uint8_t> cart_rom;
+	    bool is_ram_active = false;
+	    bool is_battery_active = false;
+
+	    int num_rom_banks = 0;
+	    int num_ram_banks = 0;
     };
 
     class LIBMBGB_API mbGBFrontend

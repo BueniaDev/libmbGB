@@ -112,9 +112,276 @@ namespace gb
 
 	    mbGBMapper *mapper = NULL;
 
-	    GBMBCType getMBCType(vector<uint8_t>&)
+	    GBMBCType getMBCType(vector<uint8_t> &rom, ostream &stream, int &flags)
 	    {
-		return ROMOnly;
+		GBMBCType mbc_type;
+		switch (rom[0x0147])
+		{
+		    case 0x00:
+		    {
+			mbc_type = ROMOnly;
+			stream << "ROM ONLY";
+			flags = 0x0;
+		    }
+		    break;
+		    case 0x01:
+		    {
+			mbc_type = MBC1;
+			stream << "MBC1";
+			flags = 0x0;
+		    }
+		    break;
+		    case 0x02:
+		    {
+			mbc_type = MBC1;
+			stream << "MBC1 + RAM";
+			flags = 0x1;
+		    }
+		    break;
+		    case 0x03:
+		    {
+			mbc_type = MBC1;
+			stream << "MBC1 + RAM + BATTERY";
+			flags = 0x3;
+		    }
+		    break;
+		    case 0x05:
+		    {
+			mbc_type = MBC2;
+			stream << "MBC2";
+			flags = 0x0;
+		    }
+		    break;
+		    case 0x06:
+		    {
+			mbc_type = MBC2;
+			stream << "MBC2 + BATTERY";
+			flags = 0x2;
+		    }
+		    break;
+		    case 0x08:
+		    {
+			mbc_type = ROMOnly;
+			stream << "ROM + RAM";
+			flags = 0x1;
+		    }
+		    break;
+		    case 0x09:
+		    {
+			mbc_type = ROMOnly;
+			stream << "ROM + RAM + BATTERY";
+			flags = 0x3;
+		    }
+		    break;
+		    case 0x11:
+		    {
+			mbc_type = MBC3;
+			stream << "MBC3";
+			flags = 0x0;
+		    }
+		    break;
+		    case 0x12:
+		    {
+			mbc_type = MBC3;
+			stream << "MBC3 + RAM";
+			flags = 0x1;
+		    }
+		    break;
+		    case 0x13:
+		    {
+			mbc_type = MBC3;
+			stream << "MBC3 + RAM + BATTERY";
+			flags = 0x3;
+		    }
+		    break;
+		    case 0x19:
+		    {
+			mbc_type = MBC5;
+			stream << "MBC5";
+			flags = 0x0;
+		    }
+		    break;
+		    case 0x1A:
+		    {
+			mbc_type = MBC5;
+			stream << "MBC5 + RAM";
+			flags = 0x1;
+		    }
+		    break;
+		    case 0x1B:
+		    {
+			mbc_type = MBC5;
+			stream << "MBC5 + RAM + BATTERY";
+			flags = 0x3;
+		    }
+		    break;
+		    case 0x1C:
+		    {
+			mbc_type = MBC5;
+			stream << "MBC5 + RUMBLE";
+			flags = 0x4;
+		    }
+		    break;
+		    case 0x1D:
+		    {
+			mbc_type = MBC5;
+			stream << "MBC5 + RUMBLE + RAM";
+			flags = 0x5;
+		    }
+		    break;
+		    case 0x1E:
+		    {
+			mbc_type = MBC5;
+			stream << "MBC5 + RUMBLE + RAM + BATTERY";
+			flags = 0x7;
+		    }
+		    break;
+		    case 0xFC:
+		    {
+			mbc_type = PocketCamera;
+			stream << "POCKET CAMERA";
+			flags = 0x0;
+		    }
+		    break;
+		    default:
+		    {
+			stringstream ss;
+			ss << "Unrecognized MBC type of " << hex << int(rom[0x147]) << endl;
+			throw runtime_error(ss.str());
+		    }
+		    break;
+		}
+
+		return mbc_type;
+	    }
+
+	    int getROMBanks(vector<uint8_t> &rom, ostream &stream)
+	    {
+		int num_rom_banks = 0;
+		switch (rom[0x0148])
+		{
+		    case 0x0:
+		    {
+			num_rom_banks = 2;
+			stream << "32 KB";
+		    }
+		    break;
+		    case 0x1:
+		    {
+			num_rom_banks = 4;
+			stream << "64 KB";
+		    }
+		    break;
+		    case 0x2:
+		    {
+			num_rom_banks = 8;
+			stream << "128 KB";
+		    }
+		    break;
+		    case 0x3:
+		    {
+			num_rom_banks = 16;
+			stream << "256 KB";
+		    }
+		    break;
+		    case 0x4:
+		    {
+			num_rom_banks = 32;
+			stream << "512 KB";
+		    }
+		    break;
+		    case 0x5:
+		    {
+			num_rom_banks = 64;
+			stream << "1 MB";
+		    }
+		    break;
+		    case 0x6:
+		    {
+			num_rom_banks = 128;
+			stream << "2 MB";
+		    }
+		    break;
+		    case 0x7:
+		    {
+			num_rom_banks = 256;
+			stream << "4 MB";
+		    }
+		    break;
+		    case 0x8:
+		    {
+			num_rom_banks = 512;
+			stream << "8 MB";
+		    }
+		    break;
+		    default:
+		    {
+			stringstream ss;
+			ss << "Unrecognized ROM bank count of " << hex << int(rom[0x148]) << endl;
+			throw runtime_error(ss.str());
+		    }
+		    break;
+		}
+
+		return num_rom_banks;
+	    }
+
+	    int getRAMBanks(vector<uint8_t> &rom, ostream &stream)
+	    {
+		int num_ram_banks = 0;
+		switch (rom[0x0149])
+		{
+		    case 0x0:
+		    case 0x1:
+		    {
+			num_ram_banks = 0;
+			stream << "None";
+		    }
+		    break;
+		    case 0x2:
+		    {
+			num_ram_banks = 1;
+			stream << "8 KB";
+		    }
+		    break;
+		    case 0x3:
+		    {
+			num_ram_banks = 4;
+			stream << "32 KB";
+		    }
+		    break;
+		    case 0x4:
+		    {
+			num_ram_banks = 16;
+			stream << "128 KB";
+		    }
+		    break;
+		    case 0x5:
+		    {
+			num_ram_banks = 8;
+			stream << "64 KB";
+		    }
+		    break;
+		    default:
+		    {
+			stringstream ss;
+			ss << "Unrecognized RAM bank count of " << hex << int(rom[0x149]) << endl;
+			throw runtime_error(ss.str());
+		    }
+		    break;
+		}
+
+		return num_ram_banks;
+	    }
+
+	    bool isMulticart(vector<uint8_t> &rom)
+	    {
+		return ((rom.size() >= 0x44000) && (memcmp((char*)&rom[0x104], (char*)&rom[0x40104], 0x30) == 0));
+	    }
+
+	    bool isSonar(vector<uint8_t> &rom)
+	    {
+		return (strncmp((char*)&rom[0x134], "POCKETSONAR", 11) == 0);
 	    }
 
 	    uint8_t readMBC(uint16_t addr);

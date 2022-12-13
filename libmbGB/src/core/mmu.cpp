@@ -179,6 +179,11 @@ namespace gb
 	{
 	    data = irq_flags;
 	}
+	else if (inRange(reg, 0x10, 0x40))
+	{
+	    // TODO: Audio
+	    data = 0xFF;
+	}
 	else if (inRangeEx(reg, 0x40, 0x4B))
 	{
 	    data = graphics.readIO(addr);
@@ -372,11 +377,41 @@ namespace gb
 	    return false;
 	}
 
-	GBMBCType mbc_type = getMBCType(data);
+	stringstream mbc_str;
+	stringstream rom_str;
+	stringstream ram_str;
+	int flags = 0;
+
+	GBMBCType mbc_type = getMBCType(data, mbc_str, flags);
+	int num_rom_banks = getROMBanks(data, rom_str);
+	int num_ram_banks = getRAMBanks(data, ram_str);
+
+	cout << "MBC type: " << mbc_str.str() << endl;
+	cout << "ROM amount: " << rom_str.str() << endl;
+	cout << "RAM amount: " << ram_str.str() << endl;
+	cout << endl;
 
 	switch (mbc_type)
 	{
 	    case ROMOnly: mapper = new RomOnly(); break;
+	    case MBC1:
+	    {
+		mapper = new GBMBC1();
+
+		if (isMulticart(data))
+		{
+		    flags = setbit(flags, 2);
+		}
+		else if (isSonar(data))
+		{
+		    flags = setbit(flags, 3);
+		}
+	    }
+	    break;
+	    case MBC2: mapper = new GBMBC2(); break;
+	    case MBC3: mapper = new GBMBC3(); break;
+	    case MBC5: mapper = new GBMBC5(); break;
+	    case PocketCamera: mapper = new GBCamera(); break;
 	    default:
 	    {
 		throw runtime_error("Unsupported MBC type");
@@ -384,6 +419,7 @@ namespace gb
 	    break;
 	}
 
+	mapper->configure(flags, num_rom_banks, num_ram_banks);
 	mapper->init(data);
 	return true;
     }
