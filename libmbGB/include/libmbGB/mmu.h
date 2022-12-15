@@ -65,6 +65,46 @@ namespace gb
 		irq_flags = resetbit(irq_flags, level);
 	    }
 
+	    void debugOutput()
+	    {
+		graphics.debugOutput();
+	    }
+
+	    bool isBIOSLoad()
+	    {
+		return is_bios_load;
+	    }
+
+	    bool isCGB()
+	    {
+		return (model_type == ModelCgbX);
+	    }
+
+	    bool prepareSpeedSwitch()
+	    {
+		return is_prepare_switch;
+	    }
+
+	    void commitSpeedSwitch()
+	    {
+		if (is_prepare_switch)
+		{
+		    is_double_speed = !is_double_speed;
+		    is_prepare_switch = false;
+		}
+	    }
+
+	    bool isHDMAInProgress()
+	    {
+		return ((hdma_state == Starting) || (hdma_state == Active));
+	    }
+
+	    void updateHDMA()
+	    {
+		runHDMA();
+		haltedtick(4);
+	    }
+
 	private:
 	    GBGPU &graphics;
 	    GBInput &joypad;
@@ -85,13 +125,11 @@ namespace gb
 		irq_flags = setbit(irq_flags, level);
 	    }
 
-	    
-
 	    vector<uint8_t> bios;
 
 	    array<uint8_t, 0x7F> hram;
 
-	    array<uint8_t, 0x2000> wram;
+	    array<uint8_t, 0x8000> wram;
 
 	    uint8_t irq_enable = 0;
 	    uint8_t irq_flags = 0;
@@ -99,13 +137,39 @@ namespace gb
 	    uint8_t readWRAM(uint16_t addr)
 	    {
 		addr &= 0x1FFF;
-		return wram.at(addr);
+
+		uint32_t wram_addr = addr;
+
+		if (inRange(wram_addr, 0x1000, 0x2000))
+		{
+		    wram_addr = ((addr - 0x1000) + (wram_bank * 0x1000));
+		}
+
+		return wram.at(wram_addr);
 	    }
 
 	    void writeWRAM(uint16_t addr, uint8_t data)
 	    {
 		addr &= 0x1FFF;
-		wram.at(addr) = data;
+
+		uint32_t wram_addr = addr;
+
+		if (inRange(wram_addr, 0x1000, 0x2000))
+		{
+		    wram_addr = ((addr - 0x1000) + (wram_bank * 0x1000));
+		}
+
+		wram.at(wram_addr) = data;
+	    }
+
+	    void writeWRAMBank(uint8_t data)
+	    {
+		wram_bank = (data & 0x7);
+
+		if (wram_bank == 0)
+		{
+		   wram_bank = 1;
+		}
 	    }
 
 	    bool is_bios_load = false;
@@ -171,6 +235,29 @@ namespace gb
 			mbc_type = ROMOnly;
 			stream << "ROM + RAM + BATTERY";
 			flags = 0x3;
+		    }
+		    break;
+		    case 0x0F:
+		    {
+			mbc_type = MBC3;
+			stream << "MBC3 + TIMER + BATTERY";
+			flags = 0x6;
+		    }
+		    break;
+		    case 0x10:
+		    {
+			if (compareTitle(rom, "TETRIS SET"))
+			{
+			    mbc_type = M161;
+			    stream << "M161";
+			    flags = 0x0;
+			}
+			else
+			{
+			    mbc_type = MBC3;
+			    stream << "MBC3 + TIMER + RAM + BATTERY";
+			    flags = 0x7;
+			}
 		    }
 		    break;
 		    case 0x11:
@@ -379,9 +466,14 @@ namespace gb
 		return ((rom.size() >= 0x44000) && (memcmp((char*)&rom[0x104], (char*)&rom[0x40104], 0x30) == 0));
 	    }
 
+	    bool compareTitle(vector<uint8_t> &rom, string str)
+	    {
+		return (strncmp((char*)&rom[0x134], str.c_str(), 11) == 0);
+	    }
+
 	    bool isSonar(vector<uint8_t> &rom)
 	    {
-		return (strncmp((char*)&rom[0x134], "POCKETSONAR", 11) == 0);
+		return compareTitle(rom, "POCKETSONAR");
 	    }
 
 	    uint8_t readMBC(uint16_t addr);
@@ -410,6 +502,30 @@ namespace gb
 	    uint8_t oam_transfer_byte = 0;
 	    int oam_dma_cycles = 0;
 	    int oam_num_bytes = 160;
+
+	    GBModel model_type = ModelAuto;
+
+	    int bios_size = 0;
+
+	    int wram_bank = 0;
+
+	    bool is_double_speed = false;
+	    bool is_prepare_switch = false;
+
+	    uint16_t hdma_source = 0;
+	    uint16_t hdma_dest = 0;
+	    uint8_t hdma_control = 0;
+	    int hdma_bytes_to_copy = 0;
+	    int hdma_cycles = 0;
+	    int hblank_bytes = 0;
+
+	    void startHDMA();
+	    void tickHDMA();
+	    void runHDMA();
+	    void signalHDMA();
+
+	    GBDMAType hdma_type;
+	    GBDMAState hdma_state = Inactive;
     };
 };
 

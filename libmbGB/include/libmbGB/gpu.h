@@ -48,6 +48,7 @@ namespace gb
     {
 	int color = 0;
 	int palette = 0;
+	int sprite_index = 0;
 	bool priority = false;
     };
 
@@ -63,6 +64,7 @@ namespace gb
 	uint8_t ypos = 0;
 	uint16_t addr = 0;
 	bool is_rendered = false;
+	int index = 0;
     };
 
     class LIBMBGB_API GBGPU
@@ -71,7 +73,7 @@ namespace gb
 	    GBGPU();
 	    ~GBGPU();
 
-	    void init();
+	    void init(bool is_cgb);
 	    void shutdown();
 
 	    void tickGPU();
@@ -84,6 +86,9 @@ namespace gb
 
 	    uint8_t readIO(uint16_t addr);
 	    void writeIO(uint16_t addr, uint8_t data);
+
+	    uint8_t readCGBIO(uint16_t addr);
+	    void writeCGBIO(uint16_t addr, uint8_t data);
 
 	    vector<GBRGB> getFramebuffer()
 	    {
@@ -100,8 +105,21 @@ namespace gb
 		irq_func = cb;
 	    }
 
+	    void setHDMACallback(voidfunc cb)
+	    {
+		hdma_func = cb;
+	    }
+
+	    void debugOutput()
+	    {
+		cout << "GPU: " << endl;
+		cout << "LY: " << hex << int(reg_ly) << endl;
+		cout << "Tick counter: " << dec << int(tick_counter) << endl;
+		cout << endl;
+	    }
+
 	private:
-	    array<uint8_t, 0x2000> vram;
+	    array<uint8_t, 0x4000> vram;
 	    array<uint8_t, 0xA0> oam;
 
 	    vector<GBRGB> framebuffer;
@@ -122,7 +140,16 @@ namespace gb
 
 	    void checkStatIRQ();
 
+	    void signalHDMA()
+	    {
+		if (hdma_func)
+		{
+		    hdma_func();
+		}
+	    }
+
 	    voidintfunc irq_func;
+	    voidfunc hdma_func;
 
 	    void fireVBlankIRQ()
 	    {
@@ -140,6 +167,8 @@ namespace gb
 		}
 	    }
 
+	    bool is_cgb_mode = false;
+
 	    bool lcd_just_on = false;
 	    bool mode2_diff = false;
 
@@ -149,49 +178,65 @@ namespace gb
 	    int scanline = 0;
 	    int dropped_pixels = 0;
 
-	    void checkOAMSearch();
-
 	    void tickFirstLine();
-
-	    GBFetcherState fetcher_state;
-
-	    int pixel_xpos = 0;
 
 	    void startFetcher();
 	    void startWindowFetcher();
 	    void tickFetcher();
 
-	    int fetcher_counter = 0;
-
-	    bool last_push_success = false;
-
 	    uint8_t tile_num = 0;
-	    int tile_index = 0;
-	    int tile_line = 0;
+	    uint8_t tile_attribs = 0;
 	    uint16_t map_addr = 0;
 	    uint16_t tile_addr = 0;
+	    int tile_index = 0;
+	    int tile_line = 0;
+
+	    int pixel_xpos = 0;
+	    GBFetcherState fetcher_state;
+	    int fetcher_counter = 0;
+
 	    array<uint8_t, 8> bg_data;
+	    GBFIFO<GBFIFOPixel, 16> bg_fifo;
+
+	    array<uint8_t, 8> obj_data;
+	    GBFIFO<GBFIFOPixel, 16> obj_fifo;
+
+	    vector<GBSprite> sprites;
+	    GBSprite current_sprite;
+	    GBSprite prev_sprite;
+	    int sprite_cycles = 0;
+	    int sprite_ypos = 0;
+	    int sprite_xpos = 0;
+	    int sprite_line = 0;
+	    int sprite_index = 0;
+	    int prev_index = 0;
+	    int sprite_offs = 0;
+	    GBSpriteState sprite_state;
 
 	    uint8_t sprite_num = 0;
 	    uint8_t sprite_attribs = 0;
 	    uint16_t sprite_addr = 0;
-	    array<uint8_t, 8> obj_data;
 
-	    GBFIFO<GBFIFOPixel, 16> bg_fifo;
-	    GBFIFO<GBFIFOPixel, 16> obj_fifo;
+	    void addSprite(int xpos, int index);
 
-	    int window_line_counter = 0;
-	    bool is_window = false;
-
-	    void setPixel(GBFIFOPixel bg_pixel, GBFIFOPixel obj_pixel);
+	    void startOamSearch();
+	    void tickOamSearch();
 
 	    void updateFramebuffer();
 
 	    bool fetcher_begin_delay = false;
 
+	    void hblank();
+	    void vblank();
+	    void oamSearch();
 	    void pixelTransfer();
 
 	    GBGPUState gpu_state;
+
+	    void setPixel(GBFIFOPixel bg_pixel, GBFIFOPixel obj_pixel);
+
+	    void setDMGPixel(GBFIFOPixel bg_pixel, GBFIFOPixel obj_pixel);
+	    void setCGBPixel(GBFIFOPixel bg_pixel, GBFIFOPixel obj_pixel);
 
 	    void setStatMode(GBGPUState state)
 	    {
@@ -200,32 +245,47 @@ namespace gb
 		is_mode_latch = true;
 	    }
 
-	    void startOAMSearch();
-	    void tickOAMSearch();
+	    void pushSpriteFIFO();
 
-	    int sprite_cycles = 0;
-	    GBSpriteState sprite_state;
+	    array<int, 8> sprite_indices;
 
 	    int tick_counter = 0;
-	    int line_cycles = 0;
-	    int frame_cycles = 0;
+	    int window_line_counter = 0;
 	    bool prev_stat_irq = false;
+	    bool is_stat_irq = false;
 
-	    int sprite_ypos = 0;
-	    int sprite_xpos = 0;
+	    bool sprite_in_progress = false;
 
-	    vector<GBSprite> sprites;
-	    GBSprite current_sprite;
-	    int sprite_index = 0;
-	    int sprite_offs = 0;
-	    bool is_sprite_fetch = false;
-	    int sprite_line = 0;
+	    bool is_window = false;
 
-	    void addSprite(int xpos, int index);
+	    bool bg_pal_inc = false;
+	    int bg_pal_addr = 0;
+	    array<uint8_t, 64> bg_palettes;
 
-	    bool spriteInProgress()
+	    bool obj_pal_inc = false;
+	    int obj_pal_addr = 0;
+	    array<uint8_t, 64> obj_palettes;
+
+	    int vram_bank = 0;
+
+	    uint16_t getBGColor(GBFIFOPixel pixel)
 	    {
-		return ((fetcher_state >= FetchSpriteNumber) && (fetcher_state <= PushToSpriteFIFO));
+		int pal_index = ((pixel.palette << 3) | (pixel.color << 1));
+
+		uint8_t high = bg_palettes.at(pal_index + 1);
+		uint8_t low = bg_palettes.at(pal_index);
+
+		return ((high << 8) | low);
+	    }
+
+	    uint16_t getOBJColor(GBFIFOPixel pixel)
+	    {
+		int pal_index = ((pixel.palette << 3) | (pixel.color << 1));
+
+		uint8_t high = obj_palettes.at(pal_index + 1);
+		uint8_t low = obj_palettes.at(pal_index);
+
+		return ((high << 8) | low);
 	    }
     };
 };

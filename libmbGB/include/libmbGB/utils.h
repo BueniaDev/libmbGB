@@ -105,6 +105,13 @@ namespace gb
 	Active = 3
     };
 
+    enum GBDMAType : int
+    {
+	Gdma = 0,
+	Hdma = 1
+    };
+
+    using voidfunc = function<void()>;
     using voidintfunc = function<void(int)>;
 
     struct GBRGB
@@ -127,6 +134,25 @@ namespace gb
 	{
 	    return GBRGB(color, color, color);
 	}
+
+	static GBRGB from16(uint16_t color)
+	{
+	    int red16 = (color & 0x1F);
+	    int green16 = ((color >> 5) & 0x1F);
+	    int blue16 = ((color >> 10) & 0x1F);
+
+	    int red = ((red16 << 3) | (red16 >> 2));
+	    int green = ((green16 << 3) | (green16 >> 2));
+	    int blue = ((blue16 << 3) | (blue16 >> 2));
+	    return GBRGB(red, green, blue);
+	}
+    };
+
+    enum GBModel
+    {
+	ModelAuto,
+	ModelDmgX,
+	ModelCgbX
     };
 
     template<class T, size_t N>
@@ -207,7 +233,9 @@ namespace gb
 	MBC2 = 2,
 	MBC3 = 3,
 	MBC5 = 5,
-	PocketCamera = 10
+	PocketCamera = 10,
+	M161 = 15,
+	WisdomTree = 16
     };
 
     class LIBMBGB_API mbGBUnmappedMemory : public exception

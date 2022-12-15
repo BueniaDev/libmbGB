@@ -34,8 +34,12 @@ namespace gb
     void GBMMU::init()
     {
 	auto irq_func = bind(&GBMMU::setIRQ, this, _1);
+	auto hdma_func = bind(&GBMMU::signalHDMA, this);
 	graphics.setIRQCallback(irq_func);
+	graphics.setHDMACallback(hdma_func);
 	timers.setIRQCallback(irq_func);
+
+	wram_bank = 1;
     }
 
     void GBMMU::shutdown()
@@ -60,7 +64,11 @@ namespace gb
 	{
 	    if (is_bios_load)
 	    {
-		if (inRange(addr, 0, 0x100))
+		if (isCGB() && inRange(addr, 0x100, 0x200))
+		{
+		    data = readMBC(addr);
+		}
+		else if (inRange(addr, 0, bios_size))
 		{
 		    data = bios.at(addr);
 		}
@@ -188,6 +196,50 @@ namespace gb
 	{
 	    data = graphics.readIO(addr);
 	}
+	else if (reg == 0x4D)
+	{
+	    if (isCGB())
+	    {
+		data = ((is_double_speed << 7) | is_prepare_switch);
+	    }
+	    else
+	    {
+		data = 0xFF;
+	    }
+	}
+	else if (reg == 0x4F)
+	{
+	    if (isCGB())
+	    {
+		data = graphics.readCGBIO(addr);
+	    }
+	    else
+	    {
+		data = 0xFF;
+	    }
+	}
+	else if (reg == 0x55)
+	{
+	    if (isCGB())
+	    {
+		data = hdma_control;
+	    }
+	    else
+	    {
+		data = 0xFF;
+	    }
+	}
+	else if (reg == 0x70)
+	{
+	    if (isCGB())
+	    {
+		data = wram_bank;
+	    }
+	    else
+	    {
+		data = 0xFF;
+	    }
+	}
 	else
 	{
 	    data = unmappedRead(addr);
@@ -230,6 +282,20 @@ namespace gb
 	{
 	    graphics.writeIO(addr, data);
 	}
+	else if (reg == 0x4D)
+	{
+	    if (isCGB())
+	    {
+		is_prepare_switch = testbit(data, 0);
+	    }
+	}
+	else if (reg == 0x4F)
+	{
+	    if (isCGB())
+	    {
+		graphics.writeCGBIO(addr, data);
+	    }
+	}
 	else if (reg == 0x50)
 	{
 	    if (is_bios_load)
@@ -238,9 +304,78 @@ namespace gb
 		is_bios_load = false;
 	    }
 	}
-	else if (inRange(reg, 0x70, 0x80))
+	else if (inRangeEx(reg, 0x51, 0x55))
 	{
+	    if (isCGB())
+	    {
+		switch (reg)
+		{
+		    case 0x51:
+		    {
+			hdma_source = ((data << 8) | (hdma_source & 0xFF));
+		    }
+		    break;
+		    case 0x52:
+		    {
+			hdma_source = ((hdma_source & 0xFF00) | (data & 0xF0));
+		    }
+		    break;
+		    case 0x53:
+		    {
+			hdma_dest = (((data & 0x1F) << 8) | (hdma_dest & 0xFF));
+		    }
+		    break;
+		    case 0x54:
+		    {
+			hdma_dest = ((hdma_dest & 0xFF00) | (data & 0xF0));
+		    }
+		    break;
+		    case 0x55:
+		    {
+			hdma_control = data;
+
+			if (hdma_state == Inactive)
+			{
+			    startHDMA();
+			}
+			else
+			{
+			    if (testbit(hdma_control, 7))
+			    {
+				startHDMA();
+			    }
+			    else
+			    {
+				hdma_control = setbit(hdma_control, 7);
+				hdma_bytes_to_copy = 0;
+				hblank_bytes = 0;
+				hdma_state = Inactive;
+			    }
+			}
+		    }
+		    break;
+		    default: unmappedWrite(addr, data); break;
+		}
+	    }
+	}
+	else if (reg == 0x56)
+	{
+	    // TODO: Infrared
 	    return;
+	}
+	else if (inRange(reg, 0x68, 0x6C))
+	{
+	    if (isCGB())
+	    {
+		graphics.writeCGBIO(addr, data);
+	    }
+	}
+	else if (reg == 0x70)
+	{
+	    if (isCGB())
+	    {
+		writeWRAMBank(data);
+	    }
 	}
 	else
 	{
@@ -305,6 +440,93 @@ namespace gb
 	}
     }
 
+    void GBMMU::startHDMA()
+    {
+	hdma_type = testbit(hdma_control, 7) ? Hdma : Gdma;
+	hdma_bytes_to_copy = (((hdma_control & 0x7F) + 1) * 16);
+	hblank_bytes = 16;
+
+	hdma_control &= 0x7F;
+
+	if ((hdma_type == Hdma) && ((graphics.readIO(0xFF41) & 0x3) != 0))
+	{
+	    hdma_state = Paused;
+	}
+	else
+	{
+	    hdma_state = Starting;
+	}
+
+	hdma_cycles = 4;
+    }
+
+    void GBMMU::tickHDMA()
+    {
+	if (isHDMAInProgress())
+	{
+	    hdma_cycles -= 1;
+
+	    if (hdma_cycles == 0)
+	    {
+		runHDMA();
+		hdma_cycles = 4;
+	    }
+	}
+	else
+	{
+	    hdma_cycles = 0;
+	}
+    }
+
+    void GBMMU::runHDMA()
+    {
+	if (hdma_state == Starting)
+	{
+	    hdma_state = Active;
+	}
+	else if (hdma_state == Active)
+	{
+	    int num_bytes = min(2, hdma_bytes_to_copy);
+
+	    if (hdma_type == Hdma)
+	    {
+		num_bytes = min(num_bytes, hblank_bytes);
+		hblank_bytes -= num_bytes;
+	    }
+
+	    hdma_bytes_to_copy -= num_bytes;
+
+	    for (int i = 0; i < num_bytes; i++)
+	    {
+		graphics.writeVRAM(hdma_dest, readDMA(hdma_source));
+
+		hdma_dest = ((hdma_dest + 1) & 0x1FFF);
+		hdma_source += 1;
+	    }
+
+	    hdma_control = (((hdma_bytes_to_copy / 16) - 1) & 0x7F);
+
+	    if (hdma_bytes_to_copy == 0)
+	    {
+		hdma_control = 0xFF;
+		hdma_state = Inactive;
+	    }
+	    else if ((hdma_type == Hdma) && (hblank_bytes == 0))
+	    {
+		hdma_state = Paused;
+	    }
+	}
+    }
+
+    void GBMMU::signalHDMA()
+    {
+	if (hdma_state == Paused)
+	{
+	    hblank_bytes = 16;
+	    hdma_state = Starting;
+	}
+    }
+
     uint8_t GBMMU::readDMA(uint16_t addr)
     {
 	uint8_t data = 0;
@@ -359,11 +581,15 @@ namespace gb
 	    return false;
 	}
 
-	if (data.size() != 0x100)
+	bios_size = data.size();
+
+	if ((bios_size != 0x100) && (bios_size != 0x900))
 	{
 	    cout << "Invalid BIOS size" << endl;
 	    return false;
 	}
+
+	model_type = (bios_size == 0x100) ? ModelDmgX : ModelCgbX;
 
 	bios = vector<uint8_t>(data.begin(), data.end());
 	is_bios_load = true;
@@ -381,6 +607,11 @@ namespace gb
 	stringstream rom_str;
 	stringstream ram_str;
 	int flags = 0;
+
+	if (model_type == ModelAuto)
+	{
+	    model_type = testbit(data[0x0143], 7) ? ModelCgbX : ModelDmgX;
+	}
 
 	GBMBCType mbc_type = getMBCType(data, mbc_str, flags);
 	int num_rom_banks = getROMBanks(data, rom_str);
@@ -412,6 +643,7 @@ namespace gb
 	    case MBC3: mapper = new GBMBC3(); break;
 	    case MBC5: mapper = new GBMBC5(); break;
 	    case PocketCamera: mapper = new GBCamera(); break;
+	    case M161: mapper = new GBM161(); break;
 	    default:
 	    {
 		throw runtime_error("Unsupported MBC type");
@@ -426,10 +658,16 @@ namespace gb
 
     void GBMMU::tick(int cycles)
     {
-	total_cycles += cycles;
 	for (int i = 0; i < cycles; i++)
 	{
-	    graphics.tickGPU();
+	    total_cycles += 1;
+
+	    if (!is_double_speed || ((total_cycles % 2) != 0))
+	    {
+		graphics.tickGPU();
+		tickHDMA();
+	    }
+
 	    timers.tickTimers();
 	    tickOAMDMA();
 	}
@@ -437,17 +675,21 @@ namespace gb
 
     void GBMMU::haltedtick(int cycles)
     {
-	total_cycles += cycles;
 	for (int i = 0; i < cycles; i++)
 	{
-	    graphics.tickGPU();
+	    total_cycles += 1;
+	    if (!is_double_speed || ((total_cycles % 2) != 0))
+	    {
+		graphics.tickGPU();
+	    }
+
 	    timers.tickTimers();
 	}
     }
 
     bool GBMMU::isFrame()
     {
-	return (total_cycles < 70224);
+	return (total_cycles < (70224 << is_double_speed));
     }
 
     void GBMMU::resetFrame()

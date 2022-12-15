@@ -73,7 +73,7 @@ namespace gb
 	    cout << "Happy holidays from libmbGB!" << endl;
 	}
 
-	coregpu->init();
+	coregpu->init(coremmu->isCGB());
 	coreinput->init();
 	coretimers->init();
 	coremmu->init();

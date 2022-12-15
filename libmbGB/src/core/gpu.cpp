@@ -32,8 +32,9 @@ namespace gb
 
     }
 
-    void GBGPU::init()
+    void GBGPU::init(bool is_cgb)
     {
+	is_cgb_mode = is_cgb;
 	reg_lcdc = 0x00;
 	reg_stat = 0x04;
 	reg_ly = 0x00;
@@ -53,31 +54,12 @@ namespace gb
 	    return;
 	}
 
-	if ((scanline == 0) && (tick_counter == 0))
+	tick_counter += 1;
+
+	if (lcd_just_on)
 	{
-	    if (!lcd_just_on)
-	    {
-		startOAMSearch();
-		setStatMode(OamSearch);
-	    }
-	}
-	else if (inRangeEx(scanline, 1, 143) && (tick_counter == 0))
-	{
-	    startOAMSearch();
-	    setStatMode(OamSearch);
-	}
-	else if (inRangeEx(scanline, 0, 143) && (tick_counter == 80))
-	{
-	    startFetcher();
-	    setStatMode(PixelTransfer);
-	}
-	else if ((scanline == 144) && (tick_counter == 0))
-	{
-	    setStatMode(VBlank);
-	}
-	else if ((scanline == 144) && (tick_counter == 4))
-	{
-	    fireVBlankIRQ();
+	    tickFirstLine();
+	    return;
 	}
 
 	if (is_mode_latch)
@@ -87,59 +69,35 @@ namespace gb
 	    if (mode_cycles == 4)
 	    {
 		is_mode_latch = false;
+		mode_cycles = 0;
 		reg_stat = ((reg_stat & ~0x3) | new_mode);
 	    }
 	}
-	else
-	{
-	    mode_cycles = 0;
-	}
-
-
-	// FIXME: Verify proper STAT IRQ timing
-	bool is_stat_irq = false;
 
 	switch (gpu_state)
 	{
-	    case HBlank:
-	    {
-		is_stat_irq |= testbit(reg_stat, 3);
-	    }
-	    break;
-	    case VBlank:
-	    {
-		if ((tick_counter == 4) && (scanline == 144))
-		{
-		    is_stat_irq |= testbit(reg_stat, 4);
-		    is_stat_irq |= testbit(reg_stat, 5);
-		}
-		else
-		{
-		    is_stat_irq |= testbit(reg_stat, 4);
-		}
-	    }
-	    break;
-	    case OamSearch:
-	    {
-		tickOAMSearch();
-		if (tick_counter == 4)
-		{
-		    is_stat_irq |= testbit(reg_stat, 5);
-
-		    if (scanline == 0)
-		    {
-			is_stat_irq |= testbit(reg_stat, 5);
-		    }
-		}
-	    }
-	    break;
+	    case HBlank: hblank(); break;
+	    case VBlank: vblank(); break;
+	    case OamSearch: oamSearch(); break;
 	    case PixelTransfer: pixelTransfer(); break;
 	}
 
+	checkStatIRQ();
+    }
+
+    void GBGPU::checkStatIRQ()
+    {
+	int current_mode = (reg_stat & 0x3);
 	bool is_lyc = (reg_ly == reg_lyc);
 	reg_stat = changebit(reg_stat, 2, is_lyc);
 
-	is_stat_irq |= (testbit(reg_stat, 6) && is_lyc);
+	int tick_counter_val = is_cgb_mode ? 0 : 4;
+
+	bool is_stat_irq = (testbit(reg_stat, 6) && is_lyc);
+	is_stat_irq |= (testbit(reg_stat, 5) && (current_mode == 2));
+	is_stat_irq |= (testbit(reg_stat, 5) && ((tick_counter == tick_counter_val) && (reg_ly == 144)));
+	is_stat_irq |= (testbit(reg_stat, 4) && (current_mode == 1));
+	is_stat_irq |= (testbit(reg_stat, 3) && (current_mode == 0));
 
 	if (!prev_stat_irq && is_stat_irq)
 	{
@@ -147,73 +105,71 @@ namespace gb
 	}
 
 	prev_stat_irq = is_stat_irq;
+    }
 
-	if ((scanline == 153) && (tick_counter == 4))
+    void GBGPU::tickFirstLine()
+    {
+	if (tick_counter == 80)
+	{
+	    startFetcher();
+	    setStatMode(PixelTransfer);
+	    lcd_just_on = false;
+	}
+    }
+
+    void GBGPU::hblank()
+    {
+	if (tick_counter == 456)
+	{
+	    tick_counter = 0;
+	    reg_ly += 1;
+
+	    if (reg_ly == 144)
+	    {
+		setStatMode(VBlank);
+	    }
+	    else
+	    {
+		startOamSearch();
+		setStatMode(OamSearch);
+	    }
+	}
+    }
+
+    void GBGPU::vblank()
+    {
+	if ((reg_ly == 144) && (tick_counter == 4))
+	{
+	    fireVBlankIRQ();
+	}
+
+	if ((reg_ly == 153) && (tick_counter == 4))
 	{
 	    reg_ly = 0;
 	}
 
-	tick_counter += 1;
-
 	if (tick_counter == 456)
 	{
 	    tick_counter = 0;
+	    reg_ly += 1;
 
-	    scanline += 1;
-
-	    if (scanline == 154)
+	    if (reg_ly == 1)
 	    {
-		scanline = 0;
+		reg_ly = 0;
 		window_line_counter = 0;
+		startOamSearch();
+		setStatMode(OamSearch);
 	    }
-
-	    reg_ly = scanline;
 	}
-
-	lcd_just_on = false;
     }
 
-    void GBGPU::startOAMSearch()
+    void GBGPU::oamSearch()
     {
-	sprites.clear();
-	sprite_cycles = 0;
-	sprite_state = ReadingY;
-    }
-
-    void GBGPU::tickOAMSearch()
-    {
-	uint16_t sprite_addr = (sprite_cycles * 4);
-
-	switch (sprite_state)
+	tickOamSearch();
+	if (sprite_cycles == 40)
 	{
-	    case ReadingY:
-	    {
-		sprite_ypos = oam.at(sprite_addr);
-		sprite_state = ReadingX;
-	    }
-	    break;
-	    case ReadingX:
-	    {
-		sprite_xpos = oam.at(sprite_addr + 1);
-
-		int sprite_height = testbit(reg_lcdc, 2) ? 16 : 8;
-
-		int sprite_ly = (scanline + 16);
-
-		if ((sprites.size() < 10) && inRange(sprite_ly, sprite_ypos, (sprite_ypos + sprite_height)))
-		{
-		    GBSprite sprite;
-		    sprite.xpos = sprite_xpos;
-		    sprite.ypos = sprite_ypos;
-		    sprite.addr = sprite_addr;
-		    sprite.is_rendered = false;
-		    sprites.push_back(sprite);
-		}
-
-		sprite_cycles += 1;
-		sprite_state = ReadingY;
-	    }
-	    break;
+	    startFetcher();
+	    setStatMode(PixelTransfer);
 	}
     }
 
@@ -223,16 +179,16 @@ namespace gb
 
 	if (testbit(reg_lcdc, 1))
 	{
-	    if (spriteInProgress())
+	    if (sprite_in_progress)
 	    {
 		return;
 	    }
 
 	    bool is_sprite_added = false;
 
-	    for (size_t i = 0; i < sprites.size(); i++)
+	    for (size_t index = 0; index < sprites.size(); index++)
 	    {
-		auto &sprite = sprites.at(i);
+		auto &sprite = sprites.at(index);
 
 		if (sprite.is_rendered)
 		{
@@ -243,7 +199,7 @@ namespace gb
 		{
 		    if (!is_sprite_added)
 		    {
-			addSprite((8 - sprite.xpos), i);
+			addSprite((8 - sprite.xpos), index);
 			is_sprite_added = true;
 		    }
 
@@ -253,7 +209,7 @@ namespace gb
 		{
 		    if (!is_sprite_added)
 		    {
-			addSprite(0, i);
+			addSprite(0, index);
 			is_sprite_added = true;
 		    }
 
@@ -267,7 +223,7 @@ namespace gb
 	    }
 	}
 
-	if (!bg_fifo.empty())
+	if (bg_fifo.size() > 8)
 	{
 	    GBFIFOPixel bg_pixel = bg_fifo.pop();
 
@@ -277,7 +233,7 @@ namespace gb
 		return;
 	    }
 
-	    if (!is_window && testbit(reg_lcdc, 5) && (scanline >= reg_winy) && (pixel_xpos >= (reg_winx - 7)))
+	    if (!is_window && testbit(reg_lcdc, 5) && (reg_ly >= reg_winy) && (pixel_xpos >= (reg_winx - 7)))
 	    {
 		is_window = true;
 		startWindowFetcher();
@@ -297,34 +253,85 @@ namespace gb
 
 	if (pixel_xpos == 160)
 	{
+	    updateFramebuffer();
+
 	    if (is_window)
 	    {
 		window_line_counter += 1;
 	    }
 
-	    updateFramebuffer();
 	    setStatMode(HBlank);
+	    signalHDMA();
 	}
     }
 
     void GBGPU::addSprite(int xpos, int index)
     {
 	current_sprite = sprites.at(index);
-	sprite_offs = xpos;
-	sprite_index = index;
-	sprite_line = (scanline + 16 - current_sprite.ypos);
+	sprite_in_progress = true;
+	fetcher_state = FetchSpriteNumber;
+	sprite_line = (reg_ly + 16 - current_sprite.ypos);
 
 	if (!testbit(reg_lcdc, 2))
 	{
 	    sprite_line &= 0x7;
 	}
 
-	fetcher_state = FetchSpriteNumber;
+	sprite_offs = xpos;
+	sprite_index = index;
+    }
+
+    void GBGPU::startOamSearch()
+    {
+	sprite_cycles = 0;
+	sprites.clear();
+	sprite_state = ReadingY;
+    }
+
+    void GBGPU::tickOamSearch()
+    {
+	uint16_t sprite_addr = (sprite_cycles * 4);
+	switch (sprite_state)
+	{
+	    case ReadingY:
+	    {
+		sprite_ypos = oam.at(sprite_addr);
+		sprite_state = ReadingX;
+	    }
+	    break;
+	    case ReadingX:
+	    {
+		sprite_xpos = oam.at(sprite_addr + 1);
+
+		int sprite_height = testbit(reg_lcdc, 2) ? 16 : 8;
+
+		int sprite_ly = (reg_ly + 16);
+
+		if ((sprites.size() < 10) && inRange(sprite_ly, sprite_ypos, (sprite_ypos + sprite_height)))
+		{
+		    GBSprite sprite;
+		    sprite.xpos = sprite_xpos;
+		    sprite.ypos = sprite_ypos;
+		    sprite.addr = sprite_addr;
+		    sprite.is_rendered = false;
+		    sprite.index = sprite_cycles;
+		    sprites.push_back(sprite);
+		}
+
+		sprite_cycles += 1;
+		sprite_state = ReadingY;
+	    }
+	    break;
+	}
     }
 
     void GBGPU::startFetcher()
     {
-	uint8_t ypos = ((scanline + reg_scy) & 0xFF);
+	is_window = false;
+	sprite_in_progress = false;
+	uint8_t ypos = ((reg_ly + reg_scy) & 0xFF);
+	pixel_xpos = 0;
+	dropped_pixels = 0;
 	map_addr = 0x1800;
 
 	if (testbit(reg_lcdc, 3))
@@ -333,22 +340,19 @@ namespace gb
 	}
 
 	map_addr += ((ypos >> 3) << 5);
+	tile_index = (reg_scx >> 3);
 	tile_line = (ypos & 0x7);
 	fetcher_state = FetchTileNumber;
-	fetcher_begin_delay = false;
 	fetcher_counter = 0;
-	tile_index = (reg_scx >> 3);
-	pixel_xpos = 0;
-	dropped_pixels = 0;
-	is_window = false;
+	prev_index = -1;
 	bg_fifo.clear();
 	obj_fifo.clear();
     }
 
     void GBGPU::startWindowFetcher()
     {
+	int xpos = (pixel_xpos - reg_winx + 7);
 	uint8_t ypos = (window_line_counter & 0xFF);
-
 	map_addr = 0x1800;
 
 	if (testbit(reg_lcdc, 6))
@@ -357,41 +361,58 @@ namespace gb
 	}
 
 	map_addr += ((ypos >> 3) << 5);
+	tile_index = (xpos >> 3);
 	tile_line = (ypos & 0x7);
 	fetcher_state = FetchTileNumber;
-	tile_index = ((pixel_xpos - reg_winx + 7) >> 3);
+	fetcher_counter = 0;
 	bg_fifo.clear();
     }
 
     void GBGPU::tickFetcher()
     {
 	fetcher_counter += 1;
-	switch (fetcher_state)
+
+	if (fetcher_counter == 2)
 	{
-	    case FetchTileNumber:
+	    fetcher_counter = 0;
+
+	    switch (fetcher_state)
 	    {
-		if (fetcher_counter == 2)
+		case FetchTileNumber:
 		{
-		    fetcher_counter = 0;
 		    tile_num = vram.at(map_addr + tile_index);
+
+		    if (is_cgb_mode)
+		    {
+			tile_attribs = vram.at(0x2000 + map_addr + tile_index);
+		    }
+
 		    fetcher_state = FetchTileDataLow;
 		}
-	    }
-	    break;
-	    case FetchTileDataLow:
-	    {
-		if (fetcher_counter == 2)
+		break;
+		case FetchTileDataLow:
 		{
+		    tile_addr = (is_cgb_mode && testbit(tile_attribs, 3)) ? 0x2000 : 0;
+
 		    if (testbit(reg_lcdc, 4))
 		    {
-			tile_addr = (tile_num << 4);
+			tile_addr += (tile_num << 4);
 		    }
 		    else
 		    {
-			tile_addr = (0x1000 + (int8_t(tile_num) << 4));
+			tile_addr += ((int8_t(tile_num) << 4) + 0x1000);
 		    }
 
-		    tile_addr += (tile_line << 1);
+		    int tile_yline = tile_line;
+
+		    bool is_yflip = testbit(tile_attribs, 6);
+
+		    if (is_yflip)
+		    {
+			tile_yline = (7 - tile_yline);
+		    }
+
+		    tile_addr += (tile_yline << 1);
 
 		    uint8_t tile_data = vram.at(tile_addr);
 
@@ -400,14 +421,10 @@ namespace gb
 			bg_data.at(bit) = testbit(tile_data, bit);
 		    }
 
-		    fetcher_counter = 0;
 		    fetcher_state = FetchTileDataHigh;
 		}
-	    }
-	    break;
-	    case FetchTileDataHigh:
-	    {
-		if (fetcher_counter == 2)
+		break;
+		case FetchTileDataHigh:
 		{
 		    uint8_t tile_data = vram.at(tile_addr + 1);
 
@@ -416,66 +433,52 @@ namespace gb
 			bg_data.at(bit) |= (testbit(tile_data, bit) << 1);
 		    }
 
-		    fetcher_counter = 0;
 		    fetcher_state = PushToFIFO;
+		}
+		break;
+		case PushToFIFO:
+		{
+		    int bg_pal = (tile_attribs & 0x7);
+		    bool bg_prior = testbit(tile_attribs, 7);
+		    bool is_xflip = testbit(tile_attribs, 5);
 
-		    if (!fetcher_begin_delay)
+
+		    if (bg_fifo.size() <= 8)
 		    {
-			fetcher_begin_delay = true;
+			for (int i = 0; i < 8; i++)
+			{
+			    int index = (7 - i);
+
+			    if (is_xflip)
+			    {
+				index = i;
+			    }
+
+			    GBFIFOPixel pixel;
+			    pixel.color = bg_data.at(index);
+			    pixel.palette = bg_pal;
+			    pixel.priority = bg_prior;
+			    bg_fifo.push(pixel);
+			}
+
+			tile_index = ((tile_index + 1) & 0x1F);
+
 			fetcher_state = FetchTileNumber;
 		    }
 		}
-	    }
-	    break;
-	    case PushToFIFO:
-	    {
-		if (fetcher_counter == 1)
+		break;
+		case FetchSpriteNumber:
 		{
-		    last_push_success = false;
-		}
-
-		if (bg_fifo.empty())
-		{
-		    last_push_success = true;
-
-		    for (int i = 7; i >= 0; i--)
-		    {
-			GBFIFOPixel pixel;
-			pixel.color = bg_data.at(i);
-			bg_fifo.push(pixel);
-		    }
-
-		    tile_index = ((tile_index + 1) & 0x1F);
-		}
-
-		if (fetcher_counter > 1)
-		{
-		    if (last_push_success)
-		    {
-			fetcher_counter = 0;
-			fetcher_state = FetchTileNumber;
-		    }
-		}
-	    }
-	    break;
-	    case FetchSpriteNumber:
-	    {
-		if (fetcher_counter == 2)
-		{
-		    fetcher_counter = 0;
 		    sprite_num = oam.at(current_sprite.addr + 2);
 		    sprite_attribs = oam.at(current_sprite.addr + 3);
 		    fetcher_state = FetchSpriteDataLow;
 		}
-	    }
-	    break;
-	    case FetchSpriteDataLow:
-	    {
-		if (fetcher_counter == 2)
+		break;
+		case FetchSpriteDataLow:
 		{
-		    int sprite_mask = testbit(reg_lcdc, 2) ? 15 : 7;
-
 		    int sprite_yline = sprite_line;
+
+		    int sprite_mask = testbit(reg_lcdc, 2) ? 15 : 7;
 
 		    bool is_yflip = testbit(sprite_attribs, 6);
 
@@ -489,9 +492,9 @@ namespace gb
 			sprite_num &= 0xFE;
 		    }
 
-		    fetcher_counter = 0;
+		    sprite_addr = (is_cgb_mode && testbit(sprite_attribs, 3)) ? 0x2000 : 0;
 
-		    sprite_addr = (sprite_num << 4);
+		    sprite_addr += (sprite_num << 4);
 		    sprite_addr += (sprite_yline << 1);
 
 		    uint8_t sprite_data = vram.at(sprite_addr);
@@ -503,14 +506,9 @@ namespace gb
 
 		    fetcher_state = FetchSpriteDataHigh;
 		}
-	    }
-	    break;
-	    case FetchSpriteDataHigh:
-	    {
-		if (fetcher_counter == 2)
+		break;
+		case FetchSpriteDataHigh:
 		{
-		    fetcher_counter = 0;
-
 		    uint8_t sprite_data = vram.at(sprite_addr + 1);
 
 		    for (int bit = 0; bit < 8; bit++)
@@ -520,13 +518,10 @@ namespace gb
 
 		    fetcher_state = PushToSpriteFIFO;
 		}
-	    }
-	    break;
-	    case PushToSpriteFIFO:
-	    {
-		if (fetcher_counter == 2)
+		break;
+		case PushToSpriteFIFO:
 		{
-		    fetcher_counter = 0;
+		    // TODO: Implement proper sprite FIFO push
 
 		    while (obj_fifo.size() < 8)
 		    {
@@ -534,7 +529,20 @@ namespace gb
 			obj_fifo.push(pixel);
 		    }
 
+		    int palette = 0;
+
 		    bool is_xflip = testbit(sprite_attribs, 5);
+
+		    if (is_cgb_mode)
+		    {
+			palette = (sprite_attribs & 0x7);
+		    }
+		    else
+		    {
+			palette = testbit(sprite_attribs, 4) ? 1 : 0;
+		    }
+
+		    bool priority = testbit(sprite_attribs, 7);
 
 		    for (int i = sprite_offs; i < 8; i++)
 		    {
@@ -546,46 +554,60 @@ namespace gb
 			}
 
 			int index = (i - sprite_offs);
-
 			GBFIFOPixel pixel;
 			pixel.color = obj_data.at(shift_offs);
-			pixel.palette = testbit(sprite_attribs, 4);
-			pixel.priority = testbit(sprite_attribs, 7);
+			pixel.palette = palette;
+			pixel.sprite_index = (is_cgb_mode) ? current_sprite.index : 0;
+			pixel.priority = priority;
 
-			if (obj_fifo.at(index).color == 0)
+			auto &target = obj_fifo.at(index);
+
+			if ((pixel.color != 0) && ((target.color == 0) || (target.sprite_index > pixel.sprite_index)))
 			{
-			    obj_fifo.at(index) = pixel;
+			    target = pixel;
 			}
 		    }
 
+		    sprite_in_progress = false;
 		    fetcher_state = FetchTileNumber;
 		}
+		break;
+		default:
+		{
+		    cout << "Unrecognized fetcher state of " << dec << int(fetcher_state) << endl;
+		    exit(0);
+		}
+		break;
 	    }
-	    break;
-	    default:
-	    {
-		cout << "Unrecognized fetcher state of " << dec << int(fetcher_state) << endl;
-		exit(0);
-	    }
-	    break;
 	}
     }
 
     void GBGPU::setPixel(GBFIFOPixel bg_pixel, GBFIFOPixel obj_pixel)
     {
+	if (is_cgb_mode)
+	{
+	    setCGBPixel(bg_pixel, obj_pixel);
+	}
+	else
+	{
+	    setDMGPixel(bg_pixel, obj_pixel);
+	}
+    }
+
+    void GBGPU::setDMGPixel(GBFIFOPixel bg_pixel, GBFIFOPixel obj_pixel)
+    {
 	int bg_pal = bg_pixel.color;
 	int obj_pal = obj_pixel.color;
 
-	int bg_color = ((reg_bgp >> (2 * bg_pal)) & 0x3);
-
 	uint8_t reg_obp = (obj_pixel.palette == 0) ? reg_obp0 : reg_obp1;
+
+	int bg_color = ((reg_bgp >> (2 * bg_pal)) & 0x3);
+	int obj_color = ((reg_obp >> (2 * obj_pal)) & 0x3);
 
 	if (!testbit(reg_lcdc, 0))
 	{
 	    bg_color = 0;
 	}
-
-	int obj_color = ((reg_obp >> (2 * obj_pal)) & 0x3);
 
 	int pal_color = bg_color;
 
@@ -594,17 +616,61 @@ namespace gb
 	    pal_color = obj_color;
 	}
 
-	array<uint8_t, 4> pixel_colors = {0xFF, 0xAA, 0x55, 0x00};
+	array<uint8_t, 4> pal_colors = {0xFF, 0xAA, 0x55, 0x00};
+	int palette_color = pal_colors.at(pal_color);
+	line_buffer.at(pixel_xpos) = GBRGB::fromMonochrome(palette_color);
+    }
 
-	uint8_t pixel_color = pixel_colors.at(pal_color);
-	line_buffer.at(pixel_xpos) = GBRGB::fromMonochrome(pixel_color);
+    void GBGPU::setCGBPixel(GBFIFOPixel bg_pixel, GBFIFOPixel obj_pixel)
+    {
+	int bg_pal = bg_pixel.color;
+	int obj_pal = obj_pixel.color;
+
+	uint16_t bg_color = getBGColor(bg_pixel);
+	uint16_t obj_color = getOBJColor(obj_pixel);
+
+	bool is_obj_color = false;
+
+	if (obj_pal == 0)
+	{
+	    is_obj_color = false;
+	}
+	else if (bg_pal == 0)
+	{
+	    is_obj_color = true;
+	}
+	else if (!testbit(reg_lcdc, 0))
+	{
+	    is_obj_color = true;
+	}
+	else if (bg_pixel.priority)
+	{
+	    is_obj_color = false;
+	}
+	else if (!obj_pixel.priority)
+	{
+	    is_obj_color = true;
+	}
+	else
+	{
+	    is_obj_color = false;
+	}
+
+	uint16_t pal_color = bg_color;
+
+	if (is_obj_color)
+	{
+	    pal_color = obj_color;
+	}
+
+	line_buffer.at(pixel_xpos) = GBRGB::from16(pal_color);
     }
 
     void GBGPU::updateFramebuffer()
     {
 	for (int xpos = 0; xpos < 160; xpos++)
 	{
-	    size_t fb_offs = (xpos + (scanline * 160));
+	    size_t fb_offs = (xpos + (reg_ly * 160));
 	    framebuffer.at(fb_offs) = line_buffer.at(xpos);
 	}
 
@@ -614,13 +680,15 @@ namespace gb
     uint8_t GBGPU::readVRAM(uint16_t addr)
     {
 	addr &= 0x1FFF;
-	return vram.at(addr);
+	uint32_t vram_addr = (addr + (vram_bank * 0x2000));
+	return vram.at(vram_addr);
     }
 
     void GBGPU::writeVRAM(uint16_t addr, uint8_t data)
     {
 	addr &= 0x1FFF;
-	vram.at(addr) = data;
+	uint32_t vram_addr = (addr + (vram_bank * 0x2000));
+	vram.at(vram_addr) = data;
     }
 
     uint8_t GBGPU::readOAM(uint8_t addr)
@@ -656,6 +724,11 @@ namespace gb
 	    case 0x43: data = reg_scx; break;
 	    case 0x44: data = reg_ly; break;
 	    case 0x45: data = reg_lyc; break;
+	    case 0x47: data = reg_bgp; break;
+	    case 0x48: data = reg_obp0; break;
+	    case 0x49: data = reg_obp1; break;
+	    case 0x4A: data = reg_winy; break;
+	    case 0x4B: data = reg_winx; break;
 	    default: throw mbGBUnmappedMemory(addr, true); break;
 	}
 
@@ -679,13 +752,14 @@ namespace gb
 		    tick_counter = 4;
 		    reg_ly = 0;
 		    lcd_just_on = true;
-		    mode2_diff = true;
+		    gpu_state = OamSearch;
 		}
 		else if (prev_enable && !testbit(reg_lcdc, 7))
 		{
 		    reg_stat &= ~0x3;
 		    tick_counter = 0;
 		    reg_ly = 0;
+		    pixel_xpos = 0;
 		}
 	    }
 	    break;
@@ -703,6 +777,63 @@ namespace gb
 	    case 0x49: reg_obp1 = data; break;
 	    case 0x4A: reg_winy = data; break;
 	    case 0x4B: reg_winx = data; break;
+	    default: throw mbGBUnmappedMemory(addr, data, true); break;
+	}
+    }
+
+    uint8_t GBGPU::readCGBIO(uint16_t addr)
+    {
+	uint8_t data = 0;
+	addr &= 0xFF;
+
+	switch (addr)
+	{
+	    case 0x4F: data = (0xFE | vram_bank); break;
+	    default: throw mbGBUnmappedMemory(addr, true); break;
+	}
+
+	return data;
+    }
+
+    void GBGPU::writeCGBIO(uint16_t addr, uint8_t data)
+    {
+	addr &= 0xFF;
+
+	switch (addr)
+	{
+	    case 0x4F: vram_bank = testbit(data, 0); break;
+	    case 0x68:
+	    {
+		bg_pal_inc = testbit(data, 7);
+		bg_pal_addr = (data & 0x3F);
+	    }
+	    break;
+	    case 0x69:
+	    {
+		bg_palettes.at(bg_pal_addr) = data;
+
+		if (bg_pal_inc)
+		{
+		    bg_pal_addr = ((bg_pal_addr + 1) & 0x3F);
+		}
+	    }
+	    break;
+	    case 0x6A:
+	    {
+		obj_pal_inc = testbit(data, 7);
+		obj_pal_addr = (data & 0x3F);
+	    }
+	    break;
+	    case 0x6B:
+	    {
+		obj_palettes.at(obj_pal_addr) = data;
+
+		if (obj_pal_inc)
+		{
+		    obj_pal_addr = ((obj_pal_addr + 1) & 0x3F);
+		}
+	    }
+	    break;
 	    default: throw mbGBUnmappedMemory(addr, data, true); break;
 	}
     }

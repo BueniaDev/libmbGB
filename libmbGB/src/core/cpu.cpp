@@ -33,12 +33,43 @@ namespace gb
 
     void GBCPU::init()
     {
-	reg_af = 0x0000;
-	reg_bc = 0x0000;
-	reg_de = 0x0000;
-	reg_hl = 0x0000;
-	pc = 0;
-	sp = 0;
+	if (memory.isBIOSLoad())
+	{
+	    reg_af = 0x0000;
+	    reg_bc = 0x0000;
+	    reg_de = 0x0000;
+	    reg_hl = 0x0000;
+	    pc = 0;
+	    sp = 0;
+	}
+	else
+	{
+	    memory.writeByte(0xFF05, 0x00);
+	    memory.writeByte(0xFF06, 0x00);
+	    memory.writeByte(0xFF07, 0xF8);
+	    memory.writeByte(0xFF40, 0x91);
+	    memory.writeByte(0xFF41, 0x05);
+	    memory.writeByte(0xFF47, 0xFC);
+
+	    if (memory.isCGB())
+	    {
+		reg_af = 0x1180;
+		reg_bc = 0x0000;
+		reg_de = 0xFF56;
+		reg_hl = 0x000D;
+		pc = 0x0100;
+		sp = 0xFFFE;
+	    }
+	    else
+	    {
+		reg_af = 0x01B0;
+		reg_bc = 0x0013;
+		reg_de = 0x00D8;
+		reg_hl = 0x014D;
+		pc = 0x0100;
+		sp = 0xFFFE;
+	    }
+	}
     }
 
     void GBCPU::shutdown()
@@ -54,7 +85,13 @@ namespace gb
 	    return;
 	}
 
-	if (is_halted)
+	if (memory.isHDMAInProgress())
+	{
+	    memory.updateHDMA();
+	    return;
+	}
+
+	if (is_halted && !memory.isCGB())
 	{
 	    tick(2);
 	}
@@ -63,7 +100,8 @@ namespace gb
 
 	if (is_halted)
 	{
-	    tick(2);
+	    int cycles = memory.isCGB() ? 4 : 2;
+	    tick(cycles);
 	}
 
 	bool effective_ime = is_ime;
@@ -146,6 +184,7 @@ namespace gb
 	}
 
 	cout << endl;
+	memory.debugOutput();
     }
 
     void GBCPU::tick(int cycles)
@@ -155,15 +194,17 @@ namespace gb
 
     uint8_t GBCPU::readByte(uint16_t addr)
     {
+	tick(2);
 	uint8_t data = memory.readByte(addr);
-	tick(4);
+	tick(2);
 	return data;
     }
 
     void GBCPU::writeByte(uint16_t addr, uint8_t data)
     {
+	tick(2);
 	memory.writeByte(addr, data);
-	tick(4);
+	tick(2);
     }
 
     uint8_t GBCPU::getImmByte()

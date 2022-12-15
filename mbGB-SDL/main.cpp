@@ -206,10 +206,12 @@ int main(int argc, char *argv[])
     SDL2Frontend *front = new SDL2Frontend(core);
     core.setFrontend(front);
 
+    /*
     if (!core.loadBIOS("dmg_bios.bin"))
     {
 	return 1;
     }
+    */
 
     if (!core.loadROM(argv[1]))
     {

@@ -367,7 +367,23 @@ namespace gb
 	    void stop()
 	    {
 		pc += 1;
-		is_stopped = true;
+
+		uint8_t data = memory.readByte(0xFF40);
+
+		memory.writeByte(0xFF40, (data & 0x7F));
+
+		if (memory.isCGB())
+		{
+		    if (memory.prepareSpeedSwitch())
+		    {
+			memory.commitSpeedSwitch();
+			memory.writeByte(0xFF40, data);
+		    }
+		}
+		else
+		{
+		    is_stopped = true;
+		}
 	    }
 
 	    void halt()
