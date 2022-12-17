@@ -113,6 +113,7 @@ namespace gb
 
     using voidfunc = function<void()>;
     using voidintfunc = function<void(int)>;
+    using apufunc = function<void(int16_t, int16_t)>;
 
     struct GBRGB
     {
@@ -152,7 +153,7 @@ namespace gb
     {
 	ModelAuto,
 	ModelDmgX,
-	ModelCgbX
+	ModelCgbX,
     };
 
     template<class T, size_t N>
@@ -399,6 +400,11 @@ namespace gb
 	    {
 		vector<uint8_t> data;
 		return data;
+	    }
+
+	    virtual void audioCallback(int16_t, int16_t)
+	    {
+		return;
 	    }
     };
 };

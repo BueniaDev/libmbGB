@@ -73,7 +73,7 @@ namespace gb
 	    GBGPU();
 	    ~GBGPU();
 
-	    void init(bool is_cgb);
+	    void init(GBModel model, bool is_bios_load);
 	    void shutdown();
 
 	    void tickGPU();
@@ -113,6 +113,7 @@ namespace gb
 	    void debugOutput()
 	    {
 		cout << "GPU: " << endl;
+		cout << "STAT: " << hex << int(reg_stat) << endl;
 		cout << "LY: " << hex << int(reg_ly) << endl;
 		cout << "Tick counter: " << dec << int(tick_counter) << endl;
 		cout << endl;
@@ -225,6 +226,20 @@ namespace gb
 	    void updateFramebuffer();
 
 	    bool fetcher_begin_delay = false;
+
+	    uint8_t fetcher_ypos = 0;
+
+	    uint8_t getFetcherY()
+	    {
+		if (is_window)
+		{
+		    return (window_line_counter & 0xFF);
+		}
+		else
+		{
+		    return ((reg_ly + reg_scy) & 0xFF);
+		}
+	    }
 
 	    void hblank();
 	    void vblank();

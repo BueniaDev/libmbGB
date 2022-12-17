@@ -48,11 +48,25 @@ class SDL2Frontend : public mbGBFrontend
 	    }
 
 	    SDL_SetRenderDrawColor(render, 0, 0, 0, 255);
+
+	    SDL_AudioSpec audio_spec;
+	    audio_spec.format = AUDIO_S16SYS;
+	    audio_spec.freq = 48000;
+	    audio_spec.samples = 4096;
+	    audio_spec.channels = 2;
+	    audio_spec.callback = NULL;
+
+	    SDL_OpenAudio(&audio_spec, NULL);
+
+	    SDL_PauseAudio(0);
+
 	    return true;
 	}
 
 	void shutdown()
 	{
+	    SDL_CloseAudio();
+
 	    if (texture != NULL)
 	    {
 		SDL_DestroyTexture(texture);
@@ -112,6 +126,24 @@ class SDL2Frontend : public mbGBFrontend
 	    return data;
 	}
 
+	void audioCallback(int16_t left, int16_t right)
+	{
+	    audio_buffer.push_back(left);
+	    audio_buffer.push_back(right);
+
+	    if (audio_buffer.size() >= 4096)
+	    {
+		audio_buffer.clear();
+
+		while (SDL_GetQueuedAudioSize(1) > (4096 * sizeof(int16_t)))
+		{
+		    SDL_Delay(1);
+		}
+
+		SDL_QueueAudio(1, audio_buffer.data(), (4096 * sizeof(int16_t)));
+	    }
+	}
+
     private:
 	GBCore &core;
 
@@ -120,6 +152,8 @@ class SDL2Frontend : public mbGBFrontend
 	SDL_Window *window = NULL;
 	SDL_Renderer *render = NULL;
 	SDL_Texture *texture = NULL;
+
+	vector<int16_t> audio_buffer;
 
 	const int scale = 2;
 
@@ -151,6 +185,14 @@ class SDL2Frontend : public mbGBFrontend
 			    case SDLK_DOWN: core.keyChanged(GBButton::Down, is_key_pressed); break;
 			    case SDLK_LEFT: core.keyChanged(GBButton::Left, is_key_pressed); break;
 			    case SDLK_RIGHT: core.keyChanged(GBButton::Right, is_key_pressed); break;
+			    case SDLK_p:
+			    {
+				if (is_key_pressed)
+				{
+				    paused = !paused;
+				}
+			    }
+			    break;
 			}
 		    }
 		    break;
@@ -160,7 +202,12 @@ class SDL2Frontend : public mbGBFrontend
 
 	void runmachine()
 	{
-	    core.runCore();
+	    SDL_PauseAudio(paused);
+	    if (!paused)
+	    {
+		core.runCore();
+	    }
+
 	    drawFrame();
 	}
 
@@ -192,6 +239,8 @@ class SDL2Frontend : public mbGBFrontend
 	Uint32 framestarttime = 0;
 	int fpscount = 0;
 	Uint32 fpstime = 0;
+
+	bool paused = false;
 };
 
 int main(int argc, char *argv[])
@@ -202,16 +251,50 @@ int main(int argc, char *argv[])
 	return 1;
     }
 
+    GBModel model_type = ModelAuto;
+
+    string bios_name;
+
+    for (int i = 2; i < argc; i++)
+    {
+	if (strcmp(argv[i], "--dmg") == 0)
+	{
+	    model_type = ModelDmgX;
+	    // bios_name = "dmg_bios.bin";
+	}
+
+	if (strcmp(argv[i], "--cgb") == 0)
+	{
+	    model_type = ModelCgbX;
+	    // bios_name = "cgb_bios.bin";
+	}
+
+	if ((strcmp(argv[i], "-b") == 0) || (strcmp(argv[i], "--bios") == 0))
+	{
+	    if ((i + 1) == argc)
+	    {
+		cout << "Error - No BIOS file in arguments" << endl;
+		return 1;
+	    }
+	    else
+	    {
+		bios_name = argv[i + 1];
+	    }
+	}
+    }
+
     GBCore core;
     SDL2Frontend *front = new SDL2Frontend(core);
     core.setFrontend(front);
+    core.setModel(model_type);
 
-    /*
-    if (!core.loadBIOS("dmg_bios.bin"))
+    if (!bios_name.empty())
     {
-	return 1;
+	if (!core.loadBIOS(bios_name))
+	{
+	    return 1;
+	}
     }
-    */
 
     if (!core.loadROM(argv[1]))
     {

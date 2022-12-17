@@ -21,8 +21,10 @@
 
 #include "mmu.h"
 #include "gpu.h"
+#include "apu.h"
 #include "input.h"
 #include "timers.h"
+#include "serial.h"
 #include "cpu.h"
 using namespace gb;
 
@@ -36,6 +38,10 @@ namespace gb
 
 	    bool init();
 	    void shutdown();
+
+	    void setModel(GBModel model);
+
+	    void connectSerialDevice(GBSerialDevice *device);
 
 	    bool initCore();
 	    void runCore();
@@ -69,6 +75,8 @@ namespace gb
 	    unique_ptr<GBGPU> coregpu;
 	    unique_ptr<GBInput> coreinput;
 	    unique_ptr<GBTimers> coretimers;
+	    unique_ptr<GBSerial> coreserial;
+	    unique_ptr<GBAPU> coreapu;
 	    unique_ptr<GBCPU> corecpu;
 
 	    mbGBFrontend *front = NULL;

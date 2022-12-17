@@ -459,10 +459,10 @@ class GBMBC3 : public mbGBMapper
 	}
 };
 
-// MBC5 mapper (WIP)
+// MBC5 mapper
 //
 // TODO list:
-// Literally everything
+// Implement proper rumble support
 
 class GBMBC5 : public mbGBMapper
 {
@@ -515,10 +515,6 @@ class GBMBC5 : public mbGBMapper
 		    data = ram.at(ram_addr);
 		}
 	    }
-	    else
-	    {
-		data = mbGBMapper::readByte(addr);
-	    }
 
 	    return data;
 	}
@@ -551,10 +547,6 @@ class GBMBC5 : public mbGBMapper
 		    uint32_t ram_addr = ((addr - 0xA000) + (current_ram_bank * 0x2000));
 		    ram.at(ram_addr) = data;
 		}
-	    }
-	    else
-	    {
-		mbGBMapper::writeByte(addr, data);
 	    }
 	}
 

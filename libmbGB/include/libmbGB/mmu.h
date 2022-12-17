@@ -21,8 +21,10 @@
 
 #include "utils.h"
 #include "gpu.h"
+#include "apu.h"
 #include "input.h"
 #include "timers.h"
+#include "serial.h"
 using namespace gb;
 
 namespace gb
@@ -32,11 +34,16 @@ namespace gb
     class LIBMBGB_API GBMMU
     {
 	public:
-	    GBMMU(GBGPU &gpu, GBInput &input, GBTimers &timer);
+	    GBMMU(GBGPU &gpu, GBInput &input, GBTimers &timer, GBSerial &link, GBAPU &apu);
 	    ~GBMMU();
 
 	    void init();
 	    void shutdown();
+
+	    void setModel(GBModel model)
+	    {
+		model_type = model;
+	    }
 
 	    void tick(int cycles);
 	    void haltedtick(int cycles);
@@ -75,6 +82,11 @@ namespace gb
 		return is_bios_load;
 	    }
 
+	    GBModel getModel()
+	    {
+		return model_type;
+	    }
+
 	    bool isCGB()
 	    {
 		return (model_type == ModelCgbX);
@@ -109,6 +121,8 @@ namespace gb
 	    GBGPU &graphics;
 	    GBInput &joypad;
 	    GBTimers &timers;
+	    GBSerial &serial;
+	    GBAPU &audio;
 
 	    int total_cycles = 0;
 
@@ -344,70 +358,17 @@ namespace gb
 
 	    int getROMBanks(vector<uint8_t> &rom, ostream &stream)
 	    {
-		int num_rom_banks = 0;
-		switch (rom[0x0148])
+		int num_rom_banks = (rom.size() / 0x4000);
+
+		if (rom.size() >= 0x100000)
 		{
-		    case 0x0:
-		    {
-			num_rom_banks = 2;
-			stream << "32 KB";
-		    }
-		    break;
-		    case 0x1:
-		    {
-			num_rom_banks = 4;
-			stream << "64 KB";
-		    }
-		    break;
-		    case 0x2:
-		    {
-			num_rom_banks = 8;
-			stream << "128 KB";
-		    }
-		    break;
-		    case 0x3:
-		    {
-			num_rom_banks = 16;
-			stream << "256 KB";
-		    }
-		    break;
-		    case 0x4:
-		    {
-			num_rom_banks = 32;
-			stream << "512 KB";
-		    }
-		    break;
-		    case 0x5:
-		    {
-			num_rom_banks = 64;
-			stream << "1 MB";
-		    }
-		    break;
-		    case 0x6:
-		    {
-			num_rom_banks = 128;
-			stream << "2 MB";
-		    }
-		    break;
-		    case 0x7:
-		    {
-			num_rom_banks = 256;
-			stream << "4 MB";
-		    }
-		    break;
-		    case 0x8:
-		    {
-			num_rom_banks = 512;
-			stream << "8 MB";
-		    }
-		    break;
-		    default:
-		    {
-			stringstream ss;
-			ss << "Unrecognized ROM bank count of " << hex << int(rom[0x148]) << endl;
-			throw runtime_error(ss.str());
-		    }
-		    break;
+		    int num_megs = (rom.size() / 0x100000);
+		    stream << dec << num_megs << " MB";
+		}
+		else
+		{
+		    int num_kbs = (rom.size() / 0x400);
+		    stream << dec << num_kbs << " KB";
 		}
 
 		return num_rom_banks;

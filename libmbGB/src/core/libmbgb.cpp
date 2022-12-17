@@ -24,15 +24,22 @@ namespace gb
     GBCore::GBCore()
     {
 	coregpu = make_unique<GBGPU>();
+	coreapu = make_unique<GBAPU>();
 	coreinput = make_unique<GBInput>();
 	coretimers = make_unique<GBTimers>();
-	coremmu = make_unique<GBMMU>(*coregpu, *coreinput, *coretimers);
+	coreserial = make_unique<GBSerial>();
+	coremmu = make_unique<GBMMU>(*coregpu, *coreinput, *coretimers, *coreserial, *coreapu);
 	corecpu = make_unique<GBCPU>(*coremmu);
     }
 
     GBCore::~GBCore()
     {
 
+    }
+
+    void GBCore::setModel(GBModel model)
+    {
+	coremmu->setModel(model);
     }
 
     bool GBCore::init()
@@ -54,8 +61,10 @@ namespace gb
 	}
 
 	coregpu->shutdown();
+	coreapu->shutdown();
 	coreinput->shutdown();
 	coretimers->shutdown();
+	coreserial->shutdown();
 	coremmu->shutdown();
 	corecpu->shutdown();
 	cout << "mbGB::Shutting down..." << endl;
@@ -64,6 +73,14 @@ namespace gb
     void GBCore::setFrontend(mbGBFrontend *cb)
     {
 	front = cb;
+
+	coreapu->setOutputCallback([&](int16_t left, int16_t right) -> void
+	{
+	    if (front != NULL)
+	    {
+		front->audioCallback(left, right);
+	    }
+	});
     }
 
     bool GBCore::initCore()
@@ -73,12 +90,6 @@ namespace gb
 	    cout << "Happy holidays from libmbGB!" << endl;
 	}
 
-	coregpu->init(coremmu->isCGB());
-	coreinput->init();
-	coretimers->init();
-	coremmu->init();
-	corecpu->init();
-
 	if (front != NULL)
 	{
 	    if (!front->init())
@@ -86,6 +97,14 @@ namespace gb
 		return false;
 	    }
 	}
+
+	coregpu->init(coremmu->getModel(), coremmu->isBIOSLoad());
+	coreapu->init();
+	coreinput->init();
+	coretimers->init();
+	coreserial->init();
+	coremmu->init();
+	corecpu->init();
 
 	cout << "mbGB::Initialized" << endl;
 	return true;
@@ -144,5 +163,10 @@ namespace gb
 	}
 
 	return loadROM(front->loadFile(filename));
+    }
+
+    void GBCore::connectSerialDevice(GBSerialDevice *device)
+    {
+	coreserial->connectSerialDevice(device);
     }
 };

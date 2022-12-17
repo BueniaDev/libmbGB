@@ -21,7 +21,7 @@ using namespace gb;
 
 namespace gb
 {
-    GBMMU::GBMMU(GBGPU &gpu, GBInput &input, GBTimers &timer) : graphics(gpu), joypad(input), timers(timer)
+    GBMMU::GBMMU(GBGPU &gpu, GBInput &input, GBTimers &timer, GBSerial &link, GBAPU &apu) : graphics(gpu), joypad(input), timers(timer), serial(link), audio(apu)
     {
 
     }
@@ -38,6 +38,7 @@ namespace gb
 	graphics.setIRQCallback(irq_func);
 	graphics.setHDMACallback(hdma_func);
 	timers.setIRQCallback(irq_func);
+	serial.setIRQCallback(irq_func);
 
 	wram_bank = 1;
     }
@@ -101,6 +102,10 @@ namespace gb
 	else if (inRange(addr, 0xFE00, 0xFEA0))
 	{
 	    data = graphics.readOAM(addr);
+	}
+	else if (inRange(addr, 0xFEA0, 0xFF00))
+	{
+	    data = 0xFF;
 	}
 	else if (inRange(addr, 0xFF00, 0xFF80))
 	{
@@ -175,9 +180,9 @@ namespace gb
 	{
 	    data = joypad.readIO();
 	}
-	else if (reg == 0x02)
+	else if (inRangeEx(reg, 0x01, 0x02))
 	{
-	    data = 0xFF;
+	    data = serial.readIO(addr);
 	}
 	else if (inRangeEx(reg, 0x04, 0x07))
 	{
@@ -189,8 +194,7 @@ namespace gb
 	}
 	else if (inRange(reg, 0x10, 0x40))
 	{
-	    // TODO: Audio
-	    data = 0xFF;
+	    data = audio.readIO(addr);
 	}
 	else if (inRangeEx(reg, 0x40, 0x4B))
 	{
@@ -229,11 +233,33 @@ namespace gb
 		data = 0xFF;
 	    }
 	}
+	else if (inRangeEx(reg, 0x68, 0x6B))
+	{
+	    if (isCGB())
+	    {
+		data = graphics.readCGBIO(addr);
+	    }
+	    else
+	    {
+		data = 0xFF;
+	    }
+	}
 	else if (reg == 0x70)
 	{
 	    if (isCGB())
 	    {
 		data = wram_bank;
+	    }
+	    else
+	    {
+		data = 0xFF;
+	    }
+	}
+	else if (inRangeEx(reg, 0x76, 0x77))
+	{
+	    if (isCGB())
+	    {
+		data = audio.readCGBIO(addr);
 	    }
 	    else
 	    {
@@ -258,8 +284,7 @@ namespace gb
 	}
 	else if (inRangeEx(reg, 0x01, 0x02))
 	{
-	    // TODO: Serial
-	    return;
+	    serial.writeIO(addr, data);
 	}
 	else if (inRangeEx(reg, 0x04, 0x07))
 	{
@@ -271,8 +296,7 @@ namespace gb
 	}
 	else if (inRange(reg, 0x10, 0x40))
 	{
-	    // TODO: Audio
-	    return;
+	    audio.writeIO(addr, data);
 	}
 	else if (reg == 0x46)
 	{
@@ -379,7 +403,7 @@ namespace gb
 	}
 	else
 	{
-	    unmappedWrite(addr, data);
+	    return;
 	}
     }
 
@@ -665,11 +689,13 @@ namespace gb
 	    if (!is_double_speed || ((total_cycles % 2) != 0))
 	    {
 		graphics.tickGPU();
+		audio.tickAudio();
 		tickHDMA();
 	    }
 
 	    timers.tickTimers();
 	    tickOAMDMA();
+	    serial.tickSerial();
 	}
     }
 
@@ -681,9 +707,11 @@ namespace gb
 	    if (!is_double_speed || ((total_cycles % 2) != 0))
 	    {
 		graphics.tickGPU();
+		audio.tickAudio();
 	    }
 
 	    timers.tickTimers();
+	    serial.tickSerial();
 	}
     }
 

@@ -32,12 +32,25 @@ namespace gb
 
     }
 
-    void GBGPU::init(bool is_cgb)
+    void GBGPU::init(GBModel model, bool is_bios_load)
     {
-	is_cgb_mode = is_cgb;
-	reg_lcdc = 0x00;
-	reg_stat = 0x04;
-	reg_ly = 0x00;
+	is_cgb_mode = (model >= ModelCgbX);
+
+	if (is_bios_load)
+	{
+	    reg_lcdc = 0x00;
+	    reg_stat = 0x04;
+	    reg_ly = 0x00;
+	}
+	else
+	{
+	    reg_lcdc = 0x91;
+	    reg_stat = 0x05;
+	    reg_ly = 0x00;
+	    tick_counter = 454;
+	    gpu_state = VBlank;
+	}
+
 	vram.fill(0);
 	framebuffer.resize((160 * 144));
     }
@@ -344,7 +357,6 @@ namespace gb
 	tile_line = (ypos & 0x7);
 	fetcher_state = FetchTileNumber;
 	fetcher_counter = 0;
-	prev_index = -1;
 	bg_fifo.clear();
 	obj_fifo.clear();
     }
@@ -789,6 +801,10 @@ namespace gb
 	switch (addr)
 	{
 	    case 0x4F: data = (0xFE | vram_bank); break;
+	    case 0x68: data = ((bg_pal_inc << 7) | bg_pal_addr); break;
+	    case 0x69: data = bg_palettes.at(bg_pal_addr); break;
+	    case 0x6A: data = ((obj_pal_inc << 7) | obj_pal_addr); break;
+	    case 0x6B: data = obj_palettes.at(obj_pal_addr); break;
 	    default: throw mbGBUnmappedMemory(addr, true); break;
 	}
 
