@@ -234,7 +234,11 @@ namespace gb
 	MBC2 = 2,
 	MBC3 = 3,
 	MBC5 = 5,
+	MBC7 = 7,
+	MMM01 = 8,
 	PocketCamera = 10,
+	HuC3 = 12,
+	HuC1 = 13,
 	M161 = 15,
 	WisdomTree = 16
     };
@@ -335,6 +339,11 @@ namespace gb
 	    {
 		addr %= cart_rom.size();
 		return cart_rom.at(addr);
+	    }
+
+	    int getROMSize()
+	    {
+		return cart_rom.size();
 	    }
 
 	    int wrapROMBanks(int bank_num)

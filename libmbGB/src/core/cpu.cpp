@@ -72,6 +72,23 @@ namespace gb
 
     void GBCPU::runInstruction()
     {
+	/*
+	if (pc == 0x1DD)
+	{
+	    dump = true;
+	}
+
+	if (dump == true)
+	{
+	    debugOutput();
+
+	    if (pc == 0x48)
+	    {
+		dump = false;
+	    }
+	}
+	*/
+
 	if (is_stopped)
 	{
 	    tick(4);
@@ -187,17 +204,17 @@ namespace gb
 
     uint8_t GBCPU::readByte(uint16_t addr)
     {
-	tick(2);
+	// tick(2);
 	uint8_t data = memory.readByte(addr);
-	tick(2);
+	tick(4);
 	return data;
     }
 
     void GBCPU::writeByte(uint16_t addr, uint8_t data)
     {
-	tick(2);
+	// tick(2);
 	memory.writeByte(addr, data);
-	tick(2);
+	tick(4);
     }
 
     uint8_t GBCPU::getImmByte()

@@ -99,10 +99,6 @@ class GBMBC1 : public mbGBMapper
 		    data = ram.at(ram_addr);
 		}
 	    }
-	    else
-	    {
-		data = mbGBMapper::readByte(addr);
-	    }
 
 	    return data;
 	}
@@ -145,10 +141,6 @@ class GBMBC1 : public mbGBMapper
 		{
 		    data = readSonar();
 		}
-	    }
-	    else
-	    {
-		mbGBMapper::writeByte(addr, data);
 	    }
 	}
 
@@ -267,6 +259,7 @@ class GBMBC2 : public mbGBMapper
 	void initMapper()
 	{
 	    current_rom_bank = 1;
+	    ram.fill(0);
 	}
 
 	uint8_t readByte(uint16_t addr)
@@ -282,16 +275,56 @@ class GBMBC2 : public mbGBMapper
 		uint32_t rom_addr = ((addr - 0x4000) + (current_rom_bank * 0x4000));
 		data = fetchROM(rom_addr);
 	    }
-	    else
+	    else if (inRange(addr, 0xA000, 0xC000))
 	    {
-		data = mbGBMapper::readByte(addr);
+		if (is_ram_enabled)
+		{
+		    data = (0xF0 | ram.at(addr & 0x1FF));
+		}
 	    }
 
 	    return data;
 	}
 
+	void writeByte(uint16_t addr, uint8_t data)
+	{
+	    if (inRange(addr, 0, 0x4000))
+	    {
+		if (!testbit(addr, 8))
+		{
+		    is_ram_enabled = ((data & 0xF) == 0xA);
+		}
+		else
+		{
+		    writeROMBank(data);
+		}
+	    }
+	    else if (inRange(addr, 0xA000, 0xC000))
+	    {
+		if (is_ram_enabled)
+		{
+		    ram.at(addr & 0x1FF) = (data & 0xF);
+		}
+	    }
+	}
+
     private:
 	int current_rom_bank = 0;
+	bool is_ram_enabled = false;
+
+	array<uint8_t, 512> ram;
+
+	void writeROMBank(uint8_t data)
+	{
+	    current_rom_bank = (data & 0xF);
+
+	    if (current_rom_bank == 0)
+	    {
+		current_rom_bank = 1;
+	    }
+
+	    current_rom_bank = wrapROMBanks(current_rom_bank);
+	}
 };
 
 // MBC3 mapper
@@ -356,10 +389,6 @@ class GBMBC3 : public mbGBMapper
 		    }
 		}
 	    }
-	    else
-	    {
-		data = mbGBMapper::readByte(addr);
-	    }
 
 	    return data;
 	}
@@ -402,10 +431,6 @@ class GBMBC3 : public mbGBMapper
 			ram.at(ram_addr) = data;
 		    }
 		}
-	    }
-	    else
-	    {
-		mbGBMapper::writeByte(addr, data);
 	    }
 	}
 
@@ -597,6 +622,273 @@ class GBMBC5 : public mbGBMapper
 	}
 };
 
+// MBC7 mapper (used by Kirby Tilt-n-Tumble and Command Master) (WIP)
+//
+// TODO list:
+// Literally everything
+
+class GBMBC7 : public mbGBMapper
+{
+    public:
+	GBMBC7()
+	{
+
+	}
+
+	~GBMBC7()
+	{
+
+	}
+
+	void initMapper()
+	{
+	    current_rom_bank = 1;
+	}
+
+	uint8_t readByte(uint16_t addr)
+	{
+	    uint8_t data = 0;
+	    if (inRange(addr, 0, 0x4000))
+	    {
+		data = fetchROM(addr);
+	    }
+	    else
+	    {
+		data = mbGBMapper::readByte(addr);
+	    }
+
+	    return data;
+	}
+
+	void writeByte(uint16_t addr, uint8_t data)
+	{
+	    if (inRange(addr, 0x2000, 0x400))
+	    {
+		writeROMBank(data);
+	    }
+	    else
+	    {
+		mbGBMapper::writeByte(addr, data);
+	    }
+	}
+
+    private:
+	int current_rom_bank = 0;
+
+	void writeROMBank(uint8_t data)
+	{
+	    current_rom_bank = wrapROMBanks(data & 0x7F);
+	}
+};
+
+
+// MMM01 mapper (used by various multicart games) (WIP)
+//
+// TODO list:
+// Literally everything
+
+class GBMMM01 : public mbGBMapper
+{
+    public:
+	GBMMM01()
+	{
+
+	}
+
+	~GBMMM01()
+	{
+
+	}
+
+	void initMapper()
+	{
+	    is_mapped = false;
+	}
+
+	uint8_t readByte(uint16_t addr)
+	{
+	    uint8_t data = 0xFF;
+	    if (!is_mapped)
+	    {
+		if (inRange(addr, 0, 0x8000))
+		{
+		    uint32_t rom_addr = (addr + (getROMSize() - 0x8000));
+		    data = fetchROM(rom_addr);
+		}
+	    }
+	    else
+	    {
+		cout << "Reading in mapped mode..." << endl;
+		data = mbGBMapper::readByte(addr);
+	    }
+
+	    return data;
+	}
+
+    private:
+	bool is_mapped = false;
+};
+
+
+// HuC1 mapper (used in several Hudson Soft games) (WIP)
+//
+// TODO list:
+// Infrared support
+
+class GBHuC1 : public mbGBMapper
+{
+    public:
+	GBHuC1()
+	{
+
+	}
+
+	~GBHuC1()
+	{
+
+	}
+
+	void initMapper()
+	{
+	    current_rom_bank = 1;
+	    current_ram_bank = 0;
+
+	    ram.resize(getRAMSize(), 0);
+	}
+
+	uint8_t readByte(uint16_t addr)
+	{
+	    uint8_t data = 0xFF;
+	    if (inRange(addr, 0, 0x4000))
+	    {
+		data = fetchROM(addr);
+	    }
+	    else if (inRange(addr, 0x4000, 0x8000))
+	    {
+		uint32_t rom_addr = ((addr - 0x4000) + (current_rom_bank * 0x4000));
+		data = fetchROM(rom_addr);
+	    }
+	    else if (inRange(addr, 0xA000, 0xC000))
+	    {
+		if (is_ir_mode)
+		{
+		    data = readIR();
+		}
+		else
+		{
+		    uint32_t ram_addr = ((addr - 0xA000) + (current_ram_bank * 0x2000));
+		    data = ram.at(ram_addr);
+		}
+	    }
+	    else
+	    {
+		data = mbGBMapper::readByte(addr);
+	    }
+
+	    return data;
+	}
+
+	void writeByte(uint16_t addr, uint8_t data)
+	{
+	    if (inRange(addr, 0, 0x2000))
+	    {
+		is_ir_mode = ((data & 0xF) == 0xE);
+	    }
+	    else if (inRange(addr, 0x2000, 0x4000))
+	    {
+		writeROMBank(data);
+	    }
+	    else if (inRange(addr, 0x4000, 0x6000))
+	    {
+		writeRAMBank(data);
+	    }
+	    else if (inRange(addr, 0x6000, 0x8000))
+	    {
+		return;
+	    }
+	    else if (inRange(addr, 0xA000, 0xC000))
+	    {
+		if (is_ir_mode)
+		{
+		    writeIR(data);
+		}
+		else
+		{
+		    uint32_t ram_addr = ((addr - 0xA000) + (current_ram_bank * 0x2000));
+		    ram.at(ram_addr) = data;
+		}
+	    }
+	    else
+	    {
+		mbGBMapper::writeByte(addr, data);
+	    }
+	}
+
+    private:
+	int current_rom_bank = 0;
+	int current_ram_bank = 0;
+
+	vector<uint8_t> ram;
+
+	bool is_ir_mode = false;
+
+	void writeROMBank(uint8_t data)
+	{
+	    current_rom_bank = (data & 0x3F);
+
+	    if (current_rom_bank == 0)
+	    {
+		current_rom_bank = 1;
+	    }
+
+	    current_rom_bank = wrapROMBanks(current_rom_bank);
+	}
+
+	void writeRAMBank(uint8_t data)
+	{
+	    current_ram_bank = wrapRAMBanks(data & 0x3);
+	}
+
+	uint8_t readIR()
+	{
+	    return (0xC0 | recIRSignal());
+	}
+
+	void writeIR(uint8_t data)
+	{
+	    sendIRSignal(testbit(data, 0));
+	}
+
+	bool recIRSignal()
+	{
+	    return false;
+	}
+
+	void sendIRSignal(bool)
+	{
+	    return;
+	}
+};
+
+// HuC3 mapper (used in several Hudson Soft games) (WIP)
+//
+// TODO list:
+// Literally everything
+
+class GBHuC3 : public mbGBMapper
+{
+    public:
+	GBHuC3()
+	{
+
+	}
+
+	~GBHuC3()
+	{
+
+	}
+};
+
 // Gameboy Camera mapper (WIP)
 //
 // TODO list:
@@ -613,6 +905,22 @@ class GBCamera : public mbGBMapper
 	~GBCamera()
 	{
 
+	}
+
+	uint8_t readByte(uint16_t addr)
+	{
+	    uint8_t data = 0xFF;
+
+	    if (inRange(addr, 0, 0x4000))
+	    {
+		data = fetchROM(addr);
+	    }
+	    else
+	    {
+		data = mbGBMapper::readByte(addr);
+	    }
+
+	    return data;
 	}
 };
 

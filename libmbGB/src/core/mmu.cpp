@@ -666,7 +666,11 @@ namespace gb
 	    case MBC2: mapper = new GBMBC2(); break;
 	    case MBC3: mapper = new GBMBC3(); break;
 	    case MBC5: mapper = new GBMBC5(); break;
+	    case MBC7: mapper = new GBMBC7(); break;
+	    case MMM01: mapper = new GBMMM01(); break;
 	    case PocketCamera: mapper = new GBCamera(); break;
+	    case HuC1: mapper = new GBHuC1(); break;
+	    case HuC3: mapper = new GBHuC3(); break;
 	    case M161: mapper = new GBM161(); break;
 	    default:
 	    {
@@ -675,9 +679,20 @@ namespace gb
 	    break;
 	}
 
+	mapper->setRumbleCallback(rumble_func);
 	mapper->configure(flags, num_rom_banks, num_ram_banks);
 	mapper->init(data);
 	return true;
+    }
+
+    vector<uint8_t> GBMMU::saveBackup()
+    {
+	return mapper->saveBackup();
+    }
+
+    void GBMMU::loadBackup(vector<uint8_t> data)
+    {
+	mapper->loadBackup(data);
     }
 
     void GBMMU::tick(int cycles)

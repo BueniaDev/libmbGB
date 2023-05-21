@@ -35,6 +35,15 @@ namespace gb
     void GBAPU::init()
     {
 	sound_enable = true;
+	noise_lfsr = 1;
+
+	noise_enabled = false;
+
+	for (int i = 0x10; i < 0x26; i++)
+	{
+	    writeIO(i, 0);
+	}
+
 	setSampleRate();
 
 	wave_ram = 
@@ -599,7 +608,7 @@ namespace gb
 		    }
 		}
 
-		s1_env_freq = s1_env_period;
+		s1_env_freq = (s1_env_period == 0) ? 8 : s1_env_period;
 	    }
 	}
     }
@@ -631,7 +640,7 @@ namespace gb
 		    }
 		}
 
-		s2_env_freq = s2_env_period;
+		s2_env_freq = (s2_env_period == 0) ? 8 : s2_env_period;
 	    }
 	}
     }
@@ -663,7 +672,7 @@ namespace gb
 		    }
 		}
 
-		noise_env_freq = noise_env_period;
+		noise_env_freq = (noise_env_period == 0) ? 8 : noise_env_period;
 	    }
 	}
     }
@@ -734,8 +743,8 @@ namespace gb
 	}
 
 	s1_volume = s1_env_volume;
-	s1_env_freq = s1_env_period;
-	s1_env_enabled = (s1_env_freq != 0);
+	s1_env_freq = (s1_env_period == 0) ? 8 : s1_env_period;
+	s1_env_enabled = (s1_env_period != 0);
 
 	s1_shadow_freq = s1_freq;
 	s1_sweep_freq = (s1_sweep_period == 0) ? 8 : s1_sweep_period;
@@ -771,7 +780,7 @@ namespace gb
 
 	s2_volume = s2_env_volume;
 	s2_env_freq = (s2_env_period == 0) ? 8 : s2_env_period;
-	s2_env_enabled = (s2_env_freq != 0);
+	s2_env_enabled = (s2_env_period != 0);
 
 	if (!s2_dac_enabled)
 	{
@@ -828,7 +837,7 @@ namespace gb
 
 	noise_volume = noise_env_volume;
 	noise_env_freq = (noise_env_period == 0) ? 8 : noise_env_period;
-	noise_env_enabled = (noise_env_freq != 0);
+	noise_env_enabled = (noise_env_period != 0);
 
 	if (!noise_dac_enabled)
 	{
@@ -995,7 +1004,7 @@ namespace gb
 	    left_sample += wave_output;
 	}
 
-	if (testbit(left_enable, 2))
+	if (testbit(left_enable, 3))
 	{
 	    left_sample += noise_output;
 	}

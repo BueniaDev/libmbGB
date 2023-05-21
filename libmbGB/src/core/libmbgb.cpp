@@ -81,6 +81,14 @@ namespace gb
 		front->audioCallback(left, right);
 	    }
 	});
+
+	coremmu->setRumbleCallback([&](double strength) -> void
+	{
+	    if (front != NULL)
+	    {
+		front->rumbleCallback(strength);
+	    }
+	});
     }
 
     bool GBCore::initCore()
@@ -88,6 +96,10 @@ namespace gb
 	if (is_xmas())
 	{
 	    cout << "Happy holidays from libmbGB!" << endl;
+	}
+	else if (is_halloween())
+	{
+	    cout << "Happy Halloween from libmbGB!" << endl;
 	}
 
 	if (front != NULL)
@@ -135,6 +147,26 @@ namespace gb
 	keyChanged(button, false);
     }
 
+    void GBCore::contextKeyChanged(GBContextButton button, bool is_pressed)
+    {
+	coremmu->contextKeyChanged(button, is_pressed);
+    }
+
+    void GBCore::contextKeyPressed(GBContextButton button)
+    {
+	contextKeyChanged(button, true);
+    }
+
+    void GBCore::contextKeyReleased(GBContextButton button)
+    {
+	contextKeyChanged(button, false);
+    }
+
+    void GBCore::updateAccel(float xpos, float ypos)
+    {
+	coremmu->updateAccel(xpos, ypos);
+    }
+
     bool GBCore::loadBIOS(vector<uint8_t> bios)
     {
 	return coremmu->loadBIOS(bios);
@@ -168,5 +200,25 @@ namespace gb
     void GBCore::connectSerialDevice(GBSerialDevice *device)
     {
 	coreserial->connectSerialDevice(device);
+    }
+
+    void GBCore::saveBackup(string filename)
+    {
+	if (front == NULL)
+	{
+	    return;
+	}
+
+	front->saveFile(filename, saveBackup());
+    }
+
+    void GBCore::loadBackup(string filename)
+    {
+	if (front == NULL)
+	{
+	    return;
+	}
+
+	loadBackup(front->loadFile(filename));
     }
 };

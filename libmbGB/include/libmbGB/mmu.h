@@ -188,12 +188,51 @@ namespace gb
 
 	    bool is_bios_load = false;
 
+	    bool is_header_at_end = false;
+
 	    mbGBMapper *mapper = NULL;
+
+	    uint32_t getHeaderOffs(vector<uint8_t> &rom)
+	    {
+		if (is_header_at_end)
+		{
+		    return (rom.size() < 0x8000) ? rom.size() : (rom.size() - 0x8000);
+		}
+
+		return 0;
+	    }
+
+	    uint8_t getROMByte(vector<uint8_t> &rom, uint32_t addr)
+	    {
+		uint32_t header_addr = getHeaderOffs(rom);
+		return rom.at(header_addr + addr);
+	    }
+
+	    void detectHeaderEnd(vector<uint8_t> &rom)
+	    {
+		is_header_at_end = true;
+
+		int logo_checksum = 0;
+
+		for (int i = 0; i < 0x30; i++)
+		{
+		    logo_checksum += getROMByte(rom, (0x104 + i));
+		}
+
+		if (logo_checksum != 5446)
+		{
+		    is_header_at_end = false;
+		}
+	    }
 
 	    GBMBCType getMBCType(vector<uint8_t> &rom, ostream &stream, int &flags)
 	    {
+		detectHeaderEnd(rom);
 		GBMBCType mbc_type;
-		switch (rom[0x0147])
+
+		uint8_t mapper_byte = getROMByte(rom, 0x0147);
+
+		switch (mapper_byte)
 		{
 		    case 0x00:
 		    {
@@ -251,6 +290,27 @@ namespace gb
 			flags = 0x3;
 		    }
 		    break;
+		    case 0x0B:
+		    {
+			mbc_type = MMM01;
+			stream << "MMM01";
+			flags = 0x0;
+		    }
+		    break;
+		    case 0x0C:
+		    {
+			mbc_type = MMM01;
+			stream << "MMM01 + RAM";
+			flags = 0x1;
+		    }
+		    break;
+		    case 0x0D:
+		    {
+			mbc_type = MMM01;
+			stream << "MMM01 + RAM + BATTERY";
+			flags = 0x3;
+		    }
+		    break;
 		    case 0x0F:
 		    {
 			mbc_type = MBC3;
@@ -276,9 +336,18 @@ namespace gb
 		    break;
 		    case 0x11:
 		    {
-			mbc_type = MBC3;
-			stream << "MBC3";
-			flags = 0x0;
+			if (is_header_at_end)
+			{
+			    mbc_type = MMM01;
+			    stream << "MMM01";
+			    flags = 0x00;
+			}
+			else
+			{
+			    mbc_type = MBC3;
+			    stream << "MBC3";
+			    flags = 0x0;
+			}
 		    }
 		    break;
 		    case 0x12:
@@ -337,6 +406,13 @@ namespace gb
 			flags = 0x7;
 		    }
 		    break;
+		    case 0x22:
+		    {
+			mbc_type = MBC7;
+			stream << "MBC7 + SENSOR + RAM + BATTERY";
+			flags = 0x0;
+		    }
+		    break;
 		    case 0xFC:
 		    {
 			mbc_type = PocketCamera;
@@ -344,10 +420,24 @@ namespace gb
 			flags = 0x0;
 		    }
 		    break;
+		    case 0xFE:
+		    {
+			mbc_type = HuC3;
+			stream << "HuC3";
+			flags = 0x0;
+		    }
+		    break;
+		    case 0xFF:
+		    {
+			mbc_type = HuC1;
+			stream << "HuC1 + RAM + BATTERY";
+			flags = 0x0;
+		    }
+		    break;
 		    default:
 		    {
 			stringstream ss;
-			ss << "Unrecognized MBC type of " << hex << int(rom[0x147]) << endl;
+			ss << "Unrecognized MBC type of " << hex << int(mapper_byte);
 			throw runtime_error(ss.str());
 		    }
 		    break;
@@ -377,7 +467,10 @@ namespace gb
 	    int getRAMBanks(vector<uint8_t> &rom, ostream &stream)
 	    {
 		int num_ram_banks = 0;
-		switch (rom[0x0149])
+
+		uint8_t ram_byte = getROMByte(rom, 0x0149);
+
+		switch (ram_byte)
 		{
 		    case 0x0:
 		    case 0x1:
@@ -413,7 +506,7 @@ namespace gb
 		    default:
 		    {
 			stringstream ss;
-			ss << "Unrecognized RAM bank count of " << hex << int(rom[0x149]) << endl;
+			ss << "Unrecognized RAM bank count of " << hex << int(ram_byte);
 			throw runtime_error(ss.str());
 		    }
 		    break;
@@ -429,7 +522,8 @@ namespace gb
 
 	    bool compareTitle(vector<uint8_t> &rom, string str)
 	    {
-		return (strncmp((char*)&rom[0x134], str.c_str(), 11) == 0);
+		uint32_t title_offs = (getHeaderOffs(rom) + 0x134);
+		return (strncmp((char*)&rom[title_offs], str.c_str(), 11) == 0);
 	    }
 
 	    bool isSonar(vector<uint8_t> &rom)
