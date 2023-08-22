@@ -122,14 +122,42 @@ namespace gb
 	return true;
     }
 
+    void GBCore::runSteps(int steps)
+    {
+	for (int i = 0; i < steps; i++)
+	{
+	    corecpu->runInstruction();
+	}
+    }
+
     void GBCore::runCore()
     {
+	coremmu->resetFrame();
 	while (coremmu->isFrame())
 	{
 	    corecpu->runInstruction();
 	}
+    }
 
-	coremmu->resetFrame();
+    void GBCore::runLinkFrame(GBCore &core)
+    {
+	resetFrame();
+	core.resetFrame();
+
+	while (isFrame())
+	{
+	    runSteps(1);
+	    core.runSteps(1);
+	}
+    }
+
+    void GBCore::runLinkFrame2(GBCore &core)
+    {
+	while (core.isFrame())
+	{
+	    runSteps(1);
+	    core.runSteps(1);
+	}
     }
 
     void GBCore::keyChanged(GBButton button, bool is_pressed)
@@ -220,5 +248,80 @@ namespace gb
 	}
 
 	loadBackup(front->loadFile(filename));
+    }
+
+    void GBCore::loadState(string filename)
+    {
+	if (front == NULL)
+	{
+	    return;
+	}
+
+	stringstream ss;
+	ss << filename << ".mbsave";
+
+	auto data = front->loadFile(ss.str());
+
+	if (data.empty())
+	{
+	    return;
+	}
+
+	mbGBSavestate state;
+	if (!state.open(data, false))
+	{
+	    state.close();
+	    return;
+	}
+
+	doSavestate(state);
+	state.close();
+    }
+
+    void GBCore::saveState(string filename)
+    {
+	if (front == NULL)
+	{
+	    return;
+	}
+
+	size_t size = getSavestateSize();
+
+	cout << "Savestate size: " << dec << size << endl;
+
+	vector<uint8_t> data;
+	data.resize(size, 0);
+
+	mbGBSavestate state;
+	state.open(data, true);
+	doSavestate(state);
+
+	vector<uint8_t> save_data = state.getData();
+
+	state.close();
+
+	stringstream ss;
+	ss << filename << ".mbsave";
+	front->saveFile(ss.str(), save_data);
+    }
+
+    void GBCore::doSavestate(mbGBSavestate &file)
+    {
+	corecpu->doSavestate(file);
+	coregpu->doSavestate(file);
+	coremmu->doSavestate(file);
+	coretimers->doSavestate(file);
+    }
+
+    size_t GBCore::getSavestateSize()
+    {
+	mbGBSavestate state;
+	size_t max_size = (16 * 1024 * 1024);
+
+	state.open(max_size);
+	doSavestate(state);
+	size_t state_size = state.getData().size();
+	state.close();
+	return state_size;
     }
 };

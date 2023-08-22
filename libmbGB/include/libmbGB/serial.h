@@ -1,6 +1,6 @@
 /*
     This file is part of libmbGB.
-    Copyright (C) 2022 BueniaDev.
+    Copyright (C) 2023 BueniaDev.
 
     libmbGB is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -37,41 +37,20 @@ namespace gb
 
 	    }
 
-	    virtual void init()
+	    virtual bool getClockBit(int)
+	    {
+		return false;
+	    }
+
+	    virtual void sendBit(bool)
 	    {
 		return;
 	    }
 
-	    virtual void sendByte(uint8_t, bool is_mode)
+	    virtual bool getBit()
 	    {
-		if (is_mode)
-		{
-		    transfer();
-		}
+		return true;
 	    }
-
-	    void setCallback(voidfunc cb)
-	    {
-		rec_func = cb;
-	    }
-
-	    void transfer()
-	    {
-		if (rec_func)
-		{
-		    rec_func();
-		}
-	    }
-
-	    virtual uint8_t getByte()
-	    {
-		return 0xFF;
-	    }
-
-	private:
-	    bool is_transfering = false;
-
-	    voidfunc rec_func;
     };
 
     #include "addons.inl"
@@ -98,14 +77,6 @@ namespace gb
 	    void connectSerialDevice(GBSerialDevice *cb)
 	    {
 		dev = cb;
-
-		if (dev != NULL)
-		{
-		    dev->setCallback([&]() -> void
-		    {
-			receive();
-		    });
-		}
 	    }
 
 	private:
@@ -122,9 +93,17 @@ namespace gb
 	    int serial_clock = 0;
 	    int shift_counter = 0;
 
-	    int getTransferRate()
+	    bool transfer_signal = false;
+	    bool prev_transfer_signal = false;
+
+	    bool prev_inc = false;
+
+	    void shiftSerialBit();
+
+	    int getInternalClockBit()
 	    {
-		return testbit(reg_sc, 1) ? 16 : 512;
+		// TODO: Implement GBC stuff
+		return testbit(reg_sc, 1) ? 2 : 7;
 	    }
 
 	    void fireInterrupt()
@@ -133,30 +112,6 @@ namespace gb
 		{
 		    irq_func(3);
 		}
-	    }
-
-	    void sendByte(uint8_t data, bool is_mode)
-	    {
-		dev->sendByte(data, is_mode);
-	    }
-
-	    uint8_t getByte()
-	    {
-		return dev->getByte();
-	    }
-
-	    void receive()
-	    {
-		reg_sb = getByte();
-		fireInterrupt();
-		reg_sc &= 0x7F;
-		is_pending_receive = false;
-	    }
-
-	    void signalTransfer()
-	    {
-		sendByte(reg_sb, testbit(reg_sc, 0));
-		is_pending_receive = true;
 	    }
     };
 };

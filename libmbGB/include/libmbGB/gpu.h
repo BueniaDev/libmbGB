@@ -76,7 +76,19 @@ namespace gb
 	    void init(GBModel model, bool is_bios_load);
 	    void shutdown();
 
+	    void doSavestate(mbGBSavestate &file);
+
 	    void tickGPU();
+
+	    bool isFrame()
+	    {
+		return refresh_frame;
+	    }
+
+	    void resetFrame()
+	    {
+		refresh_frame = false;
+	    }
 
 	    uint8_t readVRAM(uint16_t addr);
 	    void writeVRAM(uint16_t addr, uint8_t data);
@@ -125,6 +137,10 @@ namespace gb
 
 	    vector<GBRGB> framebuffer;
 	    array<GBRGB, 160> line_buffer;
+
+	    bool refresh_frame = false;
+
+	    int off_counter = 0;
 
 	    uint8_t reg_lcdc = 0;
 	    uint8_t reg_stat = 0;
@@ -195,6 +211,7 @@ namespace gb
 	    int pixel_xpos = 0;
 	    GBFetcherState fetcher_state;
 	    int fetcher_counter = 0;
+	    bool last_push_success = false;
 
 	    array<uint8_t, 8> bg_data;
 	    GBFIFO<GBFIFOPixel, 16> bg_fifo;
@@ -225,28 +242,13 @@ namespace gb
 
 	    void updateFramebuffer();
 
-	    bool fetcher_begin_delay = false;
-
-	    uint8_t fetcher_ypos = 0;
-
-	    uint8_t getFetcherY()
-	    {
-		if (is_window)
-		{
-		    return (window_line_counter & 0xFF);
-		}
-		else
-		{
-		    return ((reg_ly + reg_scy) & 0xFF);
-		}
-	    }
-
 	    void hblank();
 	    void vblank();
 	    void oamSearch();
 	    void pixelTransfer();
 
 	    GBGPUState gpu_state;
+	    GBGPUState next_state;
 
 	    void setPixel(GBFIFOPixel bg_pixel, GBFIFOPixel obj_pixel);
 
@@ -256,8 +258,7 @@ namespace gb
 	    void setStatMode(GBGPUState state)
 	    {
 		gpu_state = state;
-		new_mode = int(state);
-		is_mode_latch = true;
+		reg_stat = ((reg_stat & 0xFC) | int(state));
 	    }
 
 	    void pushSpriteFIFO();

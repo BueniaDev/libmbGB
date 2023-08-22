@@ -36,13 +36,39 @@ namespace gb
 	    uint8_t readIO();
 	    void writeIO(uint8_t data);
 
+	    void tickJoypad();
+	    void updateJoypad();
+
 	    void keyChanged(GBButton button, bool is_pressed);
+
+	    void setIRQCallback(voidintfunc cb)
+	    {
+		irq_func = cb;
+	    }
 
 	private:
 	    int button_states = 0;
 	    uint8_t reg_joyp = 0;
 
-	    void updateJoypad();
+	    uint8_t keypad_states = 0;
+
+	    size_t joypad_counter = 0;
+
+	    voidintfunc irq_func;
+
+	    size_t last_ticks = 0;
+
+	    void fireJoypadCallback(bool wait);
+
+	    bool prev_irq_signal = false;
+
+	    void fireJoypadIRQ()
+	    {
+		if (irq_func)
+		{
+		    irq_func(4);
+		}
+	    }
     };
 };
 

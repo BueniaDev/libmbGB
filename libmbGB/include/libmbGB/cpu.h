@@ -34,6 +34,15 @@ namespace gb
 	uint16_t sp = 0;
     };
 
+    enum GBConflict : int
+    {
+	ReadOld = 0,
+	ReadNew = 1,
+	WriteCPU = 2,
+	PaletteDMG = 3,
+	PaletteCGB = 4,
+    };
+
     class LIBMBGB_API GBRegister
     {
 	public:
@@ -112,6 +121,8 @@ namespace gb
 	    void runInstruction();
 	    void debugOutput(bool print_dasm = true);
 
+	    void doSavestate(mbGBSavestate &file);
+
 	    GBStatus getStatus()
 	    {
 		return internal_status;
@@ -123,6 +134,30 @@ namespace gb
 	    GBMMU &memory;
 
 	    GBStatus internal_status;
+
+	    unordered_map<uint8_t, GBConflict> cgbConflicts = 
+	    {
+		{0x0F, WriteCPU},
+		{0x45, WriteCPU},
+		{0x47, PaletteCGB},
+		{0x48, PaletteCGB},
+		{0x49, PaletteCGB},
+	    };
+
+	    unordered_map<uint8_t, GBConflict> dmgConflicts = 
+	    {
+		{0x0F, WriteCPU},
+		{0x45, ReadOld},
+		{0x40, ReadNew},
+		{0x42, ReadNew},
+		{0x47, PaletteDMG},
+		{0x48, PaletteDMG},
+		{0x49, PaletteDMG},
+
+		{0x4A, ReadNew},
+		{0x4B, ReadNew},
+		{0x43, ReadNew},
+	    };
 
 	    void internalCycle()
 	    {

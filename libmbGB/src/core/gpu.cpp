@@ -60,10 +60,38 @@ namespace gb
 	framebuffer.clear();
     }
 
+    void GBGPU::doSavestate(mbGBSavestate &file)
+    {
+	file.var8(reg_lcdc);
+	file.var8(reg_stat);
+	file.var8(reg_scx);
+	file.var8(reg_scy);
+	file.var8(reg_ly);
+	file.var8(reg_lyc);
+	file.var8(reg_bgp);
+	file.var8(reg_obp0);
+	file.var8(reg_obp1);
+	file.var8(reg_winy);
+	file.var8(reg_winx);
+
+	file.varInt(tick_counter);
+	file.varBool32(lcd_just_on);
+
+	// TODO: Finish up savestate for this section
+    }
+
     void GBGPU::tickGPU()
     {
 	if (!testbit(reg_lcdc, 7))
 	{
+	    off_counter += 1;
+
+	    if (off_counter == 70224)
+	    {
+		off_counter = 0;
+		refresh_frame = true;
+	    }
+
 	    return;
 	}
 
@@ -153,6 +181,7 @@ namespace gb
     {
 	if ((reg_ly == 144) && (tick_counter == 4))
 	{
+	    refresh_frame = true;
 	    fireVBlankIRQ();
 	}
 

@@ -41,8 +41,6 @@ namespace gb
 	{
 	    connectSerialDevice(new GBSerialDevice());
 	}
-
-	dev->init();
     }
 
     void GBSerial::shutdown()
@@ -75,41 +73,56 @@ namespace gb
 	    case 0x02:
 	    {
 		reg_sc = data;
-		is_pending_receive = false;
 	    }
 	    break;
 	}
     }
 
+    void GBSerial::shiftSerialBit()
+    {
+	dev->sendBit(testbit(reg_sb, 7));
+	reg_sb <<= 1;
+	reg_sb |= dev->getBit();
+
+	if (--shift_counter == 0)
+	{
+	    reg_sc &= 0x7F;
+	    fireInterrupt();
+	}
+    }
+
     void GBSerial::tickSerial()
     {
-	if (!testbit(reg_sc, 7) || is_pending_receive)
+	serial_clock += 1;
+
+	if ((shift_counter == 0) && testbit(reg_sc, 7))
 	{
-	    return;
+	    shift_counter = 8;
 	}
 
-	int cycles = getTransferRate();
+	if ((shift_counter > 0) && !transfer_signal && prev_transfer_signal)
+	{
+	    shiftSerialBit();
+	}
+
+	prev_transfer_signal = transfer_signal;
+
+	bool serial_inc = false;
 
 	if (testbit(reg_sc, 0))
 	{
-	    serial_clock += 1;
-
-	    if (serial_clock == cycles)
-	    {
-		serial_clock = 0;
-
-		shift_counter += 1;
-
-		if (shift_counter == 8)
-		{
-		    shift_counter = 0;
-		    signalTransfer();
-		}
-	    }
+	    serial_inc = testbit(serial_clock, getInternalClockBit());
 	}
 	else
 	{
-	    signalTransfer();
+	    serial_inc = dev->getClockBit(serial_clock);
 	}
+
+	if (!serial_inc && prev_inc)
+	{
+	    transfer_signal = !transfer_signal;
+	}
+
+	prev_inc = serial_inc;
     }
 };

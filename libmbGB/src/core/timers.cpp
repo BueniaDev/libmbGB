@@ -45,6 +45,17 @@ namespace gb
 	return;
     }
 
+    void GBTimers::doSavestate(mbGBSavestate &file)
+    {
+	file.section("TIME");
+	file.var16(divider);
+	file.var8(reg_tima);
+	file.var8(reg_tma);
+	file.var8(reg_tac);
+	file.varInt(timer_irq_cycles);
+	file.varInt(timer_reload_cycles);
+    }
+
     uint8_t GBTimers::readIO(int addr)
     {
 	uint8_t data = 0;

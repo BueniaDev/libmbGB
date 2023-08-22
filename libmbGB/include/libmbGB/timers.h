@@ -36,6 +36,8 @@ namespace gb
 	    uint8_t readIO(int addr);
 	    void writeIO(int addr, uint8_t data);
 
+	    void doSavestate(mbGBSavestate &file);
+
 	    void tickTimers();
 
 	    void setIRQCallback(voidintfunc cb)

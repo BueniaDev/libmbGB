@@ -1,6 +1,6 @@
 /*
     This file is part of libmbGB.
-    Copyright (C) 2022 BueniaDev.
+    Copyright (C) 2023 BueniaDev.
 
     libmbGB is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -39,13 +39,49 @@ namespace gb
 	graphics.setHDMACallback(hdma_func);
 	timers.setIRQCallback(irq_func);
 	serial.setIRQCallback(irq_func);
+	joypad.setIRQCallback(irq_func);
 
 	wram_bank = 1;
+	is_odd_tick = false;
     }
 
     void GBMMU::shutdown()
     {
 	mapper->shutdown();
+    }
+
+    void GBMMU::doSavestate(mbGBSavestate &file)
+    {
+	file.section("MMU ");
+	file.varBool32(is_odd_tick);
+	file.varType(model_type);
+	file.varBool32(is_bios_load);
+	file.var8(irq_flags);
+	file.var8(irq_enable);
+	file.varArray8(hram);
+	file.varArray8(wram);
+	file.varBool32(is_double_speed);
+	file.varType(oam_dma_state);
+	file.var8(oam_dma_byte);
+	file.var16(oam_dma_addr);
+	file.var16(oam_dma_dest);
+	file.var8(oam_transfer_byte);
+	file.varInt(oam_dma_cycles);
+	file.varInt(oam_num_bytes);
+	file.varInt(wram_bank);
+	file.var16(hdma_source);
+	file.var16(hdma_dest);
+	file.var8(hdma_control);
+	file.varInt(hdma_bytes_to_copy);
+	file.varInt(hdma_cycles);
+	file.varInt(hblank_bytes);
+	file.varType(hdma_type);
+	file.varType(hdma_state);
+	file.varInt(bios_size);
+
+	mapper->doSavestate(file);
+
+	// TODO: Finish savestate for this section
     }
 
     uint8_t GBMMU::readByte(uint16_t addr)
@@ -699,18 +735,20 @@ namespace gb
     {
 	for (int i = 0; i < cycles; i++)
 	{
-	    total_cycles += 1;
+	    timers.tickTimers();
+	    tickOAMDMA();
+	    serial.tickSerial();
+	    joypad.tickJoypad();
+	    mapper->tickMapper();
 
-	    if (!is_double_speed || ((total_cycles % 2) != 0))
+	    if (!is_double_speed || is_odd_tick)
 	    {
 		graphics.tickGPU();
 		audio.tickAudio();
 		tickHDMA();
 	    }
 
-	    timers.tickTimers();
-	    tickOAMDMA();
-	    serial.tickSerial();
+	    is_odd_tick = !is_odd_tick;
 	}
     }
 
@@ -718,25 +756,28 @@ namespace gb
     {
 	for (int i = 0; i < cycles; i++)
 	{
-	    total_cycles += 1;
-	    if (!is_double_speed || ((total_cycles % 2) != 0))
+	    timers.tickTimers();
+	    serial.tickSerial();
+	    joypad.tickJoypad();
+	    mapper->tickMapper();
+
+	    if (!is_double_speed || is_odd_tick)
 	    {
 		graphics.tickGPU();
 		audio.tickAudio();
 	    }
 
-	    timers.tickTimers();
-	    serial.tickSerial();
+	    is_odd_tick = !is_odd_tick;
 	}
     }
 
     bool GBMMU::isFrame()
     {
-	return (total_cycles < (70224 << is_double_speed));
+	return !graphics.isFrame();
     }
 
     void GBMMU::resetFrame()
     {
-	total_cycles = 0;
+	graphics.resetFrame();
     }
 };

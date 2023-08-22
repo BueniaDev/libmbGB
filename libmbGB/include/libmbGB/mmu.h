@@ -25,6 +25,8 @@
 #include "input.h"
 #include "timers.h"
 #include "serial.h"
+#include "modules/mbc7eeprom.h"
+using namespace eeprom;
 using namespace gb;
 
 namespace gb
@@ -40,13 +42,19 @@ namespace gb
 	    void init();
 	    void shutdown();
 
+	    void doSavestate(mbGBSavestate &file);
+
 	    void setModel(GBModel model)
 	    {
 		model_type = model;
 	    }
 
+	    vector<uint8_t> saveBackup();
+	    void loadBackup(vector<uint8_t> data);
+
 	    void tick(int cycles);
 	    void haltedtick(int cycles);
+	    void tickInternal(bool is_running);
 
 	    uint8_t readByte(uint16_t addr);
 	    void writeByte(uint16_t addr, uint8_t data);
@@ -117,6 +125,23 @@ namespace gb
 		haltedtick(4);
 	    }
 
+	    void contextKeyChanged(GBContextButton button, bool is_pressed)
+	    {
+		mapper->contextKeyChanged(button, is_pressed);
+	    }
+
+	    void updateAccel(float xpos, float ypos)
+	    {
+		xpos = clamp<float>(xpos, -1.0f, 1.0f);
+		ypos = clamp<float>(ypos, -1.0f, 1.0f);
+		mapper->updateAccel(xpos, ypos);
+	    }
+
+	    void setRumbleCallback(rumblefunc cb)
+	    {
+		rumble_func = cb;
+	    }
+
 	private:
 	    GBGPU &graphics;
 	    GBInput &joypad;
@@ -124,7 +149,9 @@ namespace gb
 	    GBSerial &serial;
 	    GBAPU &audio;
 
-	    int total_cycles = 0;
+	    bool is_odd_tick = false;
+
+	    rumblefunc rumble_func;
 
 	    uint8_t readDirectly(uint16_t addr);
 	    void writeDirectly(uint16_t addr, uint8_t data);
@@ -191,6 +218,7 @@ namespace gb
 	    bool is_header_at_end = false;
 
 	    mbGBMapper *mapper = NULL;
+	    GBMBCType mbc_type;
 
 	    uint32_t getHeaderOffs(vector<uint8_t> &rom)
 	    {

@@ -70,25 +70,28 @@ namespace gb
 	return;
     }
 
+    void GBCPU::doSavestate(mbGBSavestate &file)
+    {
+	file.section("CPU ");
+	file.var8(reg_af.hi());
+	file.var8(reg_af.lo());
+	file.var8(reg_bc.hi());
+	file.var8(reg_bc.lo());
+	file.var8(reg_de.hi());
+	file.var8(reg_de.lo());
+	file.var8(reg_hl.hi());
+	file.var8(reg_hl.lo());
+	file.var16(pc);
+	file.var16(sp);
+	file.varBool32(is_stopped);
+	file.varBool32(is_halted);
+	file.varBool32(is_ime);
+	file.varBool32(is_halt_bug);
+	file.varBool32(ime_toggle);
+    }
+
     void GBCPU::runInstruction()
     {
-	/*
-	if (pc == 0x1DD)
-	{
-	    dump = true;
-	}
-
-	if (dump == true)
-	{
-	    debugOutput();
-
-	    if (pc == 0x48)
-	    {
-		dump = false;
-	    }
-	}
-	*/
-
 	if (is_stopped)
 	{
 	    tick(4);
@@ -204,7 +207,6 @@ namespace gb
 
     uint8_t GBCPU::readByte(uint16_t addr)
     {
-	// tick(2);
 	uint8_t data = memory.readByte(addr);
 	tick(4);
 	return data;
@@ -212,7 +214,6 @@ namespace gb
 
     void GBCPU::writeByte(uint16_t addr, uint8_t data)
     {
-	// tick(2);
 	memory.writeByte(addr, data);
 	tick(4);
     }

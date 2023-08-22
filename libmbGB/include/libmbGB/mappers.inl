@@ -144,6 +144,36 @@ class GBMBC1 : public mbGBMapper
 	    }
 	}
 
+	vector<uint8_t> saveBackup()
+	{
+	    return ram;
+	}
+
+	void loadBackup(vector<uint8_t> data)
+	{
+	    if (data.empty())
+	    {
+		return;
+	    }
+
+	    copy(data.begin(), data.end(), ram.begin());
+	}
+
+	void handleSavestate(mbGBSavestate &file)
+	{
+	    file.varInt(current_rom_bank);
+	    file.varInt(current_rom0_bank);
+	    file.varInt(current_ram_bank);
+	    file.varBool32(is_multicart);
+	    file.varBool32(is_sonar);
+	    file.varVec8(ram);
+	    file.varInt(lower_bank);
+	    file.varInt(upper_bank);
+	    file.varBool32(is_mode1);
+	    file.varBool32(is_sonar_enable);
+	    file.varBool32(prev_sonar_pulse);
+	}
+
     private:
 	int current_rom_bank = 0;
 	int current_rom0_bank = 0;
@@ -238,10 +268,7 @@ class GBMBC1 : public mbGBMapper
 	bool is_ram_enabled = false;
 };
 
-// MBC2 mapper (WIP)
-//
-// TODO list:
-// Literally everything
+// MBC2 mapper
 
 class GBMBC2 : public mbGBMapper
 {
@@ -306,6 +333,28 @@ class GBMBC2 : public mbGBMapper
 		    ram.at(addr & 0x1FF) = (data & 0xF);
 		}
 	    }
+	}
+
+	vector<uint8_t> saveBackup()
+	{
+	    return vector<uint8_t>(ram.begin(), ram.end());
+	}
+
+	void loadBackup(vector<uint8_t> data)
+	{
+	    if (data.empty())
+	    {
+		return;
+	    }
+
+	    copy(data.begin(), data.end(), ram.begin());
+	}
+
+	void handleSavestate(mbGBSavestate &file)
+	{
+	    file.varInt(current_rom_bank);
+	    file.varBool32(is_ram_enabled);
+	    file.varArray8(ram);
 	}
 
     private:
@@ -380,7 +429,24 @@ class GBMBC3 : public mbGBMapper
 		{
 		    if (isRTC())
 		    {
-			cout << "Reading value from RTC register of " << hex << int(current_rtc_reg) << endl;
+			// cout << "Reading value from RTC register of " << hex << int(current_rtc_reg) << endl;
+
+			switch (current_rtc_reg)
+			{
+			    case 0x8: data = latch_secs; break;
+			    case 0x9: data = latch_mins; break;
+			    case 0xA: data = latch_hours; break;
+			    case 0xB:
+			    {
+				data = (latch_day_counter & 0xFF);
+			    }
+			    break;
+			    case 0xC:
+			    {
+				data = (testbit(latch_day_counter, 8) | (latch_rtc_halt << 6) | (latch_day_carry << 7));
+			    }
+			    break;
+			}
 		    }
 		    else if (isRAM())
 		    {
@@ -414,7 +480,15 @@ class GBMBC3 : public mbGBMapper
 	    {
 		if (is_rtc_active)
 		{
-		    cout << "Writing value of " << hex << int(data) << " to RTC latch register" << endl;
+		    if (!testbit(data, 0) && !is_rtc_latch)
+		    {
+			is_rtc_latch = true;
+		    }
+		    else if (testbit(data, 0) && is_rtc_latch)
+		    {
+			latchTimer();
+			is_rtc_latch = false;
+		    }
 		}
 	    }
 	    else if (inRange(addr, 0xA000, 0xC000))
@@ -423,7 +497,31 @@ class GBMBC3 : public mbGBMapper
 		{
 		    if (isRTC())
 		    {
-			cout << "Writing value of " << hex << int(data) << " to RTC register of " << hex << int(current_rtc_reg) << endl;
+			switch (current_rtc_reg)
+			{
+			    case 0x8:
+			    {
+				tick_counter = 0;
+				real_secs = (data & 0x3F);
+			    }
+			    break;
+			    case 0x9: real_mins = (data & 0x3F); break;
+			    case 0xA: real_hours = (data & 0x1F); break;
+			    case 0xB:
+			    {
+				real_day_counter = ((real_day_counter & 0x100) | data);
+			    }
+			    break;
+			    case 0xC:
+			    {
+				real_day_counter = ((real_day_counter & 0xFF) | (testbit(data, 0) << 8));
+				is_rtc_halt = testbit(data, 6);
+				real_day_carry = testbit(data, 7);
+			    }
+			    break;
+			}
+
+			// cout << "Writing value of " << hex << int(data) << " to RTC register of " << hex << int(current_rtc_reg) << endl;
 		    }
 		    else if (isRAM())
 		    {
@@ -431,6 +529,53 @@ class GBMBC3 : public mbGBMapper
 			ram.at(ram_addr) = data;
 		    }
 		}
+	    }
+	}
+
+	vector<uint8_t> saveBackup()
+	{
+	    return ram;
+	}
+
+	void loadBackup(vector<uint8_t> data)
+	{
+	    if (data.empty())
+	    {
+		return;
+	    }
+
+	    copy(data.begin(), data.end(), ram.begin());
+	}
+
+	void handleSavestate(mbGBSavestate &file)
+	{
+	    file.varInt(current_rom_bank);
+	    file.varInt(current_ram_bank);
+	    file.varInt(current_rtc_reg);
+	    file.varVec8(ram);
+	    file.varInt(ram_rtc_reg);
+	    file.varBool32(is_rtc_active);
+	    file.varBool32(is_ram_rtc_enabled);
+	}
+
+	void tickMapper()
+	{
+	    if (!is_rtc_active)
+	    {
+		return;
+	    }
+
+	    if (is_rtc_halt)
+	    {
+		return;
+	    }
+
+	    tick_counter += 1;
+
+	    if (tick_counter == 4194304)
+	    {
+		tick_counter = 0;
+		tickRTC();
 	    }
 	}
 
@@ -444,6 +589,63 @@ class GBMBC3 : public mbGBMapper
 	int ram_rtc_reg = 0;
 
 	bool is_rtc_active = false;
+
+	int tick_counter = 0;
+
+	bool is_rtc_latch = false;
+
+	uint8_t latch_secs = 0;
+	uint8_t latch_mins = 0;
+	uint8_t latch_hours = 0;
+	uint16_t latch_day_counter = 0;
+	bool latch_rtc_halt = false;
+	bool latch_day_carry = false;
+
+	uint8_t real_secs = 0;
+	uint8_t real_mins = 0;
+	uint8_t real_hours = 0;
+	uint16_t real_day_counter = 0;
+	bool is_rtc_halt = false;
+	bool real_day_carry = false;
+
+	void tickRTC()
+	{
+	    real_secs = ((real_secs + 1) & 0x3F);
+
+	    if (real_secs == 60)
+	    {
+		real_secs = 0;
+		real_mins = ((real_mins + 1) & 0x3F);
+
+		if (real_mins == 60)
+		{
+		    real_mins = 0;
+		    real_hours = ((real_hours + 1) & 0x1F);
+
+		    if (real_hours == 24)
+		    {
+			real_hours = 0;
+			real_day_counter += 1;
+
+			if (real_day_counter == 512)
+			{
+			    real_day_counter = 0;
+			    real_day_carry = true;
+			}
+		    }
+		}
+	    }
+	}
+
+	void latchTimer()
+	{
+	    latch_secs = real_secs;
+	    latch_mins = real_mins;
+	    latch_hours = real_hours;
+	    latch_day_counter = real_day_counter;
+	    latch_rtc_halt = is_rtc_halt;
+	    latch_day_carry = real_day_carry;
+	}
 
 	bool isRAM()
 	{
@@ -485,9 +687,6 @@ class GBMBC3 : public mbGBMapper
 };
 
 // MBC5 mapper
-//
-// TODO list:
-// Implement proper rumble support
 
 class GBMBC5 : public mbGBMapper
 {
@@ -575,6 +774,54 @@ class GBMBC5 : public mbGBMapper
 	    }
 	}
 
+	vector<uint8_t> saveBackup()
+	{
+	    return ram;
+	}
+
+	void loadBackup(vector<uint8_t> data)
+	{
+	    if (data.empty())
+	    {
+		return;
+	    }
+
+	    copy(data.begin(), data.end(), ram.begin());
+	}
+
+	void tickMapper()
+	{
+	    rumble_strength &= 0x7;
+	    rumble_on_cycles += rumble_strength;
+	    rumble_off_cycles += (rumble_strength ^ 7);
+	}
+
+	void handleVBlank()
+	{
+	    int total_cycles = (rumble_on_cycles + rumble_off_cycles);
+
+	    if (total_cycles > 0)
+	    {
+		double strength = (rumble_on_cycles / double(total_cycles));
+		callRumbleCallback(strength);
+		rumble_on_cycles = 0;
+		rumble_off_cycles = 0;
+	    }
+	}
+
+	void handleSavestate(mbGBSavestate &file)
+	{
+	    file.varBool32(is_rumble_active);
+	    file.varBool32(is_ram_enabled);
+	    file.varVec8(ram);
+	    file.varInt(current_rom_bank);
+	    file.varInt(current_ram_bank);
+
+	    file.varInt(rumble_on_cycles);
+	    file.varInt(rumble_off_cycles);
+	    file.varInt(rumble_strength);
+	}
+
     private:
 	bool is_rumble_active = false;
 	bool is_ram_enabled = false;
@@ -583,6 +830,11 @@ class GBMBC5 : public mbGBMapper
 
 	int current_rom_bank = 0;
 	int current_ram_bank = 0;
+
+	int rumble_on_cycles = 0;
+	int rumble_off_cycles = 0;
+
+	int rumble_strength = 0;
 
 	void writeLowerROMBank(uint8_t data)
 	{
@@ -613,11 +865,11 @@ class GBMBC5 : public mbGBMapper
 	{
 	    if (is_enabled)
 	    {
-		cout << "Starting rumble..." << endl;
+		rumble_strength = 7;
 	    }
 	    else
 	    {
-		cout << "Stopping rumble..." << endl;
+		rumble_strength = 0;
 	    }
 	}
 };
@@ -625,7 +877,7 @@ class GBMBC5 : public mbGBMapper
 // MBC7 mapper (used by Kirby Tilt-n-Tumble and Command Master) (WIP)
 //
 // TODO list:
-// Literally everything
+// Figure out proper values for accelerometer
 
 class GBMBC7 : public mbGBMapper
 {
@@ -640,9 +892,23 @@ class GBMBC7 : public mbGBMapper
 
 	}
 
+	void configureMapper(int flags)
+	{
+	    is_4k_eeprom = testbit(flags, 0);
+	}
+
 	void initMapper()
 	{
+	    accel_xpos_latch = 0x8000;
+	    accel_ypos_latch = 0x8000;
 	    current_rom_bank = 1;
+
+	    eeprom.init(is_4k_eeprom);
+	}
+
+	void shutdownMapper()
+	{
+	    eeprom.shutdown();
 	}
 
 	uint8_t readByte(uint16_t addr)
@@ -651,6 +917,22 @@ class GBMBC7 : public mbGBMapper
 	    if (inRange(addr, 0, 0x4000))
 	    {
 		data = fetchROM(addr);
+	    }
+	    else if (inRange(addr, 0x4000, 0x8000))
+	    {
+		uint32_t rom_addr = ((addr - 0x4000) + (current_rom_bank * 0x4000));
+		data = fetchROM(rom_addr);
+	    }
+	    else if (inRange(addr, 0xA000, 0xB000))
+	    {
+		if (is_ram_enable1 && is_ram_enable2)
+		{
+		    data = readReg(addr);
+		}
+		else
+		{
+		    data = 0xFF;
+		}
 	    }
 	    else
 	    {
@@ -662,9 +944,29 @@ class GBMBC7 : public mbGBMapper
 
 	void writeByte(uint16_t addr, uint8_t data)
 	{
-	    if (inRange(addr, 0x2000, 0x400))
+	    if (inRange(addr, 0x0000, 0x2000))
 	    {
-		writeROMBank(data);
+		is_ram_enable1 = ((data & 0xF) == 0xA);
+
+		if (!is_ram_enable1)
+		{
+		    is_ram_enable2 = false;
+		}
+	    }
+	    else if (inRange(addr, 0x2000, 0x4000))
+	    {
+		current_rom_bank = wrapROMBanks(data);
+	    }
+	    else if (inRange(addr, 0x4000, 0x6000))
+	    {
+		is_ram_enable2 = (data == 0x40);
+	    }
+	    else if (inRange(addr, 0xA000, 0xB000))
+	    {
+		if (is_ram_enable1 && is_ram_enable2)
+		{
+		    writeReg(addr, data);
+		}
 	    }
 	    else
 	    {
@@ -672,18 +974,128 @@ class GBMBC7 : public mbGBMapper
 	    }
 	}
 
+	void updateAccel(float xpos, float ypos)
+	{
+	    accel_xpos = int(xpos * 0x70);
+	    accel_ypos = int(ypos * 0x70);
+	}
+
+	vector<uint8_t> saveBackup()
+	{
+	    return eeprom.saveBackup();
+	}
+
+	void loadBackup(vector<uint8_t> data)
+	{
+	    eeprom.loadBackup(data);
+	}
+
+	void handleSavestate(mbGBSavestate &file)
+	{
+	    file.varInt(current_rom_bank);
+	    file.varBool32(is_ram_enable1);
+	    file.varBool32(is_ram_enable2);
+	    file.varBool32(is_4k_eeprom);
+
+	    file.var16(accel_xpos);
+	    file.var16(accel_ypos);
+
+	    file.var16(accel_xpos_latch);
+	    file.var16(accel_ypos_latch);
+	    file.varBool32(is_erased);
+
+	    // TODO: Serialize EEPROM
+	}
+
     private:
 	int current_rom_bank = 0;
+	bool is_ram_enable1 = false;
+	bool is_ram_enable2 = false;
 
-	void writeROMBank(uint8_t data)
+	bool is_4k_eeprom = false;
+
+	MBC7EEPROM eeprom;
+
+	uint16_t accel_xpos = 0;
+	uint16_t accel_ypos = 0;
+
+	uint16_t accel_xpos_latch = 0;
+	uint16_t accel_ypos_latch = 0;
+
+	bool is_erased = false;
+
+	void eraseAccel()
 	{
-	    current_rom_bank = wrapROMBanks(data & 0x7F);
+	    accel_xpos_latch = 0x8000;
+	    accel_ypos_latch = 0x8000;
+	    is_erased = true;
+	}
+
+	void latchAccel()
+	{
+	    accel_xpos_latch = (0x81D0 + accel_xpos);
+	    accel_ypos_latch = (0x81D0 + accel_ypos);
+	    is_erased = false;
+	}
+
+	uint8_t readReg(uint16_t addr)
+	{
+	    uint8_t data = 0;
+	    int reg = ((addr >> 4) & 0xF);
+
+	    switch (reg)
+	    {
+		case 0x2: data = (accel_xpos_latch & 0xFF); break;
+		case 0x3: data = (accel_xpos_latch >> 8); break;
+		case 0x4: data = (accel_ypos_latch & 0xFF); break;
+		case 0x5: data = (accel_ypos_latch >> 8); break;
+		case 0x8: data = eeprom.readIO(); break;
+		default:
+		{
+		    cout << "Unrecognized read from MBC7 register of " << hex << int(reg) << endl;
+		    throw runtime_error("mbGB error");
+		}
+		break;
+	    }
+
+	    return data;
+	}
+
+	void writeReg(uint16_t addr, uint8_t data)
+	{
+	    int reg = ((addr >> 4) & 0xF);
+
+	    switch (reg)
+	    {
+		case 0x0:
+		{
+		    if (data == 0x55)
+		    {
+			eraseAccel();
+		    }
+		}
+		break;
+		case 0x1:
+		{
+		    if (is_erased && (data == 0xAA))
+		    {
+			latchAccel();
+		    }
+		}
+		break;
+		case 0x8: eeprom.writeIO(data); break;
+		default:
+		{
+		    cout << "Unrecognized write of " << hex << int(data) << " to MBC7 register of " << hex << int(reg) << endl;
+		    throw runtime_error("mbGB error");
+		}
+		break;
+	    }
 	}
 };
 
 
 // MMM01 mapper (used by various multicart games) (WIP)
-//
 // TODO list:
 // Literally everything
 
@@ -699,38 +1111,10 @@ class GBMMM01 : public mbGBMapper
 	{
 
 	}
-
-	void initMapper()
-	{
-	    is_mapped = false;
-	}
-
-	uint8_t readByte(uint16_t addr)
-	{
-	    uint8_t data = 0xFF;
-	    if (!is_mapped)
-	    {
-		if (inRange(addr, 0, 0x8000))
-		{
-		    uint32_t rom_addr = (addr + (getROMSize() - 0x8000));
-		    data = fetchROM(rom_addr);
-		}
-	    }
-	    else
-	    {
-		cout << "Reading in mapped mode..." << endl;
-		data = mbGBMapper::readByte(addr);
-	    }
-
-	    return data;
-	}
-
-    private:
-	bool is_mapped = false;
 };
 
 
-// HuC1 mapper (used in several Hudson Soft games) (WIP)
+// HuC1 mapper (used in several Hudson Soft games)
 //
 // TODO list:
 // Infrared support
@@ -824,6 +1208,15 @@ class GBHuC1 : public mbGBMapper
 	    }
 	}
 
+	void handleSavestate(mbGBSavestate &file)
+	{
+	    file.varInt(current_rom_bank);
+	    file.varInt(current_ram_bank);
+
+	    file.varVec8(ram);
+	    file.varBool32(is_ir_mode);
+	}
+
     private:
 	int current_rom_bank = 0;
 	int current_ram_bank = 0;
@@ -887,25 +1280,6 @@ class GBHuC3 : public mbGBMapper
 	{
 
 	}
-};
-
-// Gameboy Camera mapper (WIP)
-//
-// TODO list:
-// Literally everything
-
-class GBCamera : public mbGBMapper
-{
-    public:
-	GBCamera()
-	{
-
-	}
-
-	~GBCamera()
-	{
-
-	}
 
 	uint8_t readByte(uint16_t addr)
 	{
@@ -922,6 +1296,140 @@ class GBCamera : public mbGBMapper
 
 	    return data;
 	}
+
+	void writeByte(uint16_t addr, uint8_t data)
+	{
+	    if (inRange(addr, 0x6000, 0x8000))
+	    {
+		return;
+	    }
+	    else
+	    {
+		mbGBMapper::writeByte(addr, data);
+	    }
+	}
+};
+
+// Gameboy Camera mapper (WIP)
+//
+// TODO list:
+// Implement camera registers
+// Implement other camera functionality
+
+class GBCamera : public mbGBMapper
+{
+    public:
+	GBCamera()
+	{
+
+	}
+
+	~GBCamera()
+	{
+
+	}
+
+	void initMapper()
+	{
+	    current_rom_bank = 1;
+	    current_ram_bank = 0;
+	    is_ram_enabled = false;
+	    ram.resize(getRAMSize(), 0);
+	}
+
+	void shutdownMapper()
+	{
+	    ram.clear();
+	}
+
+	uint8_t readByte(uint16_t addr)
+	{
+	    uint8_t data = 0;
+
+	    if (inRange(addr, 0, 0x4000))
+	    {
+		data = fetchROM(addr);
+	    }
+	    else if (inRange(addr, 0x4000, 0x8000))
+	    {
+		uint32_t rom_addr = ((addr - 0x4000) + (current_rom_bank * 0x4000));
+		data = fetchROM(rom_addr);
+	    }
+	    else if (inRange(addr, 0xA000, 0xC000))
+	    {
+		if (is_reg_active)
+		{
+		    cout << "Reading from camera register of " << hex << int(addr & 0x7F) << endl;
+		    data = 0x00;
+		}
+		else
+		{
+		    uint32_t ram_addr = ((addr - 0xA000) + (current_ram_bank * 0x2000));
+		    data = ram.at(ram_addr);
+		}
+	    }
+	    else
+	    {
+		data = mbGBMapper::readByte(addr);
+	    }
+
+	    return data;
+	}
+
+	void writeByte(uint16_t addr, uint8_t data)
+	{
+	    if (inRange(addr, 0, 0x2000))
+	    {
+		is_ram_enabled = ((data & 0xF) == 0xA);
+	    }
+	    else if (inRange(addr, 0x2000, 0x4000))
+	    {
+		current_rom_bank = wrapROMBanks(data & 0x3F);
+	    }
+	    else if (inRange(addr, 0x4000, 0x6000))
+	    {
+		is_reg_active = testbit(data, 4);
+
+		if (!is_reg_active)
+		{
+		    current_ram_bank = wrapRAMBanks(data & 0xF);
+		}
+	    }
+	    else if (inRange(addr, 0xA000, 0xC000))
+	    {
+		if (is_reg_active)
+		{
+		    cout << "Writing value of " << hex << int(data) << " to camera register of " << hex << int(addr & 0x7F) << endl;
+		    return;
+		}
+		else if (is_ram_enabled)
+		{
+		    uint32_t ram_addr = ((addr - 0xA000) + (current_ram_bank * 0x2000));
+		    data = ram.at(ram_addr);
+		}
+	    }
+	    else
+	    {
+		mbGBMapper::writeByte(addr, data);
+	    }
+	}
+
+	void handleSavestate(mbGBSavestate &file)
+	{
+	    file.varInt(current_rom_bank);
+	    file.varInt(current_ram_bank);
+	    file.varBool32(is_reg_active);
+	    file.varBool32(is_ram_enabled);
+	    file.varVec8(ram);
+	}
+
+    private:
+	int current_rom_bank = 0;
+	int current_ram_bank = 0;
+	bool is_reg_active = false;
+	bool is_ram_enabled = false;
+
+	vector<uint8_t> ram;
 };
 
 
@@ -970,9 +1478,15 @@ class GBM161 : public mbGBMapper
 	    }
 	}
 
+	void handleSavestate(mbGBSavestate &file)
+	{
+	    file.varInt(current_rom_bank);
+	    file.varBool32(rom_bankswitch);
+	}
+
     private:
 	int current_rom_bank = 0;
-	int rom_bankswitch = false;
+	bool rom_bankswitch = false;
 };
 
 

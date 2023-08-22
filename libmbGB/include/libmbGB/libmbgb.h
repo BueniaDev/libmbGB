@@ -41,10 +41,20 @@ namespace gb
 
 	    void setModel(GBModel model);
 
-	    void connectSerialDevice(GBSerialDevice *device);
-
 	    bool initCore();
 	    void runCore();
+
+	    void runSteps(int steps);
+
+	    void resetFrame()
+	    {
+		coremmu->resetFrame();
+	    }
+
+	    bool isFrame()
+	    {
+		return coremmu->isFrame();
+	    }
 
 	    bool loadBIOS(vector<uint8_t> bios);
 	    bool loadROM(vector<uint8_t> rom);
@@ -52,12 +62,39 @@ namespace gb
 	    bool loadBIOS(string filename);
 	    bool loadROM(string filename);
 
+	    void loadBackup(string filename);
+	    void saveBackup(string filename);
+
+	    vector<uint8_t> saveBackup()
+	    {
+		return coremmu->saveBackup();
+	    }
+
+	    void loadBackup(vector<uint8_t> data)
+	    {
+		coremmu->loadBackup(data);
+	    }
+
 	    void keyChanged(GBButton button, bool is_pressed);
+	    void contextKeyChanged(GBContextButton button, bool is_pressed);
+
+	    void updateAccel(float xpos, float ypos);
 
 	    void keyPressed(GBButton button);
 	    void keyReleased(GBButton button);
 
+	    void runLinkFrame(GBCore &core);
+	    void runLinkFrame2(GBCore &core);
+
+	    void connectSerialDevice(GBSerialDevice *device);
+
+	    void contextKeyPressed(GBContextButton button);
+	    void contextKeyReleased(GBContextButton button);
+
 	    void setFrontend(mbGBFrontend *cb);
+
+	    void loadState(string filename);
+	    void saveState(string filename);
 
 	    vector<GBRGB> getFramebuffer()
 	    {
@@ -69,7 +106,6 @@ namespace gb
 		return coregpu->getDepth();
 	    }
 
-
 	private:
 	    unique_ptr<GBMMU> coremmu;
 	    unique_ptr<GBGPU> coregpu;
@@ -80,6 +116,10 @@ namespace gb
 	    unique_ptr<GBCPU> corecpu;
 
 	    mbGBFrontend *front = NULL;
+
+	    void doSavestate(mbGBSavestate &file);
+
+	    size_t getSavestateSize();
     };
 };
 
