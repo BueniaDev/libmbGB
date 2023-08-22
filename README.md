@@ -15,6 +15,6 @@ libmbGB is free software: you can redistribute it and/or modify it under the ter
 
 # Copyright
 
-(C) 2022 BueniaDev. This project is not affiliated in any way with Nintendo. Game Boy and Game Boy Color are registered trademarks of Nintendo Co., Ltd.
+(C) 2023 BueniaDev. This project is not affiliated in any way with Nintendo. Game Boy and Game Boy Color are registered trademarks of Nintendo Co., Ltd.
 
 For information regarding libmbGB's stance on copyright infringement, as well as proof of libmbGB's legality, see the LEGAL.md file in this repository.
